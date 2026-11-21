@@ -151,8 +151,83 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function OpenButton(props) {
-      return h('button', {
+    // ── 章节工作台（conversation.view）：左正文、右依据与账本 ──────────────
+    function Workbench(props) {
+      const { sessionId, remote } = props
+      const [state, setState] = React.useState({ phase: 'loading', data: null, error: null })
+      const [book, setBook] = React.useState('')
+
+      const load = React.useCallback(async function (nextBook) {
+        if (!remote) {
+          setState({ phase: 'error', data: null, error: '工作台读接口未就绪：请更新并重载 DSH。' })
+          return
+        }
+        setState((prev) => ({ phase: prev.data ? 'refreshing' : 'loading', data: prev.data, error: null }))
+        try {
+          const data = await Promise.resolve(remote.getSnapshot(sessionId, { book: nextBook || book || null })).then(unwrap)
+          setState({ phase: 'ready', data, error: null })
+        } catch (error) {
+          setState({ phase: 'error', data: null, error: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, book])
+
+      React.useEffect(function () { load() }, [load])
+
+      const data = state.data
+      const books = (data && data.workspace && data.workspace.beat) || []
+      const draft = data && data.session && data.session.draft
+
+      return h('div', { style: { display: 'flex', flexDirection: 'column', height: '100%', background: c.base, color: c.text, fontSize: 13 } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderBottom: '1px solid ' + c.border } },
+          h('span', { style: { fontWeight: 600 } }, '章节工作台'),
+          books.length
+            ? h('select', {
+                value: book || (data && data.book) || '',
+                onChange: function (event) { setBook(event.target.value); load(event.target.value) },
+                style: { fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text },
+              }, books.map((name) => h('option', { key: name, value: name }, name)))
+            : null,
+          h('span', { style: faint }, data && data.session ? `第 ${data.session.chapter} 章 · ${data.session.state}` : '无活动会话'),
+          h('span', { style: { marginLeft: 'auto' } },
+            h('button', {
+              type: 'button',
+              onClick: function () { load() },
+              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
+            }, state.phase === 'refreshing' ? '刷新中…' : '刷新')),
+        ),
+        state.error ? h('div', { style: { color: c.error, padding: '8px 14px' } }, state.error) : null,
+        h('div', { style: { display: 'flex', gap: 0, flex: 1, minHeight: 0 } },
+          h('div', { style: { flex: 1, minWidth: 0, padding: '10px 14px', overflowY: 'auto' } },
+            h('div', { style: { ...faint, marginBottom: 6 } }, draft ? `正文 v${draft.version} · ${draft.chars ?? '?'} 字` : '还没有正文草稿'),
+            h('pre', {
+              style: {
+                margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 13, lineHeight: 1.8,
+                color: draft ? c.text : c.faint, fontFamily: 'inherit',
+              },
+            }, draft && draft.text ? draft.text : '（用 novel_chapter_write 保存正文后，这里显示草稿；工作台只读，编辑回聊天或原插件。）'),
+          ),
+          h('div', { style: { width: 260, flexShrink: 0, borderLeft: '1px solid ' + c.border, padding: '10px 12px', overflowY: 'auto' } },
+            h('div', { style: { ...faint, marginBottom: 4 } }, '写作依据'),
+            (data && data.contexts ? data.contexts : []).map(function (segment) {
+              return h('div', { key: segment.component, style: { ...row, borderBottom: 'none', padding: '3px 0' } },
+                h('span', { style: small }, segment.component),
+                h('span', { style: { color: segment.available ? c.sub : c.faint, fontSize: 11.5 } },
+                  segment.available ? `${segment.chars}/${segment.budgetChars ?? '?'} · rev ${segment.revision ?? '-'}` : '未接入'),
+              )
+            }),
+            h('div', { style: { ...faint, margin: '10px 0 4px' } }, '账本'),
+            (data && data.ledgers ? Object.entries(data.ledgers) : []).map(function ([name, value]) {
+              return h('div', { key: name, style: { ...row, borderBottom: 'none', padding: '2px 0' } },
+                h('span', { style: small }, name),
+                h('span', { style: { color: value ? c.sub : c.faint, fontSize: 11.5 } }, value ? `rev ${value.revision ?? '-'}` : '无'),
+              )
+            }),
+          ),
+        ),
+      )
+    }
+
+    function OpenButton(props) {      return h('button', {
         type: 'button',
         title: '小说：章节引擎 / 四段上下文 / 账本状态',
         onClick: props.open,
@@ -195,6 +270,15 @@ window.__ModuleLoader__.load({
           key: TAB_ID,
           inject: (sessionId) => ({ sessionId, remote: panelRemote }),
         }, Panel)))
+
+        // 章节工作台：会话级主视图（conversation.view），只读正文 + 写作依据 + 账本。
+        ctx.effect(() => ctx.slots.inject('conversation.view', () => ctx.slots.register({
+          name: 'conversation.view',
+          id: 'novel-kit.chapter',
+          label: '章节工作台',
+          order: 20,
+          inject: (sessionId) => ({ sessionId, remote: panelRemote }),
+        }, Workbench)))
 
         ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
           name: 'conversation.session.header.utilities',

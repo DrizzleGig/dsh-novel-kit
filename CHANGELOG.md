@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-dev.3 — 2026-11-22
+
+- **上下文漂移保护**：写作期间 beat/fade 账本被改（revision 变化）时，`novel_chapter_finish` 返回 `context_stale` 并进 `blocked`，不落账。
+- **章节工作台**：`conversation.view` 注册「章节工作台」（左正文只读预览、右写作依据与账本 revision），与右栏面板共用 `novelKitPanel.getSnapshot`。
+- 快照增加草稿预览（≤4000 字）。
+- 测试 **32 → 34**。
 ## 0.1.0-dev.2 — 2026-11-22
 
 右栏「小说」面板接线（S2 第一步）。

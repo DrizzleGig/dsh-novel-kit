@@ -108,3 +108,17 @@ test('契约两侧一致：客户端内嵌的 descriptor 与 Host 相同', async
   assert.ok(client.includes('$mount(TYPERT_REMOTE)'))
   assert.ok(!client.includes("commands.execute("), '面板不允许执行命令')
 })
+
+test('client：注册 conversation.view 章节工作台', async () => {
+  const module = await loadClient()
+  const { ctx, calls } = fakeCtx()
+  await module.apply(ctx)
+  const view = calls.registered.find(({ options }) => options.name === 'conversation.view')
+  assert.ok(view, '要注册 conversation.view')
+  assert.equal(view.options.id, 'novel-kit.chapter')
+  assert.equal(view.options.label, '章节工作台')
+  assert.equal(typeof view.component, 'function')
+  const props = view.options.inject('session-1')
+  assert.equal(props.sessionId, 'session-1')
+  assert.equal(typeof props.remote.getSnapshot, 'function')
+})

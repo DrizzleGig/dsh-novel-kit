@@ -140,3 +140,29 @@ test('finish：offset 不准则按唯一引文自动定位', async () => {
   const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
   assert.equal(beat.segments[1].offsetStart, draft.indexOf(quote))
 })
+
+test('finish：写正文期间账本被外部修改 → context_stale，不落账', async () => {
+  const root = workspace()
+  const { session } = await startChapter({ root, book: '书', chapter: 13 })
+  await writeChapter({ root, sessionId: session.id, text: draft })
+
+  // 模拟另一路写入：fade 新增一张卡并抬高 revision
+  const fadeFile = path.join(root, '.dsh-novel-fade', '书', 'memory.json')
+  const memory = JSON.parse(readFileSync(fadeFile, 'utf8'))
+  memory.cards.push({ id: 'external', chapter: 12, gist: '别处写的卡', salience: 3 })
+  memory.meta.revision += 1
+  writeFileSync(fadeFile, JSON.stringify(memory, null, 2))
+
+  const quote = '陈凡推门进来，屋里没有别人。'
+  const result = await finishChapter({
+    root,
+    sessionId: session.id,
+    extraction: { segments: [{ start: 0, end: quote.length, quote }] },
+  })
+  assert.equal(result.ok, false)
+  assert.equal(result.code, 'context_stale')
+  assert.equal(result.session.state, 'blocked')
+
+  const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
+  assert.equal(beat.segments.length, 1, '中文：冲突时不写 beat 账本')
+})
