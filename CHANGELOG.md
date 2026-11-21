@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-dev.12 — 2026-11-22
+
+- **voice 档案接入**：`codecs/voice.decodeVoiceProfile` + `repositories.readVoiceProfiles`；文风简报改用 confirmed 档案（bands / rules / avoid），无档案时退回书库摘要。
+- **文风检查**：`engine/metrics.js` 计算句长均值/CV、段长、对话占比、抽象/解释词密度；`checkBands` 与档案 bands 对齐（越界 warning，avoid 词 warning），并入 finish 的 verify。
+- 真实档案验证：斗罗书库的 confirmed 档案（v1.4）成功解出 bands 并进入简报。
+- 测试 **59 → 63**。
 ## 0.1.0-dev.11 — 2026-11-22
 
 - **作者拍板落账**：`novel_plan` 增加 `action: adopt|reject`（带 `proposal_id` / `option`），`adopt` 走事务写 beat `decisions` + revision + audit；重复拍板幂等；有多个选项却未指定时拒绝。
