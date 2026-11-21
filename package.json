@@ -1,0 +1,60 @@
+{
+  "name": "dsh-novel-kit",
+  "version": "0.0.0-stage",
+  "description": "小说整合包（Pro）：一次装齐 beat / fade / voice / fanfic / conductor——一个开关、一块面板、一套工具分层；本版是名字与仓库占位。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "locale",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "docs"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "novel",
+    "novel-writing",
+    "suite",
+    "bundle"
+  ],
+  "license": "MIT",
+  "author": "DrizzleGig",
+  "contributors": [
+    {
+      "name": "MiyueWinter",
+      "email": "mingyue_11129@qq.com",
+      "url": "https://github.com/MiyueWinter"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DrizzleGig/dsh-novel-kit.git"
+  },
+  "homepage": "https://github.com/DrizzleGig/dsh-novel-kit",
+  "bugs": {
+    "url": "https://github.com/DrizzleGig/dsh-novel-kit/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
