@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.13 — 2026-11-22
+
+- 面板「文风」页签展示档案（名称/版本/状态/bands/避免词），不再只有书库。
+- `checkDraft` 返回确定性指标（句长/CV/对话占比等）；工作台「本章检查」显示 blocker/warning 与指标。
+- 测试 **63 → 65**。
 ## 0.1.0-dev.12 — 2026-11-22
 
 - **voice 档案接入**：`codecs/voice.decodeVoiceProfile` + `repositories.readVoiceProfiles`；文风简报改用 confirmed 档案（bands / rules / avoid），无档案时退回书库摘要。

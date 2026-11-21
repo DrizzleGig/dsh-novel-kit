@@ -183,7 +183,17 @@ window.__ModuleLoader__.load({
         if (tab === 'style') {
           if (!value.available) return h('div', { style: faint }, '没有 voice 书库')
           return h('div', null,
-            h('div', { style: faint }, `${value.works.length} 部 · ${value.chapters} 章 · ${value.chars} 字`),
+            value.profiles && value.profiles.length
+              ? h('div', null,
+                  h('div', { style: faint }, '档案'),
+                  value.profiles.map((item) => h('div', { key: item.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
+                    h('div', { style: small }, (item.name || item.id) + ' v' + (item.version || '?') + ' · ' + item.status),
+                    h('div', { style: { color: c.faint, fontSize: 11 } },
+                      Object.entries(item.bands || {}).map(([key, band]) => key + ' ' + band[0] + '–' + band[1]).join('；') || '（无 bands）'),
+                    item.avoid && item.avoid.length ? h('div', { style: { color: c.faint, fontSize: 11 } }, '避免：' + item.avoid.join('、')) : null,
+                  )))
+              : null,
+            h('div', { style: { ...faint, marginTop: 6 } }, `${value.works.length} 部 · ${value.chapters} 章 · ${value.chars} 字`),
             value.works.map((work) => h('div', { key: work.workId, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
               h('div', { style: small }, work.title || work.workId),
               h('div', { style: faint }, `${work.chapters} 章 · ${work.chars} 字 · ${work.status || '未测量'}`),
@@ -450,6 +460,16 @@ window.__ModuleLoader__.load({
                 h('span', { style: { color: value ? c.sub : c.faint, fontSize: 11.5 } }, value ? `rev ${value.revision ?? '-'}` : '无'),
               )
             }),
+            data && data.session && data.session.verification
+              ? h('div', { style: { marginTop: 8 } },
+                  h('div', { style: faint }, '本章检查'),
+                  h('div', { style: { color: data.session.verification.blockers ? c.error : c.sub, fontSize: 11.5 } },
+                    'blocker ' + data.session.verification.blockers + ' · warning ' + data.session.verification.warnings),
+                  data.session.verification.metrics
+                    ? h('div', { style: { color: c.faint, fontSize: 11 } },
+                        '句长 ' + data.session.verification.metrics.sentenceMean + ' / CV ' + data.session.verification.metrics.sentenceCv + ' / 对话 ' + data.session.verification.metrics.dialogueRatio)
+                    : null)
+              : null,
           ),
         ),
       )

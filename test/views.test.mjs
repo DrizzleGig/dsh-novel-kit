@@ -52,3 +52,17 @@ test('canonView：称呼矩阵与禁忌', () => {
   assert.deepEqual(view.forbidden, ['不要写现代梗'])
   assert.equal(canonView(null).available, false)
 })
+
+test('styleView：带档案时给出 bands / rules / avoid', () => {
+  const view = styleView({ works: [] }, [{
+    id: 'p-001', name: '原著风格', version: '1.4', status: 'confirmed', provisional: false,
+    identity: { avoid: ['仿佛'] },
+    bands: { sentenceMean: { band: [16, 41] }, dialogueRatio: { band: [0.17, 0.29] } },
+    rules: [{ text: 'a' }, { text: 'b' }],
+  }])
+  assert.equal(view.available, true)
+  assert.equal(view.profiles.length, 1)
+  assert.deepEqual(view.profiles[0].bands.sentenceMean, [16, 41])
+  assert.equal(view.profiles[0].rules, 2)
+  assert.deepEqual(view.profiles[0].avoid, ['仿佛'])
+})

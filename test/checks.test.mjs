@@ -42,3 +42,10 @@ test('checkDraft：统计字数/句数/平均句长，空文不炸', () => {
   assert.deepEqual(result.stats, { chars: 10, sentences: 2, avgSentence: 4 })
   assert.equal(checkDraft({ text: '' }).stats.sentences, 0)
 })
+
+test('checkDraft：返回确定性指标（供面板对比档案）', () => {
+  const result = checkDraft({ text: '他走了。她没有回头。' })
+  assert.equal(typeof result.metrics.sentenceMean, 'number')
+  assert.equal(typeof result.metrics.dialogueRatio, 'number')
+  assert.equal(result.metrics.sentences, 2)
+})
