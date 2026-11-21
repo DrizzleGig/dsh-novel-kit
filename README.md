@@ -39,7 +39,7 @@ S0 要验的四件事（见设计方案 §5）：bundle 依赖能否经面板调
 
 | 能力 | kit 位置 | 状态 |
 |---|---|---|
-| beat 拍板/决策、canon | `novel_plan` + 面板「拍板」+ 四段「剧情约束」 | 部分（登记与只读；改设定/回退未迁移） |
+| beat 拍板/决策、canon | `novel_plan`（propose/adopt/reject）+ 面板「拍板」+ 四段「剧情约束」 | 已迁移（拍板落账；改设定/回退未迁移） |
 | beat 段落登记/校验 | `novel_chapter_finish`（引文校验 + 段落落账） | 已迁移（简化版） |
 | fade 记忆卡沉淀 | `novel_chapter_finish` 的 `memory.cards` | 已迁移（简化版） |
 | fade 记忆简报 | 四段「记忆简报」（近章卡片） | 已迁移（简化版；三维打分未迁移） |
