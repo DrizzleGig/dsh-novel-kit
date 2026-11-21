@@ -31,9 +31,10 @@
 
 ## 4. 发布与验收状态
 
-- npm 首发：**`dsh-novel-kit@0.1.13` 已发布**（`latest`，2026-11-21T19:28:59Z，shasum `605075fd…`，46 文件 / 230,647 B）。核版本一律显式指定官方 registry；国内镜像（npmmirror）可能滞后数小时。
-- 首发/安全扫描期间 registry 会先收下再处理：CLI 打印 `being processed`，版本文档约 2 分钟后才可见（`scripts/publish.mjs` 现在最多等 4 分钟）。
-- GitHub：tag `v0.1.13` 与 [Release v0.1.13](https://github.com/DrizzleGig/dsh-novel-kit/releases/tag/v0.1.13) 同源，发布说明保留 `Co-authored-by: MiyueWinter <mingyue_11129@qq.com>`。
+- npm：**`dsh-novel-kit@0.1.13` / `0.1.14` 已发布**（`latest` = 0.1.14，2026-11-21T19:58:13Z，shasum `e962516fe6ae5fbe93a6f4f320ae9981d29b366a`，46 文件 / 232,814 B）。核版本一律显式指定官方 registry；国内镜像（npmmirror）可能滞后数小时。
+- 首发/安全扫描期间 registry 会先收下再处理：CLI 打印 `being processed`，版本文档约 2 分钟才可见（`scripts/publish.mjs` 现在最多等 4 分钟）。
+- GitHub：tag `v0.1.14` 与 [Release v0.1.14](https://github.com/DrizzleGig/dsh-novel-kit/releases/tag/v0.1.14) 同源，发布说明保留 `Co-authored-by: MiyueWinter <mingyue_11129@qq.com>`。
+- 插件市场：PR [#17651](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/17651)（`data/plugins/DrizzleGig__dsh-novel-kit.yml`）；仓库满 24 小时前 age gate 会先红。
 - 发布后 15 分钟内别反复探同一个 tarball URL：CDN 会按完整 URL 负缓存（`max-age=300`），`npm i` 自测等一会儿再做；查 version 文档不受影响。
 - 隔离 profile 的安装/卸载/回退矩阵**未做**（Codex 验收第 1 条）。
 - 真实请求（PTC/native）下的工具面**未验**（第 7 条）。

@@ -44,11 +44,12 @@ novel_chapter_finish({session_id, segments, memory})
 
 | 项 | 值 |
 |---|---|
-| npm | [`dsh-novel-kit@0.1.13`](https://www.npmjs.com/package/dsh-novel-kit)（`latest`；`stage` 仍指 0.0.1-stage） |
-| 发布时刻 | 2026-11-22 03:28:59 +08（2026-11-21T19:28:59Z） |
-| 产物 | 46 文件 / 230,647 B，shasum `605075fde97caf8f8bb87dc84aa8ca983cd7fce1` |
-| GitHub Release | [v0.1.13](https://github.com/DrizzleGig/dsh-novel-kit/releases/tag/v0.1.13)（tag `v0.1.13` @ `a202235`） |
-| 共同贡献 | `Co-authored-by: MiyueWinter <mingyue_11129@qq.com>` |
+| npm | [`dsh-novel-kit@0.1.14`](https://www.npmjs.com/package/dsh-novel-kit)（`latest`；`stage` 仍指 0.0.1-stage） |
+| 发布时刻 | 2026-11-22 03:58:13 +08（2026-11-21T19:58:13Z） |
+| 产物 | 46 文件 / 232,814 B，shasum `e962516fe6ae5fbe93a6f4f320ae9981d29b366a` |
+| GitHub Release | [v0.1.14](https://github.com/DrizzleGig/dsh-novel-kit/releases/tag/v0.1.14)（tag `v0.1.14` @ `b442d1f`） |
+| 插件市场 | PR [#17651](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/17651)（条目 `data/plugins/DrizzleGig__dsh-novel-kit.yml`） |
+| 共同贡献 | `Co-authored-by: MiyueWinter <mingyue_11129@qq.com>`；提交作者是 DrizzleGig 账号（0.1.14 修正了历史提交邮箱） |
 
 ## 还差什么
 
