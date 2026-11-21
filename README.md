@@ -59,6 +59,10 @@ DSH 插件以 `link:` 安装时，Node 从仓库真实路径解析依赖；要�
 ```powershell
 New-Item -ItemType Junction -Path node_modules\@deepseek-ai\dsh-typert-protocol -Target D:\Novel-gate\.tmp\dsh-asar-2026-11-21\node_modules\@deepseek-ai\dsh-typert-protocol
 ```
+## 发布清单
+
+见 [docs/RELEASE.md](docs/RELEASE.md)：自检命令、npm 登录、发布、GitHub Release 模板。
+
 ## 安装
 
 `0.1.0` 发布后：在 DSH「插件」里搜索 **小说**（`dsh-novel-kit`）安装；或本地开发时用插件管理器的「添加插件」指向本目录。
