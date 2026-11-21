@@ -1,6 +1,6 @@
 {
   "name": "dsh-novel-kit",
-  "version": "0.1.0-dev",
+  "version": "0.1.0",
   "description": "小说整合包（Pro）：一个包提供 beat / fade / voice / fanfic / conductor 的全部功能——章节引擎、七个 novel_* 工具、右栏「小说」面板与章节工作台。",
   "type": "module",
   "main": "index.js",

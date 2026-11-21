@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0 — 2026-11-22
+
+首个「独立包」版本：只装 kit 一个包，即可用章节引擎写一章，不需要装 beat/fade/voice/fanfic/conductor。
+
+- **章节引擎**：`novel_plan / chapter_start / chapter_write / chapter_finish / chapter_resume / chapter_abort / novel_query` 七个工具；四段上下文（剧情约束 / 世界契约 / 三维记忆 / 文风档案）；可恢复事务与回执。
+- **验证**：禁忌、20 字原著复制、疑似错名、长句、称呼矩阵、文风 bands；blocker 不落账；strict 只检查声明过的能力。
+- **账本兼容**：只读解码已有 `.dsh-novel-*`（beat/fade/voice 档案/fanfic 项目与 canon），不迁移。
+- **作者操作**：拍板（adopt/reject）、记忆钉/忘/恢复、原著导入、旧五件接管/回退。
+- **UI**：右栏「小说」六页签（总览/拍板/记忆/文风/设定/冲突）+ 章节工作台。
+- 测试 **92/92**，验收脚本 **18/18**。
 ## 0.1.0-dev.25 — 2026-11-22
 
 - **strict 模式**：`novel_chapter_start({strict:true})` 后，`finish` 只跑 required_capabilities 对应的检查（没声明 fanfic 就不扫同人禁忌/复制/称呼，没声明 voice 就不比文风 bands）；非 strict 行为不变。

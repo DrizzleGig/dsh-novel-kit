@@ -10,6 +10,8 @@ import path from 'node:path'
 import { planChapter, decideProposal, startChapter, writeChapter, finishChapter, queryChapter, resumeChapter } from '../lib/engine/chapter.js'
 import { collectSnapshot } from '../lib/host/snapshot.js'
 import { updateMemoryCard } from '../lib/engine/memory.js'
+import { importSource } from '../lib/engine/import.js'
+import { collectConflicts } from '../lib/engine/conflicts.js'
 
 const results = []
 const check = (name, ok, detail = '') => {
@@ -107,6 +109,35 @@ check('快照给出会话/四段/账本', snapshot.session?.state === 'completed
 // 6) 记忆钉卡
 const pinned = await updateMemoryCard({ root, book, cardId: 'c1', action: 'pin' })
 check('钉卡写 fade 账本', pinned.ok === true && pinned.revision === 20, `rev=${pinned.revision}`)
+
+// 7) 同人原著导入（临时 txt）
+const txt = path.join(root, '原著.txt')
+writeFileSync(txt, ['第1章 雪夜', '陈凡推门进来。', '', '第2章 城门', '两人出城。'].join('\n'), 'utf8')
+const imported = await importSource({ root, project: 'douluo', file: txt })
+check('导入原著并切章', imported.ok === true && imported.chapters === 2, 'source=' + imported.sourceId + ' chapters=' + imported.chapters)
+const importedAgain = await importSource({ root, project: 'douluo', file: txt })
+check('重复导入幂等', importedAgain.idempotent === true)
+
+// 8) 冲突扫描（beat canon 陈凡·身份 vs 原著事实）
+const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+writeFileSync(path.join(ficDir, 'canon', 'facts.json'), JSON.stringify([
+  { id: 'f1', subjectName: '陈凡', predicate: '身份', object: '穿越者', chapter: 'ch001', status: 'confirmed', evidence: [{ quote: '他是穿越者' }] },
+], null, 2))
+const conflicts = await collectConflicts({ root, book })
+check('冲突扫描报同键不同值', conflicts.ok !== false && conflicts.total >= 1, 'total=' + conflicts.total)
+
+// 9) strict：没声明 fanfic 就不被同人禁忌拦住
+const strictRoot = workspace()
+const strictFic = path.join(strictRoot, '.dsh-novel-fanfic', 'douluo')
+mkdirSync(strictFic, { recursive: true })
+writeFileSync(path.join(strictFic, 'project.json'), JSON.stringify({
+  id: 'douluo', title: '原著', sourceId: 'src_1', revision: 1, schemaVersion: 1,
+  exports: { schemaVersion: 1, revision: 1, forbidden: ['手机'], addresses: [] },
+}, null, 2))
+const strictStart = await startChapter({ root: strictRoot, book, chapter: 13, requiredCapabilities: ['beat', 'fade'], strict: true })
+await writeChapter({ root: strictRoot, sessionId: strictStart.session.id, text: '陈凡掏出手机看了一眼。' })
+const strictDone = await finishChapter({ root: strictRoot, sessionId: strictStart.session.id, extraction: { segments: [{ quote: '陈凡掏出手机' }] } })
+check('strict 模式不越权检查', strictDone.ok === true, 'state=' + strictDone.session?.state)
 
 const passed = results.filter((item) => item.ok).length
 console.log(`\n${passed}/${results.length} 项通过`)
