@@ -53,3 +53,20 @@ test('restore：把旧五件重新选上', async () => {
   assert.deepEqual(result.enabled, ['dsh-novel-beat'])
   assert.deepEqual(manager.calls, [{ name: 'dsh-novel-beat', enabled: true }])
 })
+
+test('restore：只恢复 kit 上次接管停用的那几件', async () => {
+  const calls = []
+  const pluginManager = {
+    setBundleEnabled: async (name, enabled) => {
+      calls.push([name, enabled])
+      return { application: 'applied', changed: true }
+    },
+  }
+  await restoreBundles({ pluginManager }) // 清掉前面用例留下的记录
+  calls.length = 0
+  await applyTakeover({ pluginManager, names: ['dsh-novel-fade'] })
+  calls.length = 0
+  const result = await restoreBundles({ pluginManager })
+  assert.deepEqual(calls, [['dsh-novel-fade', true]])
+  assert.deepEqual(result.enabled, ['dsh-novel-fade'])
+})
