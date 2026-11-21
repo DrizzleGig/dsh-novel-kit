@@ -191,3 +191,28 @@ test('start：四本账齐备时四段上下文都可用（beat/fanfic/fade/voic
   assert.equal(started.session.binding.voiceLibrary, '斗罗大陆')
   assert.equal(started.session.binding.fanficProject, 'douluo')
 })
+
+test('finish：fanfic 禁忌词命中时 verify-failed，不落账', async () => {
+  const root = workspace()
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(ficDir, { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', title: '原著', sourceId: 'src_1', revision: 7, schemaVersion: 1,
+    exports: { schemaVersion: 1, revision: 7, forbidden: ['手机'], addresses: [] },
+  }, null, 2))
+
+  const { session } = await startChapter({ root, book: '书', chapter: 13 })
+  const badDraft = '陈凡掏出手机看了眼时间。'
+  await writeChapter({ root, sessionId: session.id, text: badDraft })
+  const result = await finishChapter({
+    root,
+    sessionId: session.id,
+    extraction: { segments: [{ start: 0, end: 6, quote: '陈凡掏出手机' }] },
+  })
+  assert.equal(result.ok, false)
+  assert.equal(result.code, 'verify-failed')
+  assert.equal(result.findings[0].code, 'forbidden')
+
+  const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
+  assert.equal(beat.segments.length, 1, 'verify 失败时账本不变')
+})

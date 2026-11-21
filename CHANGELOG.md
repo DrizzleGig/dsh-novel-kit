@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.10 — 2026-11-22
+
+- **finish 增加 verify 闸门**：`engine/checks.js` 做确定性检查（禁忌词 blocker、长句 warning、称呼矩阵 warning），blocker 时返回 `verify-failed` 且不落账。
+- 检查统计（字数/句数/平均句长）写进会话，快照可读。
+- 测试 **51 → 57**。
 ## 0.1.0-dev.9 — 2026-11-22
 
 - **拍板视图**：`host/decisions.js` 的 `decisionsView`（本章已拍板 + 会话里待拍板提案 + 未回收义务），remote 增 `getDecisions`，面板加「拍板」页签。
