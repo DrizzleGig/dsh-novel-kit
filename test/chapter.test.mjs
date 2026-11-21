@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { startChapter, writeChapter, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal } from '../lib/engine/chapter.js'
+import { startChapter, writeChapter, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal, chapterHistory } from '../lib/engine/chapter.js'
 
 function workspace({ withFade = true } = {}) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'kit-chapter-'))
@@ -462,4 +462,20 @@ test('损坏的 beat 账本报 ledger-corrupt，而不是「缺少能力」', as
     () => startChapter({ root, book: '书', chapter: 13 }),
     /ledger-corrupt/,
   )
+})
+
+test('chapterHistory：两章收尾后按章号倒序列出，带字数与状态', async () => {
+  const root = workspace()
+  for (const chapter of [13, 14]) {
+    const started = await startChapter({ root, book: '书', chapter })
+    await writeChapter({ root, sessionId: started.session.id, text: draft })
+    const done = await finishChapter({ root, sessionId: started.session.id, extraction: { segments: [{ quote: '陈凡推门进来，屋里没有别人。' }] } })
+    assert.equal(done.ok, true)
+  }
+  const history = await chapterHistory({ root, book: '书' })
+  assert.equal(history.total, 2)
+  assert.deepEqual(history.chapters.map((item) => item.chapter), [14, 13])
+  assert.equal(history.chapters[0].state, 'completed')
+  assert.ok(history.chapters[0].chars > 0)
+  assert.ok(history.chapters[0].chapterFile)
 })

@@ -574,6 +574,16 @@ window.__ModuleLoader__.load({
                 h('span', { style: { color: value ? c.sub : c.faint, fontSize: 11.5 } }, value ? `rev ${value.revision ?? '-'}` : '无'),
               )
             }),
+            data && data.history && data.history.chapters && data.history.chapters.length
+              ? h('div', { style: { marginTop: 8 } },
+                  h('div', { style: faint }, '最近章节'),
+                  data.history.chapters.slice(0, 6).map(function (item, index) {
+                    return h('div', { key: index, style: { ...row, borderBottom: 'none', padding: '2px 0' } },
+                      h('span', { style: small }, '第 ' + item.chapter + ' 章'),
+                      h('span', { style: { color: c.faint, fontSize: 11 } }, (item.state || '?') + (item.chars ? ' · ' + item.chars + ' 字' : '')),
+                    )
+                  }))
+              : null,
             data && data.session && data.session.chapterFile
               ? h('div', { style: { marginTop: 8 } },
                   h('div', { style: faint }, '正文文件'),
