@@ -29,6 +29,8 @@ window.__ModuleLoader__.load({
         { method: 'identity', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'getSnapshot', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getDiagnostics', parameters: [param('sessionId', sessionIdSchema)] },
+        { method: 'takeover', parameters: [param('sessionId', sessionIdSchema)] },
+        { method: 'restore', parameters: [param('sessionId', sessionIdSchema)] },
       ].map(({ method, parameters }) => ({
         id: 'dsh-novel-kit#novelKitPanel/' + method,
         namespace: 'novelKitPanel',
@@ -68,6 +70,8 @@ window.__ModuleLoader__.load({
       const { sessionId, remote } = props
       const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
+      const [pendingTakeover, setPendingTakeover] = React.useState(false)
+      const [action, setAction] = React.useState({ phase: 'idle', message: '' })
 
       const load = React.useCallback(async function (nextBook) {
         if (!remote) {
@@ -83,6 +87,24 @@ window.__ModuleLoader__.load({
           setState({ phase: 'error', data: null, error: String(error?.message ?? error) })
         }
       }, [remote, sessionId, book])
+
+      const runTakeover = React.useCallback(async function (takeover) {
+        if (!remote) return
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = await Promise.resolve(takeover ? remote.takeover(sessionId) : remote.restore(sessionId)).then(unwrap)
+          const failed = (result?.results ?? []).filter((item) => !item.ok)
+          setAction({
+            phase: 'done',
+            message: failed.length
+              ? '部分失败：' + failed.map((item) => item.name + '（' + (item.application ?? '?') + '）').join('、')
+              : (takeover ? '已停用旧五件，由 kit 接管' : '已恢复旧五件'),
+          })
+          await load()
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, load])
 
       React.useEffect(function () { load() }, [load])
 
@@ -130,6 +152,37 @@ window.__ModuleLoader__.load({
                     : '未运行'),
               )
             : null,
+          state.diag && state.diag.managed
+            ? h('div', { style: { ...row, borderBottom: 'none' } },
+                state.diag.takeoverNeeded
+                  ? (pendingTakeover
+                      ? h('span', { style: { display: 'flex', gap: 6 } },
+                          h('button', {
+                            type: 'button',
+                            onClick: function () { setPendingTakeover(false); runTakeover(true) },
+                            style: { appearance: 'none', border: '1px solid ' + c.error, background: 'transparent', color: c.error, borderRadius: 6, padding: '2px 8px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
+                          }, '确认停用'),
+                          h('button', {
+                            type: 'button',
+                            onClick: function () { setPendingTakeover(false) },
+                            style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
+                          }, '取消'))
+                      : h('button', {
+                          type: 'button',
+                          onClick: function () { setPendingTakeover(true) },
+                          style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
+                        }, '停用旧五件（由 kit 接管）'))
+                  : ((state.diag.installedSiblings || []).length
+                      ? h('button', {
+                          type: 'button',
+                          onClick: function () { runTakeover(false) },
+                          style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
+                        }, '恢复旧五件')
+                      : null))
+            : null,
+          action.message
+            ? h('div', { style: { fontSize: 11.5, color: action.phase === 'error' ? c.error : c.sub } }, action.message)
+            : null,
           h('div', { style: row },
             h('span', { style: small }, '会话'),
             h('span', null, data.session ? `第 ${data.session.chapter} 章 · ${data.session.state}` : '无活动会话'),
@@ -167,6 +220,24 @@ window.__ModuleLoader__.load({
       const { sessionId, remote } = props
       const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
+      const [pendingTakeover, setPendingTakeover] = React.useState(false)
+      const [action, setAction] = React.useState({ phase: 'idle', message: '' })
+
+      const runTakeover = React.useCallback(async function (takeover) {
+        if (!remote) return
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = await Promise.resolve(takeover ? remote.takeover(sessionId) : remote.restore(sessionId)).then(unwrap)
+          const failed = (result?.results ?? []).filter((item) => !item.ok)
+          setAction({
+            phase: 'done',
+            message: failed.length ? '部分失败：' + failed.map((item) => item.name + '（' + (item.application ?? '?') + '）').join('、') : (takeover ? '已停用旧五件，由 kit 接管' : '已恢复旧五件'),
+          })
+          await load()
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, load])
 
       const load = React.useCallback(async function (nextBook) {
         if (!remote) {

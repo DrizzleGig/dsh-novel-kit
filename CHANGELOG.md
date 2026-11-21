@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.7 — 2026-11-22
+
+- **接管旧五件**：`host/takeover.js` 只动选择层（`setBundleEnabled`），逐件记录 `application`，`restart-required` 不算成功；`restore` 可一键恢复。拒绝未知插件名。
+- remote 增 `takeover` / `restore`；面板出现「停用旧五件（由 kit 接管）」按钮，两步确认；失败时列出具体哪件、什么状态。
+- 测试 **39 → 44**。
 ## 0.1.0-dev.6 — 2026-11-22
 
 - **装载诊断**：新增 `host/diagnostics.js`（bundle 与运行行合并，回答「现在跑的是谁」）与 `novelKitPanel.getDiagnostics`。
