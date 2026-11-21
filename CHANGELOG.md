@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-dev.20 — 2026-11-22
+
+- **一章验收脚本**：`npm run acceptance` 跑 plan → adopt → start → write(坏稿) → finish(verify-failed) → 改写 → finish → query → resume → snapshot → pin，14/14 通过。
+- 修两个真问题：续上会话时刷新上下文（避免 adopt 后被误判 context_stale）；快照改用 latestSession（收章后仍能看到）。
+- 验收文档：`docs/kit-acceptance-2026-11-22.md`（含对照 Codex 7 条）。
+- 测试 **74 → 75**。
 ## 0.1.0-dev.19 — 2026-11-22
 
 - 发布资料：`docs/DETAIL.md`（详情页长描述）、`docs/market-intro.md`（市场简介）、locale `meta.detail`。

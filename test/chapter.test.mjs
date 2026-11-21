@@ -290,3 +290,26 @@ test('finish：正文连续 20 字与原著证据相同 → verify-failed（copy
   const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
   assert.equal(beat.segments.length, 1)
 })
+
+test('start：拍板之后再 start 会刷新上下文，finish 不再误判 context_stale', async () => {
+  const root = workspace()
+  const planned = await planChapter({
+    root, book: '书', chapter: 13,
+    proposals: [{ id: 'p1', title: '出城方式', options: [{ label: '夜行', impact: '紧张' }] }],
+  })
+  await decideProposal({ root, sessionId: planned.session.id, proposalId: 'p1', action: 'adopt', option: '夜行' })
+
+  const started = await startChapter({ root, book: '书', chapter: 13 })
+  assert.equal(started.resumed, true)
+  assert.match(started.context.segments[0].markdown, /本章已拍板/)
+
+  await writeChapter({ root, sessionId: started.session.id, text: draft })
+  const quote = '陈凡推门进来，屋里没有别人。'
+  const done = await finishChapter({
+    root,
+    sessionId: started.session.id,
+    extraction: { segments: [{ quote }] },
+  })
+  assert.equal(done.ok, true)
+  assert.equal(done.session.state, 'completed')
+})
