@@ -40,6 +40,16 @@ novel_chapter_finish({session_id, segments, memory})
    → blocker 不落账；通过则写正文 + 事务写 beat/fade + 回执
 ```
 
+## 发布
+
+| 项 | 值 |
+|---|---|
+| npm | [`dsh-novel-kit@0.1.13`](https://www.npmjs.com/package/dsh-novel-kit)（`latest`；`stage` 仍指 0.0.1-stage） |
+| 发布时刻 | 2026-11-22 03:28:59 +08（2026-11-21T19:28:59Z） |
+| 产物 | 46 文件 / 230,647 B，shasum `605075fde97caf8f8bb87dc84aa8ca983cd7fce1` |
+| GitHub Release | [v0.1.13](https://github.com/DrizzleGig/dsh-novel-kit/releases/tag/v0.1.13)（tag `v0.1.13` @ `a202235`） |
+| 共同贡献 | `Co-authored-by: MiyueWinter <mingyue_11129@qq.com>` |
+
 ## 还差什么
 
 | 项 | 谁来做 |

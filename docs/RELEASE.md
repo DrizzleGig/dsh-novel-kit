@@ -37,7 +37,8 @@ cd D:\Novel-gate\dsh-novel-kit
 npm publish --registry=https://registry.npmjs.org --access public
 ```
 
-- 账号是 `auth-and-writes` 时，publish 可能再要求一次浏览器 2FA（打印 `Authenticate your account at: https://www.npmjs.com/auth/cli/<uuid>`），照做即可；
+- 账号是 `auth-and-writes` 时，publish 可能再要求一次浏览器 2FA（打印 `Authenticate your account at: https://www.npmjs.com/auth/cli/<uuid>`），按 ENTER 打开授权页即可；
+- 首发/安全扫描期间 registry 会先收下再处理：CLI 打印 `Your package is being processed`，**版本文档约 2 分钟才出现**，`npm view` 此刻仍是旧版本，不要当成失败；
 - `latest` 指向新版本；占位版 `0.0.0-stage` / `0.0.1-stage` 的 `stage` tag 不动。
 
 ## 3. 校验
@@ -47,7 +48,7 @@ npm view dsh-novel-kit version --registry=https://registry.npmjs.org
 npm view dsh-novel-kit dist-tags --registry=https://registry.npmjs.org
 ```
 
-- 刚发布时 packument 可能还要几秒；脚本会重试；
+- 刚发布时 packument 可能还要几秒；脚本轮询 version 文档，最多等 4 分钟（40 × 6s）；
 - **别在发布后马上反复探同一个 tarball URL**：CDN 按完整 URL 负缓存（`max-age=300`），裸路径会 404 几分钟；加任意 query（`?t=<ts>`）立刻 200。安装自测等 10–15 分钟。
 
 ## 4. GitHub Release

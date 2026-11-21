@@ -100,10 +100,12 @@ try {
 
 // 校验走 version 文档 + 时间戳：packument 与 tarball 都有 CDN 缓存，
 // npm view 可能还读到旧缓存，直接问 registry 拿这个版本的元数据最可靠。
+// 首发/安全扫描期间 registry 会先收下再处理（CLI 打印 “being processed”），
+// 版本文档可能要两三分钟才出现，所以这里最多等 4 分钟。
 console.log('\n▶ 校验 registry')
 const want = `${pkg.name}@${pkg.version}`
 let seen = null
-for (let attempt = 1; attempt <= 10; attempt += 1) {
+for (let attempt = 1; attempt <= 40; attempt += 1) {
   try {
     const res = await fetch(`${registry}/${pkg.name}/${pkg.version}?t=${Date.now()}`, {
       headers: { 'cache-control': 'no-cache' },
@@ -118,7 +120,8 @@ for (let attempt = 1; attempt <= 10; attempt += 1) {
   } catch (error) {
     seen = `fetch 失败：${error?.message ?? error}`
   }
-  if (attempt < 10) await new Promise((resolve) => setTimeout(resolve, 3000))
+  if (attempt % 5 === 0) console.log(`  还在等 registry（${attempt * 6}s）：${seen}`)
+  if (attempt < 40) await new Promise((resolve) => setTimeout(resolve, 6000))
 }
 const tags = runNpm(['view', pkg.name, 'dist-tags', `--registry=${registry}`, '--prefer-online'])
 console.log('dist-tags:', tags.ok ? tags.out : '(查不到)')

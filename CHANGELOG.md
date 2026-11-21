@@ -2,7 +2,7 @@
 
 ## 0.1.13 — 2026-11-22
 
-- **npm 首发**：`dsh-novel-kit@0.1.13` 发布到 npm 官方 registry（`latest`），GitHub Release 同版本。
+- **npm 首发**：`dsh-novel-kit@0.1.13` 发布到 npm 官方 registry（`latest`；2026-11-21T19:28:59Z，shasum `605075fd…`，46 文件），GitHub Release [v0.1.13](https://github.com/DrizzleGig/dsh-novel-kit/releases/tag/v0.1.13) 同源。
 - **README 重写**：口径回到 0.1.12 的真实形态（独立包，不再是 0.1.0-dev 的「套件安装器」设想）；补「和 beat / fade 等五件共存吗」一节。
 - **新增 `docs/COEXIST.md`**：实测六件 12 行插件共存；工具名（`novel_*` vs `beat_*`/`memo_*`/`voice_*`/`fic_*`/`cue_*`）、命令、条目 id 都不撞；冲突只在账本——两边同时写同一章会重复登记或撞上 CAS（`transaction: 冲突`，会话 `blocked`），坏账本报 `ledger-corrupt` 而不是当空账本。
 - **`docs/LIMITS.md` / `docs/RELEASE.md`**：修掉损坏的文本（`pm`/`est/` 之类的残字）与过期的「未发布」状态；发布流程按实测重写（web 2FA、显式 `--registry`、CDN 负缓存 15 分钟）。

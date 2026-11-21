@@ -31,8 +31,9 @@
 
 ## 4. 发布与验收状态
 
-- npm 首发：`0.1.13` 发布到 npm 官方 registry（`latest`）；发布后用 `npm view dsh-novel-kit version --registry=https://registry.npmjs.org` 复核。国内镜像（npmmirror）可能滞后数小时，**核版本一律显式指定官方 registry**。
-- GitHub：tag `v0.1.13` 与 Release 同源；发布说明里保留 `Co-authored-by: MiyueWinter <mingyue_11129@qq.com>`。
-- 发布后 15 分钟内别反复探同一个 tarball URL：CDN 会按完整 URL 负缓存（`max-age=300`），`npm i` 自测等一会儿再做；查 packument/version 文档不受影响。
+- npm 首发：**`dsh-novel-kit@0.1.13` 已发布**（`latest`，2026-11-21T19:28:59Z，shasum `605075fd…`，46 文件 / 230,647 B）。核版本一律显式指定官方 registry；国内镜像（npmmirror）可能滞后数小时。
+- 首发/安全扫描期间 registry 会先收下再处理：CLI 打印 `being processed`，版本文档约 2 分钟后才可见（`scripts/publish.mjs` 现在最多等 4 分钟）。
+- GitHub：tag `v0.1.13` 与 [Release v0.1.13](https://github.com/DrizzleGig/dsh-novel-kit/releases/tag/v0.1.13) 同源，发布说明保留 `Co-authored-by: MiyueWinter <mingyue_11129@qq.com>`。
+- 发布后 15 分钟内别反复探同一个 tarball URL：CDN 会按完整 URL 负缓存（`max-age=300`），`npm i` 自测等一会儿再做；查 version 文档不受影响。
 - 隔离 profile 的安装/卸载/回退矩阵**未做**（Codex 验收第 1 条）。
 - 真实请求（PTC/native）下的工具面**未验**（第 7 条）。
