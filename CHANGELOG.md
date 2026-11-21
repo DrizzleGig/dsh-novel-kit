@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.7 — 2026-11-22
+
+复审第二批：
+
+- **客户端请求竞态**：面板/工作台加请求序号，慢响应不会覆盖新选择；换书清空检索。
+- **状态机**：`writeChapter` 不再无条件把状态改成 `writing`——`committing` / `blocked` 明确拒绝并提示先 resume。
+- **事务 CAS**：`planTransaction` 接受调用方观测到的 `beforeHash`，不一致立刻拒绝（并发写不会被当成自己的前镜像）；`finish` / `decideProposal` / `updateMemoryCard` 都传入。
+- **纯文本文件**：事务 `after` 是字符串时按原文写入（不再 JSON.parse 失败）。
+- **拍板视图**：已 adopted/rejected 的提案不再算待拍板。
+- 测试 **99 → 101**。
 ## 0.1.6 — 2026-11-22
 
 独立代码复审后的修复（按严重度）：

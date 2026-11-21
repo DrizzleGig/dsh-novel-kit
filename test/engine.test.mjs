@@ -103,3 +103,22 @@ test('事务：未提交时恢复为 not_started，提交一半为 partial', asy
   assert.equal(partial.status, 'partial')
   assert.deepEqual(partial.files.map((file) => file.state), ['applied', 'pending'])
 })
+
+test('事务：调用方给的前镜像哈希与磁盘不一致时立刻拒绝（并发写不被当成 before）', async () => {
+  const root = tmp()
+  const file = path.join(root, 'book.json')
+  writeFileSync(file, JSON.stringify({ a: 1 }, null, 2))
+  await assert.rejects(
+    () => planTransaction({ root, txId: 'tx-early-conflict', files: [{ path: file, after: { a: 2 }, beforeHash: 'deadbeef' }] }),
+    /冲突/,
+  )
+  assert.deepEqual(JSON.parse(readFileSync(file, 'utf8')), { a: 1 })
+})
+
+test('事务：after 是纯文本时按原文写入（不是 JSON 字符串）', async () => {
+  const root = tmp()
+  const file = path.join(root, '第1章.md')
+  await planTransaction({ root, txId: 'tx-text', files: [{ path: file, after: '正文第一段\n' }] })
+  await commitTransaction({ root, txId: 'tx-text' })
+  assert.equal(readFileSync(file, 'utf8'), '正文第一段\n')
+})

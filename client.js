@@ -333,17 +333,23 @@ window.__ModuleLoader__.load({
         )
       }
 
+      const requestRef = React.useRef(0)
       const load = React.useCallback(async function (nextBook) {
         if (!remote) {
           setState({ phase: 'error', data: null, error: '面板读接口未就绪：请更新并重载 DSH。' })
           return
         }
+        const requestId = requestRef.current + 1
+        requestRef.current = requestId
         setState((prev) => ({ phase: prev.data ? 'refreshing' : 'loading', data: prev.data, error: null }))
         try {
           const data = await Promise.resolve(remote.getSnapshot(sessionId, { book: nextBook || book || null })).then(unwrap)
           const diag = await Promise.resolve(remote.getDiagnostics(sessionId)).then(unwrap).catch(() => null)
+          if (requestRef.current !== requestId) return
+          setSearchHits(null)
           setState({ phase: 'ready', data, diag, error: null })
         } catch (error) {
+          if (requestRef.current !== requestId) return
           setState({ phase: 'error', data: null, error: String(error?.message ?? error) })
         }
       }, [remote, sessionId, book])
@@ -497,17 +503,22 @@ window.__ModuleLoader__.load({
       const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
 
+      const requestRef = React.useRef(0)
       const load = React.useCallback(async function (nextBook) {
         if (!remote) {
           setState({ phase: 'error', data: null, error: '工作台读接口未就绪：请更新并重载 DSH。' })
           return
         }
+        const requestId = requestRef.current + 1
+        requestRef.current = requestId
         setState((prev) => ({ phase: prev.data ? 'refreshing' : 'loading', data: prev.data, error: null }))
         try {
           const data = await Promise.resolve(remote.getSnapshot(sessionId, { book: nextBook || book || null })).then(unwrap)
           const diag = await Promise.resolve(remote.getDiagnostics(sessionId)).then(unwrap).catch(() => null)
+          if (requestRef.current !== requestId) return
           setState({ phase: 'ready', data, diag, error: null })
         } catch (error) {
+          if (requestRef.current !== requestId) return
           setState({ phase: 'error', data: null, error: String(error?.message ?? error) })
         }
       }, [remote, sessionId, book])

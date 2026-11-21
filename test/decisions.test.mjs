@@ -39,3 +39,19 @@ test('decisionsView：没有账本与会话时如实不可用', () => {
   assert.deepEqual(view.committed, [])
   assert.deepEqual(view.proposals, [])
 })
+
+test('decisionsView：已拍板/已拒绝的提案不再算待拍板', () => {
+  const session = {
+    chapter: 13,
+    plan: {
+      proposals: [
+        { id: 'p1', title: '已拍', status: 'adopted', options: [{ label: 'A' }] },
+        { id: 'p2', title: '被拒', status: 'rejected', options: [] },
+        { id: 'p3', title: '待拍', options: [{ label: 'B' }] },
+      ],
+    },
+  }
+  const view = decisionsView(beat, session)
+  assert.equal(view.pendingCount, 1)
+  assert.deepEqual(view.proposals.map((item) => item.id), ['p3'])
+})
