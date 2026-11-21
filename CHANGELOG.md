@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.14 — 2026-11-22
+
+- **原著复制检查**：`checkCopy` 用 canon 的 evidence 引文做 20 字窗口比对，命中即 blocker，并入 finish 的 verify（账本不变）。
+- `decodeFanficCanon` + `readFanficCanon`：读 characters / secrets / facts 的只读摘要（人物名与别名、秘密、证据引文）。
+- 测试 **65 → 67**。
 ## 0.1.0-dev.13 — 2026-11-22
 
 - 面板「文风」页签展示档案（名称/版本/状态/bands/避免词），不再只有书库。

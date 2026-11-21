@@ -45,7 +45,7 @@ S0 要验的四件事（见设计方案 §5）：bundle 依赖能否经面板调
 | fade 记忆简报 | 四段「记忆简报」（近章卡片） | 已迁移（简化版；三维打分未迁移） |
 | fade 检索/遗忘/钉卡/历史 | 面板「记忆」只读 | 只读 |
 | voice 书库/档案 | `codecs/voice` + 面板「文风」只读 | 简报与检查已迁移（档案导入/学习未迁移） |
-| fanfic 契约/称呼/禁忌 | 四段「世界契约」+ 面板「设定」只读 | 只读（检查/导入未迁移） |
+| fanfic 契约/称呼/禁忌 | 四段「世界契约」+ 面板「设定」只读 | 契约与禁忌已迁移；称呼/复制检查进 verify（导入未迁移） |
 | conductor 六步 runbook | kit 的 `plan → start → write → finish`（三段主线） | 已迁移（简化；strict/replay 未迁移） |
 | 收据与事务 | `storage/transaction` + `finish` 回执 | 已迁移 |
 | 总开关 | `/novel on|off|status`（会话级） | 已迁移 |

@@ -262,3 +262,31 @@ test('decideProposal：有选项却没给 option 时拒绝；reject 不写账本
   assert.equal(after.decisions.length, before.decisions.length)
   assert.equal(after.revision, before.revision)
 })
+
+test('finish：正文连续 20 字与原著证据相同 → verify-failed（copy），不落账', async () => {
+  const root = workspace()
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(path.join(ficDir, 'canon'), { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', title: '原著', sourceId: 'src_1', revision: 7, schemaVersion: 1,
+    exports: { schemaVersion: 1, revision: 7, forbidden: [], addresses: [] },
+  }, null, 2))
+  const quote = '他偷去了唐门内门的秘籍之后，跳崖明志，重生于此界。'
+  writeFileSync(path.join(ficDir, 'canon', 'facts.json'), JSON.stringify([
+    { id: 'f1', evidence: [{ chapter: 'ch001', quote }] },
+  ], null, 2))
+
+  const { session } = await startChapter({ root, book: '书', chapter: 13 })
+  const copied = '那一夜，' + quote.slice(0, 22) + '。'
+  await writeChapter({ root, sessionId: session.id, text: copied })
+  const result = await finishChapter({
+    root,
+    sessionId: session.id,
+    extraction: { segments: [{ quote: copied.slice(0, 6) }] },
+  })
+  assert.equal(result.ok, false)
+  assert.equal(result.code, 'verify-failed')
+  assert.equal(result.findings[0].code, 'copy')
+  const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
+  assert.equal(beat.segments.length, 1)
+})
