@@ -1,4 +1,4 @@
-# dsh-novel-kit 已知边界与未做清单（0.1.0）
+# dsh-novel-kit 已知边界与未做清单（0.1.13）
 
 > 目的：把「没有做」写清楚，避免把只读当成已实现、把简化版当完整版。
 
@@ -19,23 +19,20 @@
 3. **引文定位**：offset 不准时按唯一引文自动定位；同一引文出现多次会要求准确 offset。
 4. **strict 只影响检查**，不改变上下文装配（四段仍会读，但只读）。
 5. **章节号与正文文件名**：finish 写 beat 段落时用 `正文/第N章.md` 作为文件名占位，不校验本地正文文件是否存在。
+6. **与旧五件同时写同一章**：`finish` 写的是 beat/fade 的原文件；两边同时开着写同一本书，会重复登记或撞上 CAS 冲突（停下，不静默覆盖）。见 [COEXIST.md](COEXIST.md)。
 
 ## 3. 宿主与 UI 的已知限制
 
 1. **面板写入都要二次确认**（拍板、接管），但没有撤销按钮；错误操作需手动反向操作（如 restore）。
 2. **冲突页签只看前 8 条**（快照截断），完整列表走 `novel_query({view:"conflicts"})`。
 3. **工作台正文只读**：编辑仍回聊天或原插件；工作台里没有直接保存。
-4. **渲染冒烟只覆盖首屏**：	est/render.test.mjs 用宿主替身渲染三个组件，能抓到 TDZ/hooks 崩溃，但不验证真实浏览器里的视觉与交互。
-4. **`/novel on` 是会话级内存态**，重启 DSH 后需要再开（暂无 prefs 持久化）。
+4. **渲染冒烟只覆盖首屏**：`test/render.test.mjs` 用宿主替身渲染三个组件，能抓到 TDZ/hooks 崩溃，但不验证真实浏览器里的视觉与交互。
+5. **`/novel on` 是会话级内存态**，重启 DSH 后需要再开（暂无 prefs 持久化）。
 
 ## 4. 发布与验收状态
 
-- npm 首发**未完成**：
-pm whoami 返回 401（token 为空/过期），publish 返回 404；需要作者 
-pm login 后发布（命令见 docs/RELEASE.md）。gh 也未登录，GitHub Release 需网页或 gh 登录。
-- 已备好：tag v0.1.0–v0.1.12、CHANGELOG、DETAIL、market-intro、scripts/publish.mjs（自检→whoami→publish→校验）。2026-11-22 实跑 
-ode scripts/publish.mjs：自检全过，停在 
-pm whoami 401，未发起 publish。登录后 
-pm run release 即可。
+- npm 首发：`0.1.13` 发布到 npm 官方 registry（`latest`）；发布后用 `npm view dsh-novel-kit version --registry=https://registry.npmjs.org` 复核。国内镜像（npmmirror）可能滞后数小时，**核版本一律显式指定官方 registry**。
+- GitHub：tag `v0.1.13` 与 Release 同源；发布说明里保留 `Co-authored-by: MiyueWinter <mingyue_11129@qq.com>`。
+- 发布后 15 分钟内别反复探同一个 tarball URL：CDN 会按完整 URL 负缓存（`max-age=300`），`npm i` 自测等一会儿再做；查 packument/version 文档不受影响。
 - 隔离 profile 的安装/卸载/回退矩阵**未做**（Codex 验收第 1 条）。
 - 真实请求（PTC/native）下的工具面**未验**（第 7 条）。

@@ -1,4 +1,4 @@
-# dsh-novel-kit 状态一页纸（2026-11-22 · 0.1.12）
+# dsh-novel-kit 状态一页纸（2026-11-22 · 0.1.13）
 
 ## 一句话
 
@@ -26,6 +26,7 @@
 | 语法检查 | 通过 | `npm run check` |
 | 打包 | 45 文件 | `npm pack --dry-run` |
 | 真机插件行 | `novel-kit` / `novel-kit-remote` 均 `fiberPhase=active` | `plugin_manager list_plugins` |
+| 与旧五件共存 | 六件 12 行全部 active，无注册冲突（工具/命令/条目 id 各异） | 同上 + [COEXIST](COEXIST.md) |
 
 ## 一章的路径
 
@@ -39,20 +40,21 @@ novel_chapter_finish({session_id, segments, memory})
    → blocker 不落账；通过则写正文 + 事务写 beat/fade + 回执
 ```
 
-## 还差什么（都不是代码侧）
+## 还差什么
 
 | 项 | 谁来做 |
 |---|---|
-| npm 发布 0.1.12 | 你 `npm login` 后跑 `npm run release`（脚本已备好，自检全过） |
-| GitHub Release | 你 `gh auth login` 或网页发（tag 已推，模板在 RELEASE.md） |
 | 面板目视验收 | 你刷新 DSH，看六个页签与工作台 |
 | 隔离 profile 安装矩阵 | 真机装/卸一次（Codex 验收第 1、7 条） |
+| 真实请求（PTC/native）下的工具面 | 真机跑一次一章 |
+| 已知边界 | 见 [LIMITS](LIMITS.md)（故障注入、replay、审阅队列、隔离矩阵） |
 
 ## 文档地图
 
 - [README](../README.md)：安装、能力对照
 - [DETAIL](DETAIL.md)：详情页长描述
-- [LIMITS](LIMITS.md)：已知边界（含发布阻塞证据）
-- [RELEASE](RELEASE.md)：一条命令发布 + GitHub Release 模板
+- [COEXIST](COEXIST.md)：与旧五件共存（工具不撞，账本要小心）
+- [LIMITS](LIMITS.md)：已知边界与未做清单
+- [RELEASE](RELEASE.md)：发布清单（登录 → 发布 → 校验 → GitHub Release）
 - [CODEX-REVIEW-BRIEF](CODEX-REVIEW-BRIEF.md)：给外部评审的代码地图与五个待决问题
 - [验收记录](../../docs/kit-acceptance-2026-11-22.md)：一章验收 19 项的证据

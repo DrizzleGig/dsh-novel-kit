@@ -4,7 +4,7 @@
 //   node scripts/publish.mjs             # 全流程（需要已 npm login）
 //   node scripts/publish.mjs --skip-publish   # 只自检（CI/离线）
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
@@ -25,6 +25,16 @@ const run = (label, args, { allowFail = false } = {}) => {
     if (!allowFail) process.exitCode = 1
     return false
   }
+}
+
+const localNpmCli = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')
+
+// 本机 npm 不在 PATH 里也能跑：优先用 node 自带的 npm-cli.js。
+const npmCli = () => {
+  const fromEnv = process.env.npm_execpath
+  if (fromEnv && fromEnv.endsWith('.js') && existsSync(fromEnv)) return fromEnv
+  if (existsSync(localNpmCli)) return localNpmCli
+  throw new Error('找不到 npm-cli.js：请在 `npm run release` 里调用，或把 npm 放进 PATH')
 }
 
 const runNpm = (args) => {
@@ -75,24 +85,48 @@ if (!who.ok) {
 }
 console.log(who.out)
 
+// publish 用 inherit：账号若要求浏览器 2FA，npm 会把授权 URL 打到终端上等人确认，
+// 被 pipe 住的话作者看不到链接。
 console.log(`\n▶ npm publish ${pkg.version}`)
-const publish = runNpm(['publish', `--registry=${registry}`, '--access', 'public'])
-if (!publish.ok) {
-  console.error(publish.out.split('\n').slice(-8).join('\n'))
+try {
+  execFileSync(process.execPath, [npmCli(), 'publish', `--registry=${registry}`, '--access', 'public'], {
+    cwd: root,
+    stdio: 'inherit',
+  })
+} catch {
   console.error('\n✖ 发布失败：402/404/EOTP 多半是登录态或 2FA 过期，重新 npm login 后重试。')
   process.exit(1)
 }
-console.log(publish.out.split('\n').slice(-3).join('\n'))
 
+// 校验走 version 文档 + 时间戳：packument 与 tarball 都有 CDN 缓存，
+// npm view 可能还读到旧缓存，直接问 registry 拿这个版本的元数据最可靠。
 console.log('\n▶ 校验 registry')
-const version = runNpm(['view', 'dsh-novel-kit', 'version', `--registry=${registry}`])
-const tags = runNpm(['view', 'dsh-novel-kit', 'dist-tags', `--registry=${registry}`])
-console.log('version:', version.ok ? version.out : '(查不到)')
+const want = `${pkg.name}@${pkg.version}`
+let seen = null
+for (let attempt = 1; attempt <= 10; attempt += 1) {
+  try {
+    const res = await fetch(`${registry}/${pkg.name}/${pkg.version}?t=${Date.now()}`, {
+      headers: { 'cache-control': 'no-cache' },
+    })
+    if (res.ok) {
+      const doc = await res.json()
+      if (doc.version === pkg.version) { seen = doc.version; break }
+      seen = `文档版本 ${doc.version}`
+    } else {
+      seen = `HTTP ${res.status}`
+    }
+  } catch (error) {
+    seen = `fetch 失败：${error?.message ?? error}`
+  }
+  if (attempt < 10) await new Promise((resolve) => setTimeout(resolve, 3000))
+}
+const tags = runNpm(['view', pkg.name, 'dist-tags', `--registry=${registry}`, '--prefer-online'])
 console.log('dist-tags:', tags.ok ? tags.out : '(查不到)')
-if (!version.ok || version.out !== pkg.version) {
-  console.error(`\n✖ registry 上的版本不是 ${pkg.version}，发布可能未生效。`)
+if (seen !== pkg.version) {
+  console.error(`\n✖ registry 上没有 ${want}（最后一次：${seen}）。发布可能未生效。`)
   process.exit(1)
 }
+console.log(`${want} ✓`)
 
 console.log(`\n✓ 已发布 dsh-novel-kit@${pkg.version}`)
 console.log('  下一步：GitHub Release（tag 已推），说明模板见 docs/RELEASE.md')

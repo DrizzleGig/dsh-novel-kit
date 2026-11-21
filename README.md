@@ -1,85 +1,121 @@
-# dsh-novel-kit · 小说整合包（Pro）
+# dsh-novel-kit · 小说整合包
 
-> **一个独立包，内含 beat / fade / voice / fanfic / conductor 的全部功能**：章节引擎、七个 `novel_*` 工具、右栏「小说」面板与章节工作台；用户不需要安装那五个插件。
-> 当前 `0.1.0-dev`：S0 只读层已完成（codecs 兼容旧 `.dsh-novel-*` 账本 + 只读仓库，9/9 测试）。设计与排期见 [独立包设计](../../docs/小说插件系列-dsh-novel-kit-独立包设计-2026-11-22.md)。
+> **一个独立包，装它一个就能写长篇**：章节引擎、七个 `novel_*` 工具、右栏「小说」面板与章节工作台。
+> 兼容旧五件（beat / fade / voice / fanfic / conductor）的 `.dsh-novel-*` 账本——只读解码，不迁移、不改格式。
 
-## 它是什么
+`0.1.13` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness
 
-五个插件各管一件事：
+## 它解决什么
 
-| 插件 | 管什么 |
-|---|---|
-| `dsh-novel-beat` | 剧情事件与拍板（本章已拍板什么、欠了什么） |
-| `dsh-novel-fade` | 长篇记忆（近章重点记、旧事逐步淡） |
-| `dsh-novel-voice` | 文风（导入自己的写法、写前简报、写后改句） |
-| `dsh-novel-fanfic` | 同人（原著导入、本作设定、节点检查） |
-| `dsh-novel-conductor` | 编排（一章先做什么后做什么、收据核验） |
+AI 写长篇会忘（前文丢了）、会飘（设定自相矛盾）、会不像你（千篇一律的腔调）。kit 把五件事收进一个包，并在每次动笔前装配成**四段写作依据**：
 
-kit 不复制它们的代码，只复制**装、开、看、配**：
-
-- **一次装**：装 kit 一次，面板向导按顺序装齐五件（套件形态，不做代码合并）；
-- **一个开关**：`/novel on|off|status` 代理 conductor 的总开关，不维护第二份状态；
-- **一块面板**：右栏「小说」——书/章、本章流程、四段上下文（剧情约束 / 世界契约 / 记忆简报 / 表达简报）、诊断；
-- **一套工具分层**：默认 `core` 8 个工具，`fanfic` 11 个，`full` 35 个；
-- **一套版本**：五件钉在 kit 声明的兼容范围，`/novel doctor` 报矩阵。
-
-## 状态
-
-| 版本 | 内容 |
-|---|---|
-| `0.0.1-stage` | 名字与仓库占位（本版） |
-| `0.1.0` | 规划中：S0 技术探路 → M1 骨架 → M2 安装向导 → M3 分层 → M4 面板 → M5 发布 |
-
-S0 要验的四件事（见设计方案 §5）：bundle 依赖能否经面板调 `plugin-manager` 装齐、已单装再装 kit 会否双挂、`agent.ctx.tools.restrict()` 能否压到 8 个、卸 kit 后五件是否仍独立可用。
-
-
-## 五件能力 → kit 位置（2026-11-22，S1 阶段）
-
-> 诚实口径：标「已迁移」的已在 kit 内有可用实现；「只读」只有查看；「未迁移」仍属 S2/S3 范围。
-
-| 能力 | kit 位置 | 状态 |
+| 依据 | 来自 | 作用 |
 |---|---|---|
-| beat 拍板/决策、canon | `novel_plan`（propose/adopt/reject）+ 面板「拍板」+ 四段「剧情约束」 | 已迁移（拍板落账；改设定/回退未迁移） |
-| beat 段落登记/校验 | `novel_chapter_finish`（引文校验 + 段落落账） | 已迁移（简化版） |
-| fade 记忆卡沉淀 | `novel_chapter_finish` 的 `memory.cards` | 已迁移（简化版） |
-| fade 记忆简报 | 四段「记忆简报」（三维打分） | 已迁移（familiarity/accessibility/fidelity） |
-| fade 检索/遗忘/钉卡/历史 | 面板「记忆」+ 搜索框 + 钉/忘/恢复 + 总览「最近章节」 | 已迁移 |
-| voice 书库/档案 | `codecs/voice` + 面板「文风」只读 | 简报与检查已迁移（档案导入/学习未迁移） |
-| fanfic 契约/称呼/禁忌 | 四段「世界契约」+ 面板「设定」 | 契约/禁忌/检查/导入已迁移 |
-| conductor 六步 runbook | kit 的 `plan → start → write → finish`（三段主线） | 已迁移（简化；strict/replay 未迁移） |`n| conductor 冲突扫描 | `novel_query({view:"conflicts"})` | 已迁移（只报告） |
-| 收据与事务 | `storage/transaction` + `finish` 回执 | 已迁移 |
-| 总开关 | `/novel on|off|status`（会话级） | 已迁移 |
-| 旧五件接管/回退 | 面板按钮（`setBundleEnabled`） | 已迁移 |
-
-**还差的（S2/S3）**：voice 的 Style Compiler 与 `voice_check`、fanfic 的 `fic_check` 与导入向导、fade 的三维记忆与检索/遗忘、beat 的改设定/回退、conductor 的 strict/replay/冲突扫描。
-## 本地 link 联调（开发用）
-
-DSH 插件以 `link:` 安装时，Node 从仓库真实路径解析依赖；要让 remote 行加载，需要在仓库里建 `node_modules/@deepseek-ai/dsh-typert-protocol`（指向与当前 DSH 同版本的包）。本机可指向解包目录：
-
-```powershell
-New-Item -ItemType Junction -Path node_modules\@deepseek-ai\dsh-typert-protocol -Target D:\Novel-gate\.tmp\dsh-asar-2026-11-21\node_modules\@deepseek-ai\dsh-typert-protocol
-```
-## 状态
-
-一页纸：[docs/STATUS.md](docs/STATUS.md)（能力、证据、一章路径、还差什么）
-
-## 复审
-
-- 外部评审简报：[docs/CODEX-REVIEW-BRIEF.md](docs/CODEX-REVIEW-BRIEF.md)（代码地图 + 五个待决问题）
-- 已知边界：[docs/LIMITS.md](docs/LIMITS.md)
-
-## 发布清单
-
-见 [docs/RELEASE.md](docs/RELEASE.md)：自检命令、npm 登录、发布、GitHub Release 模板。
+| 剧情约束 | beat 账本 | 本章已经拍板了什么、还欠什么 |
+| 世界契约 | fanfic 契约 | 称呼矩阵、禁忌、人物、秘密 |
+| 三维记忆 | fade 账本 | 近章重点记、旧事逐步淡的记忆简报 |
+| 文风档案 | voice 档案 | 句长/段长/对话比的 bands 与 avoid 词 |
 
 ## 安装
 
-`0.1.0` 发布后：在 DSH「插件」里搜索 **小说**（`dsh-novel-kit`）安装；或本地开发时用插件管理器的「添加插件」指向本目录。
+DSH → 设置 → 插件 → 搜索 **小说**（`dsh-novel-kit`）→ 安装。
 
-## 设计依据
+装好后：
 
-- [独立包设计 v1](../../docs/小说插件系列-dsh-novel-kit-独立包设计-2026-11-22.md)（2026-11-22，桌面端 Codex 评审后的最终形态）`n- [整合包设计方案 v0.2](../../docs/小说插件系列-dsh-novel-kit-整合包设计方案-2026-11-21.md)（历史：安装形态与面板 IA）
-- [五插件协作契约 v1.2](../../docs/小说插件系列-五插件协作契约-v1.1.md)（服务 key / 目录 / 工具前缀 / 命令 / tab kind 冻结）
+1. 右栏出现「小说」页签（总览 / 拍板 / 记忆 / 文风 / 设定 / 冲突）；
+2. 在会话里输入 `/novel on` 打开本章可用的七个 `novel_*` 工具（默认关，只影响本会话）。
+
+## 一章怎么走
+
+```
+/novel on
+novel_plan({ book, chapter, proposals: [...] })        # 提案；作者 adopt / reject
+novel_chapter_start({ book, chapter })                 # 装配四段上下文
+novel_chapter_write({ session_id, text })              # 保存正文（版本化草稿）
+novel_chapter_finish({ session_id, segments, memory }) # 引文校验 → verify → 事务落账 → 回执
+```
+
+`finish` 先跑确定性检查：禁忌词、20 字原著复制（同人）、疑似写错名字、长句、称呼矩阵、文风 bands。**blocker 不落账**；`strict: true` 时只检查本章声明过的能力。落账走「计划 → CAS → 回读 → 回执」的可恢复事务，原子写带 fsync。
+
+## 七个工具
+
+| 工具 | 作用 |
+|---|---|
+| `novel_plan` | 提案与拍板（`propose` / `adopt` / `reject`） |
+| `novel_chapter_start` | 开一章：四段上下文 + 会话 |
+| `novel_chapter_write` | 写正文（新版本；不落账） |
+| `novel_chapter_finish` | 校验并落账（正文 + beat 段落 + fade 记忆卡 + 回执） |
+| `novel_chapter_resume` | 恢复/重装配上下文，查看未完成事务 |
+| `novel_chapter_abort` | 放弃本会话（不动已落账内容） |
+| `novel_query` | 只读查询：`session` / `conflicts` / `memory` / `style` / `canon` / `ledgers` / `history` |
+
+## 面板
+
+- **六个页签**：总览（含最近章节历史）、拍板、记忆（搜索 + 钉/忘/恢复）、文风、设定、冲突；
+- **章节工作台**（会话主视图）：正文只读预览、四段依据、账本 revision、本章检查、正文文件路径；
+- **写操作只有四处**：拍板、记忆钉/忘/恢复、原著导入、接管旧五件，都要二次确认。
+
+## 和 beat / fade 等五件能共存吗？
+
+**能装在同一个 DSH 里，工具、命令、条目 id 都不撞**；要小心的是**账本**不是注册表。
+
+- 工具名：kit 是 `novel_*`，五件分别是 `beat_*` / `memo_*` / `voice_*` / `fic_*` / `cue_*`，没有同名；
+- 命令：`/novel` 与 `/beat` `/memo` `/voice` `/fic` `/cue` 各用各的；
+- 但 `finish` 写的就是 beat / fade 的原文件——两边同时开着写同一章，会重复登记或撞上 CAS 冲突（报错停下，不会静默覆盖）。
+
+推荐只用一套执行者：面板「接管旧五件」只关选择层（不卸载），随时可回退。细节与实测见 [docs/COEXIST.md](docs/COEXIST.md)。
+
+## 数据放在哪
+
+```
+<workspace>/.dsh-novel-beat/<book>/book.json        # 章节段落与拍板（kit 写）
+<workspace>/.dsh-novel-fade/<book>/memory.json      # 记忆卡（kit 写）
+<workspace>/.dsh-novel-voice/<library>/library.json # 文风档案（只读）
+<workspace>/.dsh-novel-fanfic/<project>/project.json# 契约与 canon（只读）
+<workspace>/.dsh-novel-kit/                         # kit 的会话与事务
+```
+
+旧账本原样读取，不改格式；卸载 kit 不会动这些文件。
+
+## 证据
+
+| 项目 | 结果 | 命令 |
+|---|---|---|
+| 单元/集成测试 | **110/110** | `npm test` |
+| 合成工作区完整一章 | **19/19** | `npm run acceptance` |
+| 真实账本验收（复制，不动原书） | **10/10** | `npm run acceptance:real` |
+| 语法检查 | 通过 | `npm run check` |
+| 打包 | 45 文件 | `npm pack --dry-run` |
+
+## 已知边界
+
+没有写盘故障注入、`resume` 不自动补完 partial 事务、面板写入无撤销、冲突页签只看前 8 条……完整清单见 [docs/LIMITS.md](docs/LIMITS.md)。
+
+## 开发
+
+```powershell
+npm test                    # 单元/集成
+npm run acceptance          # 合成工作区一章
+npm run acceptance:real     # 复制真实账本走一章
+npm run check               # 语法检查
+node scripts\publish.mjs --skip-publish   # 发布前自检
+```
+
+本地 `link:` 联调时，Node 从仓库真实路径解析依赖，remote 行需要仓库里有 `node_modules/@deepseek-ai/dsh-typert-protocol`（指向与当前 DSH 同版本的包）：
+
+```powershell
+New-Item -ItemType Junction -Path node_modules\@deepseek-ai\dsh-typert-protocol -Target <解包的 DSH 目录>\node_modules\@deepseek-ai\dsh-typert-protocol
+```
+
+## 文档地图
+
+| 文档 | 内容 |
+|---|---|
+| [docs/STATUS.md](docs/STATUS.md) | 一页纸：能力、证据、一章路径、还差什么 |
+| [docs/DETAIL.md](docs/DETAIL.md) | 详情页长描述（插件市场用） |
+| [docs/COEXIST.md](docs/COEXIST.md) | 与旧五件共存：会撞的、不会撞的、正确用法 |
+| [docs/LIMITS.md](docs/LIMITS.md) | 已知边界与未做清单 |
+| [docs/RELEASE.md](docs/RELEASE.md) | 发布清单：登录、发布、校验、GitHub Release |
 
 ## 共同作者
 

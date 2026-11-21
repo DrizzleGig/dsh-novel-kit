@@ -53,9 +53,10 @@ novel_chapter_finish({session_id, segments, memory})# 引文校验 → verify �
 
 ## 证据
 
-- `node --test` **105** 项；
+- `node --test` **110** 项；
 - `npm run acceptance` **19** 项（合成工作区完整一章，含一次故意 verify 失败）；
-- `npm run acceptance:real` **10** 项（复制真实账本，不动原书）。
+- `npm run acceptance:real` **10** 项（复制真实账本，不动原书）；
+- `npm pack` 45 文件。
 
 ## 边界
 
