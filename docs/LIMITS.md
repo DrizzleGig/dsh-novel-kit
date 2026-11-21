@@ -33,6 +33,9 @@
 - npm 首发**未完成**：
 pm whoami 返回 401（token 为空/过期），publish 返回 404；需要作者 
 pm login 后发布（命令见 docs/RELEASE.md）。gh 也未登录，GitHub Release 需网页或 gh 登录。
-- 已备好：tag v0.1.5、CHANGELOG、DETAIL、market-intro、release 清单，登录后一条命令即可发布。
+- 已备好：tag v0.1.0–v0.1.12、CHANGELOG、DETAIL、market-intro、scripts/publish.mjs（自检→whoami→publish→校验）。2026-11-22 实跑 
+ode scripts/publish.mjs：自检全过，停在 
+pm whoami 401，未发起 publish。登录后 
+pm run release 即可。
 - 隔离 profile 的安装/卸载/回退矩阵**未做**（Codex 验收第 1 条）。
 - 真实请求（PTC/native）下的工具面**未验**（第 7 条）。
