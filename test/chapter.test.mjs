@@ -1,7 +1,7 @@
 // S1：章节引擎最小闭环（start → write → finish）与可恢复事务。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { startChapter, writeChapter, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal } from '../lib/engine/chapter.js'
@@ -421,4 +421,21 @@ test('queryChapter：memory / style / canon / ledgers 四个只读视图', async
   const canon = await queryChapter({ root, book: '书', view: 'canon' })
   assert.equal(canon.available, true)
   assert.equal(canon.characters.length, 1)
+})
+
+test('finish：正文落盘到 正文/第N章.md，同章重复收尾不产生副本', async () => {
+  const root = workspace()
+  const { session } = await startChapter({ root, book: '书', chapter: 13 })
+  await writeChapter({ root, sessionId: session.id, text: draft })
+  const quote = '陈凡推门进来，屋里没有别人。'
+  const done = await finishChapter({ root, sessionId: session.id, extraction: { segments: [{ quote }] } })
+  assert.equal(done.ok, true)
+  assert.ok(done.chapterFile, 'returns chapter file path')
+  const saved = readFileSync(done.chapterFile, 'utf8')
+  assert.match(saved, /陈凡推门进来/)
+
+  const again = await finishChapter({ root, sessionId: session.id, extraction: { segments: [{ quote }] } })
+  assert.equal(again.idempotent, true)
+  const files = readdirSync(path.dirname(done.chapterFile)).filter((name) => name.startsWith('第13章'))
+  assert.equal(files.length, 1, '同章只有一个文件')
 })

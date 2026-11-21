@@ -93,6 +93,7 @@ const done = await finishChapter({
   },
 })
 check('finish 完成并返回回执', done.ok === true && done.session.state === 'completed' && Boolean(done.receipt), `tx=${done.receipt?.txId}`)
+check('正文落盘', Boolean(done.chapterFile) && readFileSync(done.chapterFile, 'utf8').includes('令牌'), done.chapterFile ?? '')
 const beatAfter = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', book, 'book.json'), 'utf8'))
 const fadeAfter = JSON.parse(readFileSync(path.join(root, '.dsh-novel-fade', book, 'memory.json'), 'utf8'))
 check('beat 段落 +1', beatAfter.segments.length === 2, `segments=${beatAfter.segments.length}`)
