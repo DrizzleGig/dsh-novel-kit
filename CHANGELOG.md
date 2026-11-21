@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.15 — 2026-11-22
+
+- **疑似写错名字**：`checkNames` 用 canon 人物名（2–3 字）做一字差比对，进 finish verify（只 warning，不阻塞）。
+- **设定视图补人物与秘密**：`decodeFanficCanon` 增 characters；`canonView(project, canon)` 输出人物（含别名/角色）与秘密（公开章/知情者）；面板「设定」页签展示。
+- 测试 **67 → 69**。
 ## 0.1.0-dev.14 — 2026-11-22
 
 - **原著复制检查**：`checkCopy` 用 canon 的 evidence 引文做 20 字窗口比对，命中即 blocker，并入 finish 的 verify（账本不变）。

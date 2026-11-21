@@ -1,7 +1,7 @@
 // S1：确定性章节检查。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { checkDraft, splitSentences, checkCopy } from '../lib/engine/checks.js'
+import { checkDraft, splitSentences, checkCopy, checkNames } from '../lib/engine/checks.js'
 
 test('splitSentences：按中英文句末标点切分', () => {
   assert.deepEqual(splitSentences('他走了。她没说话！真的吗？'), ['他走了', '她没说话', '真的吗'])
@@ -60,4 +60,14 @@ test('checkCopy：连续 20 字与原著证据相同 → blocker；短引文忽�
 
   const short = checkCopy({ text: draft, evidence: [{ quote: '他偷去了' }] })
   assert.equal(short.ok, true)
+})
+
+test('checkNames：与 canon 人物名只差一个字 → warning；正确名字不报', () => {
+  const near = checkNames({ text: '唐叁站在门口。', names: ['唐三', '小舞'] })
+  assert.equal(near.warnings, 1)
+  assert.equal(near.findings[0].code, 'name-near')
+  assert.match(near.findings[0].message, /唐叁/)
+
+  const clean = checkNames({ text: '唐三站在门口。', names: ['唐三'] })
+  assert.equal(clean.warnings, 0)
 })

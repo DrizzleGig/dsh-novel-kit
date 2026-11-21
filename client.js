@@ -209,6 +209,16 @@ window.__ModuleLoader__.load({
             ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '称呼'),
                 value.addresses.slice(0, 20).map((row, index) => h('div', { key: index, style: small }, `${row.from}→${row.to}：${row.form}（${row.fromChapter} 起）`)))
             : null,
+          value.characters && value.characters.length
+            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '人物'),
+                value.characters.slice(0, 12).map((person, index) => h('div', { key: index, style: small },
+                  person.name + (person.role ? ' · ' + person.role : '') + (person.aliases && person.aliases.length ? '（' + person.aliases.join('/') + '）' : ''))))
+            : null,
+          value.secrets && value.secrets.length
+            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '秘密'),
+                value.secrets.slice(0, 8).map((secret, index) => h('div', { key: index, style: { color: c.faint, fontSize: 11 } },
+                  (secret.publicAtChapter ? secret.publicAtChapter + ' 起公开' : '未公开') + '：' + String(secret.what).slice(0, 40))))
+            : null,
         )
       }
 

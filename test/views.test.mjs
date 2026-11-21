@@ -66,3 +66,17 @@ test('styleView：带档案时给出 bands / rules / avoid', () => {
   assert.equal(view.profiles[0].rules, 2)
   assert.deepEqual(view.profiles[0].avoid, ['仿佛'])
 })
+
+test('canonView：带 canon 时给出人物与秘密', () => {
+  const view = canonView(
+    { id: 'douluo', revision: 46, exports: { addresses: [], forbidden: [] } },
+    {
+      characters: [{ name: '唐三', aliases: ['小三'], role: '主角' }],
+      secrets: [{ id: 'secret_001', what: '前世是唐门弟子', publicAtChapter: 'ch010', knownBy: ['唐三'] }],
+    },
+  )
+  assert.equal(view.available, true)
+  assert.deepEqual(view.characters, [{ name: '唐三', aliases: ['小三'], role: '主角' }])
+  assert.equal(view.secrets.length, 1)
+  assert.equal(view.secrets[0].publicAtChapter, 'ch010')
+})
