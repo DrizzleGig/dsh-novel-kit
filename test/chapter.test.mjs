@@ -166,3 +166,28 @@ test('finish：写正文期间账本被外部修改 → context_stale，不落�
   const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
   assert.equal(beat.segments.length, 1, '中文：冲突时不写 beat 账本')
 })
+
+test('start：四本账齐备时四段上下文都可用（beat/fanfic/fade/voice）', async () => {
+  const root = workspace()
+  // 补 voice 书库与同人项目（名字故意与 beat 书名不同，验证 binding 解析）
+  const voiceDir = path.join(root, '.dsh-novel-voice', '斗罗大陆')
+  mkdirSync(voiceDir, { recursive: true })
+  writeFileSync(path.join(voiceDir, 'library.json'), JSON.stringify({
+    schemaVersion: 1, book: '斗罗大陆', works: [{ workId: 'w1', title: '原著', chapters: 10, chars: 1000, status: 'measured' }],
+  }, null, 2))
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(ficDir, { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', title: '原著', sourceId: 'src_1', revision: 7, schemaVersion: 1,
+    exports: { schemaVersion: 1, revision: 7, forbidden: [], addresses: [{ from: 'A', to: 'B', form: 'B哥', fromChapter: 'ch001' }] },
+  }, null, 2))
+
+  const started = await startChapter({ root, book: '书', chapter: 13, requiredCapabilities: ['beat', 'fade', 'voice', 'fanfic'] })
+  assert.equal(started.ok, true)
+  const available = Object.fromEntries(started.context.segments.map((segment) => [segment.component, segment.available]))
+  assert.deepEqual(available, { beat: true, fanfic: true, fade: true, voice: true })
+  assert.match(started.context.segments[1].markdown, /称呼/)
+  assert.match(started.context.segments[3].markdown, /文风档案/)
+  assert.equal(started.session.binding.voiceLibrary, '斗罗大陆')
+  assert.equal(started.session.binding.fanficProject, 'douluo')
+})
