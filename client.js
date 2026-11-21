@@ -96,7 +96,7 @@ window.__ModuleLoader__.load({
           const pending = name === 'decisions'
             ? remote.getDecisions(sessionId, { book: activeBook })
             : name === 'memory'
-              ? remote.getMemory(sessionId, { book: activeBook, limit: 40 })
+              ? remote.getMemory(sessionId, { book: activeBook, limit: 40, currentChapter: state.data && state.data.session ? state.data.session.chapter : null })
               : name === 'style'
                 ? remote.getStyle(sessionId, { book: activeBook })
                 : remote.getCanon(sessionId, { book: activeBook })
@@ -231,7 +231,7 @@ window.__ModuleLoader__.load({
             : value.cards.map((card) => h('div', { key: card.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
                 h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
                   h('span', { style: faint }, 'ch' + card.chapter),
-                  h('span', { style: { color: c.sub, fontSize: 10.5 } }, card.layer + ' · 重要度 ' + card.salience),
+                  h('span', { style: { color: c.sub, fontSize: 10.5 } }, card.layer + ' · 重要度 ' + card.salience + (typeof card.fidelity === 'number' ? ' · 准 ' + Math.round(card.fidelity * 100) + '%' : '')),
                 ),
                 h('div', { style: small }, card.gist),
                 h('div', { style: { display: 'flex', gap: 6, marginTop: 2 } },

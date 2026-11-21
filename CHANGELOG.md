@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.22 — 2026-11-22
+
+- **三维记忆**：`engine/memory3d.js`（familiarity / accessibility / fidelity，按距章、重要度、人物出场、钉卡计算）；简报改用三维排序，低 fidelity 只给模糊印象不给细节。
+- 面板记忆卡显示「准 N%」；memoryView 支持 currentChapter。
+- 测试 **80 → 85**。
 ## 0.1.0-dev.21 — 2026-11-22
 
 - **同人原著导入**：`splitChapters`（第N章/序章/楔子/番外）+ `importSource`（source 布局：raw.txt / meta.json / index.json / chapters，project.json 走事务更新，重复导入幂等）。

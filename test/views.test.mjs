@@ -108,3 +108,9 @@ test('searchMemory：按词命中 gist/实体，按重要度排序，空词不�
   assert.equal(searchMemory(fade, '').total, 0)
   assert.equal(searchMemory(null, 'x').available, false)
 })
+
+test('memoryView：给 currentChapter 时附带 fidelity', () => {
+  const view = memoryView({ revision: 1, cards: [{ id: 'a', chapter: 3, gist: 'x', salience: 5, entityIds: [] }] }, { currentChapter: 4 })
+  assert.equal(typeof view.cards[0].fidelity, 'number')
+  assert.equal(typeof view.cards[0].familiarity, 'number')
+})
