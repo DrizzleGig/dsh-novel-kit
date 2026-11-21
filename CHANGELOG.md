@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.9 — 2026-11-22
+
+- **拍板视图**：`host/decisions.js` 的 `decisionsView`（本章已拍板 + 会话里待拍板提案 + 未回收义务），remote 增 `getDecisions`，面板加「拍板」页签。
+- README 增加「五件能力 → kit 位置」对照表（已迁移 / 只读 / 未迁移），把「全部功能」的进度写实。
+- 测试 **48 → 51**。
 ## 0.1.0-dev.8 — 2026-11-22
 
 - **记忆 / 文风 / 设定 三块只读视图**：`host/views.js` 的 `memoryView`（按章/领域筛、按重要度排序）、`styleView`（书库规模）、`canonView`（称呼矩阵 + 禁忌）。

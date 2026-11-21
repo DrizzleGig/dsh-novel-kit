@@ -32,21 +32,40 @@ kit 不复制它们的代码，只复制**装、开、看、配**：
 
 S0 要验的四件事（见设计方案 §5）：bundle 依赖能否经面板调 `plugin-manager` 装齐、已单装再装 kit 会否双挂、`agent.ctx.tools.restrict()` 能否压到 8 个、卸 kit 后五件是否仍独立可用。
 
+
+## 五件能力 → kit 位置（2026-11-22，S1 阶段）
+
+> 诚实口径：标「已迁移」的已在 kit 内有可用实现；「只读」只有查看；「未迁移」仍属 S2/S3 范围。
+
+| 能力 | kit 位置 | 状态 |
+|---|---|---|
+| beat 拍板/决策、canon | `novel_plan` + 面板「拍板」+ 四段「剧情约束」 | 部分（登记与只读；改设定/回退未迁移） |
+| beat 段落登记/校验 | `novel_chapter_finish`（引文校验 + 段落落账） | 已迁移（简化版） |
+| fade 记忆卡沉淀 | `novel_chapter_finish` 的 `memory.cards` | 已迁移（简化版） |
+| fade 记忆简报 | 四段「记忆简报」（近章卡片） | 已迁移（简化版；三维打分未迁移） |
+| fade 检索/遗忘/钉卡/历史 | 面板「记忆」只读 | 只读 |
+| voice 书库/档案 | `codecs/voice` + 面板「文风」只读 | 只读（简报与检查未迁移） |
+| fanfic 契约/称呼/禁忌 | 四段「世界契约」+ 面板「设定」只读 | 只读（检查/导入未迁移） |
+| conductor 六步 runbook | kit 的 `plan → start → write → finish`（三段主线） | 已迁移（简化；strict/replay 未迁移） |
+| 收据与事务 | `storage/transaction` + `finish` 回执 | 已迁移 |
+| 总开关 | `/novel on|off|status`（会话级） | 已迁移 |
+| 旧五件接管/回退 | 面板按钮（`setBundleEnabled`） | 已迁移 |
+
+**还差的（S2/S3）**：voice 的 Style Compiler 与 `voice_check`、fanfic 的 `fic_check` 与导入向导、fade 的三维记忆与检索/遗忘、beat 的改设定/回退、conductor 的 strict/replay/冲突扫描。
 ## 本地 link 联调（开发用）
 
-DSH 插件以 link: 安装时，Node 从仓库真实路径解析依赖；要让 emote 行加载，需要在仓库里建 
-ode_modules/@deepseek-ai/dsh-typert-protocol（指向与当前 DSH 同版本的包）。本机可指向解包目录，例如：
+DSH 插件以 `link:` 安装时，Node 从仓库真实路径解析依赖；要让 remote 行加载，需要在仓库里建 `node_modules/@deepseek-ai/dsh-typert-protocol`（指向与当前 DSH 同版本的包）。本机可指向解包目录：
 
-``powershell
+```powershell
 New-Item -ItemType Junction -Path node_modules\@deepseek-ai\dsh-typert-protocol -Target D:\Novel-gate\.tmp\dsh-asar-2026-11-21\node_modules\@deepseek-ai\dsh-typert-protocol
-``n
+```
 ## 安装
 
 `0.1.0` 发布后：在 DSH「插件」里搜索 **小说**（`dsh-novel-kit`）安装；或本地开发时用插件管理器的「添加插件」指向本目录。
 
 ## 设计依据
 
-- [整合包设计方案 v0.2](../../docs/小说插件系列-dsh-novel-kit-整合包设计方案-2026-11-21.md)（含桌面端 Codex 只读评审：`installBundle` 只激活目标 bundle、`restrict` 真实签名、面板首屏优先级）
+- [独立包设计 v1](../../docs/小说插件系列-dsh-novel-kit-独立包设计-2026-11-22.md)（2026-11-22，桌面端 Codex 评审后的最终形态）`n- [整合包设计方案 v0.2](../../docs/小说插件系列-dsh-novel-kit-整合包设计方案-2026-11-21.md)（历史：安装形态与面板 IA）
 - [五插件协作契约 v1.2](../../docs/小说插件系列-五插件协作契约-v1.1.md)（服务 key / 目录 / 工具前缀 / 命令 / tab kind 冻结）
 
 ## 共同作者

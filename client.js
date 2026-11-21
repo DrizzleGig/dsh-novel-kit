@@ -29,6 +29,7 @@ window.__ModuleLoader__.load({
         { method: 'identity', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'getSnapshot', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getDiagnostics', parameters: [param('sessionId', sessionIdSchema)] },
+        { method: 'getDecisions', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
@@ -83,11 +84,13 @@ window.__ModuleLoader__.load({
         if (name === 'overview') return
         try {
           const activeBook = book || (state.data && state.data.book) || null
-          const pending = name === 'memory'
-            ? remote.getMemory(sessionId, { book: activeBook, limit: 40 })
-            : name === 'style'
-              ? remote.getStyle(sessionId, { book: activeBook })
-              : remote.getCanon(sessionId, { book: activeBook })
+          const pending = name === 'decisions'
+            ? remote.getDecisions(sessionId, { book: activeBook })
+            : name === 'memory'
+              ? remote.getMemory(sessionId, { book: activeBook, limit: 40 })
+              : name === 'style'
+                ? remote.getStyle(sessionId, { book: activeBook })
+                : remote.getCanon(sessionId, { book: activeBook })
           const value = await Promise.resolve(pending).then(unwrap)
           setTabData((prev) => ({ ...prev, [name]: value }))
         } catch (error) {
@@ -99,6 +102,27 @@ window.__ModuleLoader__.load({
         const value = tabData[tab]
         if (!value) return h('div', { style: faint }, '加载中…')
         if (value.error) return h('div', { style: { color: c.error, fontSize: 11.5 } }, value.error)
+        if (tab === 'decisions') {
+          if (!value.available) return h('div', { style: faint }, '没有 beat 账本与会话')
+          return h('div', null,
+            h('div', { style: faint }, '第 ' + value.chapter + ' 章 · 已拍板 ' + value.committed.length + ' · 待拍板 ' + value.pendingCount + ' · 未回收义务 ' + value.openObligations),
+            value.intent ? h('div', { style: small }, '意图：' + value.intent) : null,
+            value.proposals.length
+              ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '待拍板'),
+                  value.proposals.map((item) => h('div', { key: item.id, style: { padding: '3px 0' } },
+                    h('div', { style: small }, item.title || item.id),
+                    item.options.map((option, index) => h('div', { key: index, style: { color: c.faint, fontSize: 11 } }, '· ' + option.label + (option.impact ? '：' + option.impact : '') )),
+                  )))
+              : null,
+            value.committed.length
+              ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '已拍板'),
+                  value.committed.map((item) => h('div', { key: item.id, style: { padding: '3px 0', borderBottom: '1px solid ' + c.border } },
+                    h('div', { style: small }, item.title || item.id),
+                    h('div', { style: { color: c.faint, fontSize: 11 } }, item.change),
+                  )))
+              : null,
+          )
+        }
         if (tab === 'memory') {
           if (!value.available) return h('div', { style: faint }, '没有 fade 记忆账本')
           return h('div', null,
@@ -244,7 +268,7 @@ window.__ModuleLoader__.load({
             ? h('div', { style: { fontSize: 11.5, color: action.phase === 'error' ? c.error : c.sub } }, action.message)
             : null,
           h('div', { style: { display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' } },
-            [['overview', '总览'], ['memory', '记忆'], ['style', '文风'], ['canon', '设定']].map(function ([key, label]) {
+            [['overview', '总览'], ['decisions', '拍板'], ['memory', '记忆'], ['style', '文风'], ['canon', '设定']].map(function ([key, label]) {
               return h('button', {
                 key: key,
                 type: 'button',
