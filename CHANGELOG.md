@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-11-22
+
+- **resume 能解除 blocked**：`context_stale` 后调用 `novel_chapter_resume` 会重新装配四段、回到出错前的状态，随后 `finish` 可以正常完成（之前只能停在那里）。
+- 新增 `docs/LIMITS.md`：与五件的能力对照、引擎与 UI 的已知限制、发布/验收状态。
+- 测试 **92 → 93**。
 ## 0.1.0 — 2026-11-22
 
 首个「独立包」版本：只装 kit 一个包，即可用章节引擎写一章，不需要装 beat/fade/voice/fanfic/conductor。

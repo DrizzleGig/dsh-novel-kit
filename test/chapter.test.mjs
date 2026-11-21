@@ -371,3 +371,29 @@ test('非 strict：同样的稿子会被同人检查拦住', async () => {
   assert.equal(done.ok, false)
   assert.equal(done.code, 'verify-failed')
 })
+
+test('resume：context_stale 后重新装配上下文并回到 writing，再 finish 成功', async () => {
+  const root = workspace()
+  const { session } = await startChapter({ root, book: '书', chapter: 13 })
+  await writeChapter({ root, sessionId: session.id, text: draft })
+
+  // 外部改 fade，让指纹失效
+  const fadeFile = path.join(root, '.dsh-novel-fade', '书', 'memory.json')
+  const memory = JSON.parse(readFileSync(fadeFile, 'utf8'))
+  memory.cards.push({ id: 'external', chapter: 12, gist: '外部写入', salience: 3 })
+  memory.meta.revision += 1
+  writeFileSync(fadeFile, JSON.stringify(memory, null, 2))
+
+  const stale = await finishChapter({ root, sessionId: session.id, extraction: { segments: [{ quote: '陈凡推门进来，屋里没有别人。' }] } })
+  assert.equal(stale.code, 'context_stale')
+  assert.equal(stale.session.state, 'blocked')
+
+  const resumed = await resumeChapter({ root, sessionId: session.id })
+  assert.equal(resumed.refreshed.state, 'writing')
+  assert.equal(resumed.session.state, 'writing')
+
+  const quote = '陈凡推门进来，屋里没有别人。'
+  const done = await finishChapter({ root, sessionId: session.id, extraction: { segments: [{ quote }] } })
+  assert.equal(done.ok, true)
+  assert.equal(done.session.state, 'completed')
+})
