@@ -1,9 +1,15 @@
-// dsh-novel-kit 0.0.0-stage
+// dsh-novel-kit 0.1.0-dev
 //
-// 这一版只是 npm 名字与仓库占位，不挂任何工具、面板或命令。
-// 方案见 D:\Novel-gate\docs\小说插件系列-dsh-novel-kit-整合包设计方案-2026-11-21.md
-export const name = 'novel-kit'
+// 独立包：一个包内实现 beat/fade/voice/fanfic/conductor 的能力。
+// S0 只读层（codecs/repositories）+ S1 章节引擎（start/write/finish/query）已就绪；
+// 工具面先注册 4 个，开关与面板在 S1/S2 继续接。
+import { toolDefinitions } from './lib/host/tools.js'
 
-export async function apply() {
-  // 0.1.0 起在这里挂：/novel 命令、tier→restrict、kit_snapshot、doctor、安装向导。
+export const name = 'novel-kit'
+export const inject = ['tools']
+
+export async function apply(ctx) {
+  for (const definition of toolDefinitions()) {
+    ctx.effect(() => ctx.tools.register(definition))
+  }
 }
