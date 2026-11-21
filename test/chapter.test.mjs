@@ -439,3 +439,27 @@ test('finish：正文落盘到 正文/第N章.md，同章重复收尾不产生�
   const files = readdirSync(path.dirname(done.chapterFile)).filter((name) => name.startsWith('第13章'))
   assert.equal(files.length, 1, '同章只有一个文件')
 })
+
+test('指纹按内容：同 revision、同长度的账本改动也会 context_stale', async () => {
+  const root = workspace()
+  const { session } = await startChapter({ root, book: '书', chapter: 13 })
+  await writeChapter({ root, sessionId: session.id, text: draft })
+
+  const beatFile = path.join(root, '.dsh-novel-beat', '书', 'book.json')
+  const beat = JSON.parse(readFileSync(beatFile, 'utf8'))
+  beat.canon[0].value = beat.canon[0].value.replace('多出来', '少出来')
+  writeFileSync(beatFile, JSON.stringify(beat, null, 2))
+
+  const result = await finishChapter({ root, sessionId: session.id, extraction: { segments: [{ quote: '陈凡推门进来，屋里没有别人。' }] } })
+  assert.equal(result.ok, false)
+  assert.equal(result.code, 'context_stale')
+})
+
+test('损坏的 beat 账本报 ledger-corrupt，而不是「缺少能力」', async () => {
+  const root = workspace()
+  writeFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), '{ broken json')
+  await assert.rejects(
+    () => startChapter({ root, book: '书', chapter: 13 }),
+    /ledger-corrupt/,
+  )
+})

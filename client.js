@@ -496,24 +496,6 @@ window.__ModuleLoader__.load({
       const { sessionId, remote } = props
       const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
-      const [pendingTakeover, setPendingTakeover] = React.useState(false)
-      const [action, setAction] = React.useState({ phase: 'idle', message: '' })
-
-      const runTakeover = React.useCallback(async function (takeover) {
-        if (!remote) return
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(takeover ? remote.takeover(sessionId) : remote.restore(sessionId)).then(unwrap)
-          const failed = (result?.results ?? []).filter((item) => !item.ok)
-          setAction({
-            phase: 'done',
-            message: failed.length ? '部分失败：' + failed.map((item) => item.name + '（' + (item.application ?? '?') + '）').join('、') : (takeover ? '已停用旧五件，由 kit 接管' : '已恢复旧五件'),
-          })
-          await load()
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, load])
 
       const load = React.useCallback(async function (nextBook) {
         if (!remote) {

@@ -1,7 +1,7 @@
 // S2：同人原著导入（切章 + source 布局 + project 事务更新）。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { splitChapters, importSource, listSourceFiles } from '../lib/engine/import.js'
@@ -78,4 +78,16 @@ test('listSourceFiles：只列 txt/md', async () => {
   const listed = await listSourceFiles(root)
   assert.equal(listed.ok, true)
   assert.deepEqual(listed.files.map((item) => item.name), ['原著.txt', 'note.md'])
+})
+
+test('importSource：项目不存在时直接报错，不留下 source 目录', async () => {
+  const { root, file } = workspace()
+  await assert.rejects(() => importSource({ root, project: 'nope', file }), /项目读不出来/)
+  const dir = path.join(root, '.dsh-novel-fanfic', 'nope')
+  assert.equal(existsSync(dir), false)
+})
+
+test('importSource：project 名字不能越界', async () => {
+  const { root, file } = workspace()
+  await assert.rejects(() => importSource({ root, project: '..', file }), /不合法/)
 })

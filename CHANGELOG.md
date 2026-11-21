@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.6 — 2026-11-22
+
+独立代码复审后的修复（按严重度）：
+
+- **路径越界**：新增 `assertSafeName`，`book` / `project` / `txId` 一律拒绝 `..`、分隔符、盘符；事务目录与导入路径不再能写到工作区外。
+- **工作台 TDZ**：`Workbench` 里 `runTakeover` 的依赖数组引用了未声明的 `load`（每次渲染抛错）——删除这段未使用的接管代码。
+- **正文先落盘**：`finish` 先写 `正文/第N章_标题.md` 再提交账本；写失败返回 `chapter-file-failed`，账本不动；beat 段落记录**真实**相对路径（之前记的是不存在的 `第N章.md`）。
+- **损坏账本不再当「没有」**：只有 ENOENT 才归为缺失，解析/权限错误报 `ledger-corrupt`。
+- **上下文指纹按内容**：同 revision、同长度的改动也能被 `context_stale` 发现。
+- **绑定不再乱猜**：`voice` / `fanfic` 只有在显式指定、同名、或全工作区唯一时才绑定，否则为 null。
+- **提交/恢复**：`finish` 遇到上次未完成的提交先查事务日志（completed 直接收尾、partial/conflict 拒绝重复落账）；`blocked` 状态不再因重复 transition 抛错；`awaiting_author` 明确拒绝收尾。
+- **导入**：先校验 `project.json` 存在再写 source；事务 id 带项目名，避免覆盖别的项目的计划。
+- 测试 **95 → 99**；验收 19/19；真实验收 10/10。
 ## 0.1.5 — 2026-11-22
 
 - **真实数据验收**：`npm run acceptance:real` 把真实书（默认《斗罗：开局炸毁冰火两仪眼》）的 `.dsh-novel-*` 复制到临时工作区，用 kit 引擎走完一章：**10/10**（beat rev 87→88、segments 5→6、cards 73→74、快照/冲突可读）。
