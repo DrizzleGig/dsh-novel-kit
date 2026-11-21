@@ -333,3 +333,41 @@ test('queryChapter：view=conflicts 找出 beat canon 与同人原著的同键�
   assert.equal(result.conflicts[0].beat.value, '多出来的人')
   assert.equal(result.conflicts[0].fanfic.value, '穿越者')
 })
+
+test('strict：只检查声明过的能力——没声明 fanfic 就不跑同人检查', async () => {
+  const root = workspace()
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(ficDir, { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', title: '原著', sourceId: 'src_1', revision: 7, schemaVersion: 1,
+    exports: { schemaVersion: 1, revision: 7, forbidden: ['手机'], addresses: [] },
+  }, null, 2))
+
+  const started = await startChapter({ root, book: '书', chapter: 13, requiredCapabilities: ['beat', 'fade'], strict: true })
+  assert.equal(started.session.strict, true)
+  const text = '陈凡掏出手机看了一眼时间。'
+  await writeChapter({ root, sessionId: started.session.id, text })
+  const done = await finishChapter({
+    root,
+    sessionId: started.session.id,
+    extraction: { segments: [{ quote: '陈凡掏出手机' }] },
+  })
+  assert.equal(done.ok, true, 'strict 模式不因 fanfic 禁忌卡住')
+  assert.equal(done.session.state, 'completed')
+})
+
+test('非 strict：同样的稿子会被同人检查拦住', async () => {
+  const root = workspace()
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(ficDir, { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', title: '原著', sourceId: 'src_1', revision: 7, schemaVersion: 1,
+    exports: { schemaVersion: 1, revision: 7, forbidden: ['手机'], addresses: [] },
+  }, null, 2))
+
+  const { session } = await startChapter({ root, book: '书', chapter: 13 })
+  await writeChapter({ root, sessionId: session.id, text: '陈凡掏出手机看了一眼时间。' })
+  const done = await finishChapter({ root, sessionId: session.id, extraction: { segments: [{ quote: '陈凡掏出手机' }] } })
+  assert.equal(done.ok, false)
+  assert.equal(done.code, 'verify-failed')
+})

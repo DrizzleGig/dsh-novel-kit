@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.25 — 2026-11-22
+
+- **strict 模式**：`novel_chapter_start({strict:true})` 后，`finish` 只跑 required_capabilities 对应的检查（没声明 fanfic 就不扫同人禁忌/复制/称呼，没声明 voice 就不比文风 bands）；非 strict 行为不变。
+- 测试 **90 → 92**。
 ## 0.1.0-dev.24 — 2026-11-22
 
 - 快照带冲突摘要（beat canon vs 同人原著，最多 8 条）；面板加「冲突」页签（双方值/章号/决策 id，只报告不裁决）。
