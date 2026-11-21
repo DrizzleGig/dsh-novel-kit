@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.8 — 2026-11-22
+
+- **记忆 / 文风 / 设定 三块只读视图**：`host/views.js` 的 `memoryView`（按章/领域筛、按重要度排序）、`styleView`（书库规模）、`canonView`（称呼矩阵 + 禁忌）。
+- remote 增 `getMemory` / `getStyle` / `getCanon`；面板加「总览 / 记忆 / 文风 / 设定」页签，按需拉取。
+- 测试 **44 → 48**。
 ## 0.1.0-dev.7 — 2026-11-22
 
 - **接管旧五件**：`host/takeover.js` 只动选择层（`setBundleEnabled`），逐件记录 `application`，`restart-required` 不算成功；`restore` 可一键恢复。拒绝未知插件名。

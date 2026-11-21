@@ -29,6 +29,9 @@ window.__ModuleLoader__.load({
         { method: 'identity', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'getSnapshot', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getDiagnostics', parameters: [param('sessionId', sessionIdSchema)] },
+        { method: 'getMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'takeover', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'restore', parameters: [param('sessionId', sessionIdSchema)] },
       ].map(({ method, parameters }) => ({
@@ -72,6 +75,63 @@ window.__ModuleLoader__.load({
       const [book, setBook] = React.useState('')
       const [pendingTakeover, setPendingTakeover] = React.useState(false)
       const [action, setAction] = React.useState({ phase: 'idle', message: '' })
+      const [tab, setTab] = React.useState('overview')
+      const [tabData, setTabData] = React.useState({})
+
+      const openTab = React.useCallback(async function (name) {
+        setTab(name)
+        if (name === 'overview') return
+        try {
+          const activeBook = book || (state.data && state.data.book) || null
+          const pending = name === 'memory'
+            ? remote.getMemory(sessionId, { book: activeBook, limit: 40 })
+            : name === 'style'
+              ? remote.getStyle(sessionId, { book: activeBook })
+              : remote.getCanon(sessionId, { book: activeBook })
+          const value = await Promise.resolve(pending).then(unwrap)
+          setTabData((prev) => ({ ...prev, [name]: value }))
+        } catch (error) {
+          setTabData((prev) => ({ ...prev, [name]: { error: String(error?.message ?? error) } }))
+        }
+      }, [remote, sessionId, book, state.data])
+
+      function renderTab() {
+        const value = tabData[tab]
+        if (!value) return h('div', { style: faint }, '加载中…')
+        if (value.error) return h('div', { style: { color: c.error, fontSize: 11.5 } }, value.error)
+        if (tab === 'memory') {
+          if (!value.available) return h('div', { style: faint }, '没有 fade 记忆账本')
+          return h('div', null,
+            h('div', { style: faint }, `${value.total} 张卡 · rev ${value.revision}${value.drift ? ' · drift' : ''}`),
+            value.cards.map((card) => h('div', { key: card.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
+              h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
+                h('span', { style: faint }, 'ch' + card.chapter),
+                h('span', { style: { color: c.sub, fontSize: 10.5 } }, card.layer + ' · 重要度 ' + card.salience),
+              ),
+              h('div', { style: small }, card.gist),
+            )))
+        }
+        if (tab === 'style') {
+          if (!value.available) return h('div', { style: faint }, '没有 voice 书库')
+          return h('div', null,
+            h('div', { style: faint }, `${value.works.length} 部 · ${value.chapters} 章 · ${value.chars} 字`),
+            value.works.map((work) => h('div', { key: work.workId, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
+              h('div', { style: small }, work.title || work.workId),
+              h('div', { style: faint }, `${work.chapters} 章 · ${work.chars} 字 · ${work.status || '未测量'}`),
+            )))
+        }
+        if (!value.available) return h('div', { style: faint }, '没有同人项目')
+        return h('div', null,
+          h('div', { style: faint }, `${value.title || value.id} · 原著 ${value.sourceId || '-'} · rev ${value.revision}`),
+          value.forbidden.length
+            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '禁忌'), value.forbidden.map((text, index) => h('div', { key: index, style: small }, '- ' + text)))
+            : null,
+          value.addresses.length
+            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '称呼'),
+                value.addresses.slice(0, 20).map((row, index) => h('div', { key: index, style: small }, `${row.from}→${row.to}：${row.form}（${row.fromChapter} 起）`)))
+            : null,
+        )
+      }
 
       const load = React.useCallback(async function (nextBook) {
         if (!remote) {
@@ -183,6 +243,22 @@ window.__ModuleLoader__.load({
           action.message
             ? h('div', { style: { fontSize: 11.5, color: action.phase === 'error' ? c.error : c.sub } }, action.message)
             : null,
+          h('div', { style: { display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' } },
+            [['overview', '总览'], ['memory', '记忆'], ['style', '文风'], ['canon', '设定']].map(function ([key, label]) {
+              return h('button', {
+                key: key,
+                type: 'button',
+                onClick: function () { openTab(key) },
+                style: {
+                  appearance: 'none',
+                  border: '1px solid ' + (tab === key ? c.brand : c.border),
+                  background: tab === key ? c.layer : 'transparent',
+                  color: tab === key ? c.text : c.sub,
+                  borderRadius: 999, padding: '2px 10px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
+                },
+              }, label)
+            })),
+          tab === 'overview' ? null : renderTab(),
           h('div', { style: row },
             h('span', { style: small }, '会话'),
             h('span', null, data.session ? `第 ${data.session.chapter} 章 · ${data.session.state}` : '无活动会话'),
