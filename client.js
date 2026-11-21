@@ -28,6 +28,7 @@ window.__ModuleLoader__.load({
       descriptors: [
         { method: 'identity', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'getSnapshot', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getDiagnostics', parameters: [param('sessionId', sessionIdSchema)] },
       ].map(({ method, parameters }) => ({
         id: 'dsh-novel-kit#novelKitPanel/' + method,
         namespace: 'novelKitPanel',
@@ -65,7 +66,7 @@ window.__ModuleLoader__.load({
 
     function Panel(props) {
       const { sessionId, remote } = props
-      const [state, setState] = React.useState({ phase: 'loading', data: null, error: null })
+      const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
 
       const load = React.useCallback(async function (nextBook) {
@@ -76,7 +77,8 @@ window.__ModuleLoader__.load({
         setState((prev) => ({ phase: prev.data ? 'refreshing' : 'loading', data: prev.data, error: null }))
         try {
           const data = await Promise.resolve(remote.getSnapshot(sessionId, { book: nextBook || book || null })).then(unwrap)
-          setState({ phase: 'ready', data, error: null })
+          const diag = await Promise.resolve(remote.getDiagnostics(sessionId)).then(unwrap).catch(() => null)
+          setState({ phase: 'ready', data, diag, error: null })
         } catch (error) {
           setState({ phase: 'error', data: null, error: String(error?.message ?? error) })
         }
@@ -119,6 +121,15 @@ window.__ModuleLoader__.load({
             h('span', { style: small }, '开关'),
             h('span', { style: { color: data.driving ? c.success : c.faint } }, data.driving ? '本会话：开' : '本会话：关（/novel on）'),
           ),
+          state.diag && state.diag.managed
+            ? h('div', { style: row },
+                h('span', { style: small }, '旧五件'),
+                h('span', { style: { color: state.diag.runningSiblings.length ? c.sub : c.faint } },
+                  state.diag.runningSiblings.length
+                    ? `${state.diag.runningSiblings.length} 个在跑（可停用，改由 kit 接管）`
+                    : '未运行'),
+              )
+            : null,
           h('div', { style: row },
             h('span', { style: small }, '会话'),
             h('span', null, data.session ? `第 ${data.session.chapter} 章 · ${data.session.state}` : '无活动会话'),
@@ -154,7 +165,7 @@ window.__ModuleLoader__.load({
     // ── 章节工作台（conversation.view）：左正文、右依据与账本 ──────────────
     function Workbench(props) {
       const { sessionId, remote } = props
-      const [state, setState] = React.useState({ phase: 'loading', data: null, error: null })
+      const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
 
       const load = React.useCallback(async function (nextBook) {
@@ -165,7 +176,8 @@ window.__ModuleLoader__.load({
         setState((prev) => ({ phase: prev.data ? 'refreshing' : 'loading', data: prev.data, error: null }))
         try {
           const data = await Promise.resolve(remote.getSnapshot(sessionId, { book: nextBook || book || null })).then(unwrap)
-          setState({ phase: 'ready', data, error: null })
+          const diag = await Promise.resolve(remote.getDiagnostics(sessionId)).then(unwrap).catch(() => null)
+          setState({ phase: 'ready', data, diag, error: null })
         } catch (error) {
           setState({ phase: 'error', data: null, error: String(error?.message ?? error) })
         }

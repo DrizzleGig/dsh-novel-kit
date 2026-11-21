@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-dev.6 — 2026-11-22
+
+- **装载诊断**：新增 `host/diagnostics.js`（bundle 与运行行合并，回答「现在跑的是谁」）与 `novelKitPanel.getDiagnostics`。
+- 面板显示旧五件在跑数量；`takeoverNeeded` 为后续「停用旧五件、由 kit 接管」提供判据。
+- 真实四段装配验证：斗罗同人第 13 章 beat 402 / fade 998 / voice 75 字，binding 把 `斗罗大陆` 书库绑到书名上。
+- 测试 **35 → 39**。
 ## 0.1.0-dev.5 — 2026-11-22
 
 - **四段上下文全部接通**：新增 `engine/binding.js` 显式解析「书 ↔ 四家目录」（beat/fade 用书名，voice 书库与同人项目名可不同），`assembleContext` 现在同时装配 beat 约束、fanfic 世界契约（称呼矩阵 + 禁忌）、fade 记忆、voice 文风摘要。
