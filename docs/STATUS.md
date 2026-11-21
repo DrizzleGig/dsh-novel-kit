@@ -24,7 +24,7 @@
 | 真实账本验收（复制，不动原书） | **10/10** | `npm run acceptance:real` |
 | 客户端渲染冒烟（面板/工作台/按钮） | 通过 | `node --test test/render.test.mjs` |
 | 语法检查 | 通过 | `npm run check` |
-| 打包 | 约 38 文件 | `npm pack --dry-run` |
+| 打包 | 45 文件 | `npm pack --dry-run` |
 | 真机插件行 | `novel-kit` / `novel-kit-remote` 均 `fiberPhase=active` | `plugin_manager list_plugins` |
 
 ## 一章的路径
