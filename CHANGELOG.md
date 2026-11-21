@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.24 — 2026-11-22
+
+- 快照带冲突摘要（beat canon vs 同人原著，最多 8 条）；面板加「冲突」页签（双方值/章号/决策 id，只报告不裁决）。
+- 测试 **89 → 90**。
 ## 0.1.0-dev.23 — 2026-11-22
 
 - **冲突扫描**：`scanConflicts`（beat canon vs 同人原著 facts，同键不同值才报，只报告不裁决）；`novel_query({view:"conflicts", book})` 返回双方的值/章号/引文/决策 id。

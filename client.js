@@ -90,7 +90,7 @@ window.__ModuleLoader__.load({
 
       const openTab = React.useCallback(async function (name) {
         setTab(name)
-        if (name === 'overview') return
+        if (name === 'overview' || name === 'conflicts') return
         try {
           const activeBook = book || (state.data && state.data.book) || null
           const pending = name === 'decisions'
@@ -168,7 +168,19 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, book, state.data, openTab])
 
-      function renderTab() {        const value = tabData[tab]
+      function renderTab() {
+        if (tab === 'conflicts') {
+          const conflictData = (state.data && state.data.conflicts) || { available: false, total: 0, items: [] }
+          if (!conflictData.available) return h('div', { style: faint }, '缺少 beat 或同人账本，无法比对')
+          if (!conflictData.total) return h('div', { style: faint }, '没有发现同键不同值的冲突')
+          return h('div', null,
+            h('div', { style: faint }, '冲突 ' + conflictData.total + ' 条（只报告，不裁决）'),
+            conflictData.items.map((item, index) => h('div', { key: index, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
+              h('div', { style: small }, item.entity + ' · ' + item.key),
+              h('div', { style: { color: c.sub, fontSize: 11 } }, 'beat：' + item.beat.value + '（ch' + (item.beat.chapter ?? '-') + (item.beat.decisionId ? ' · ' + item.beat.decisionId : '') + '）'),
+              h('div', { style: { color: c.faint, fontSize: 11 } }, '原著：' + item.fanfic.value + '（' + (item.fanfic.chapter ?? '-') + '）'),
+            )))
+        }        const value = tabData[tab]
         if (!value) return h('div', { style: faint }, '加载中…')
         if (value.error) return h('div', { style: { color: c.error, fontSize: 11.5 } }, value.error)
         if (tab === 'decisions') {
@@ -432,7 +444,7 @@ window.__ModuleLoader__.load({
             ? h('div', { style: { fontSize: 11.5, color: action.phase === 'error' ? c.error : c.sub } }, action.message)
             : null,
           h('div', { style: { display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' } },
-            [['overview', '总览'], ['decisions', '拍板'], ['memory', '记忆'], ['style', '文风'], ['canon', '设定']].map(function ([key, label]) {
+            [['overview', '总览'], ['decisions', '拍板'], ['memory', '记忆'], ['style', '文风'], ['canon', '设定'], ['conflicts', '冲突']].map(function ([key, label]) {
               return h('button', {
                 key: key,
                 type: 'button',

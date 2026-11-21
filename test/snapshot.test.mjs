@@ -73,3 +73,20 @@ test('快照：真实书只读（不改任何账本文件）', { skip: !existsSy
   assert.equal(snap.ledgers.fade.cards, 73)
   assert.equal(snap.ledgers.voice.chapters, 687)
 })
+
+test('快照：beat canon 与同人原著冲突时给出 conflicts', async () => {
+  const root = workspace()
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(path.join(ficDir, 'canon'), { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', revision: 7, schemaVersion: 1, exports: { schemaVersion: 1, revision: 7, forbidden: [], addresses: [] },
+  }, null, 2))
+  writeFileSync(path.join(ficDir, 'canon', 'facts.json'), JSON.stringify([
+    { id: 'f1', subjectName: 'A', predicate: 'k', object: '别值', status: 'confirmed' },
+  ], null, 2))
+
+  const snap = await collectSnapshot({ root, book: '书' })
+  assert.equal(snap.conflicts.available, true)
+  assert.equal(snap.conflicts.total, 1)
+  assert.equal(snap.conflicts.items[0].entity, 'A')
+})
