@@ -80,3 +80,15 @@ test('canonView：带 canon 时给出人物与秘密', () => {
   assert.equal(view.secrets.length, 1)
   assert.equal(view.secrets[0].publicAtChapter, 'ch010')
 })
+
+test('memoryView：未回收线索与人物出场统计', () => {
+  const view = memoryView({
+    revision: 1,
+    cards: [{ id: 'a', chapter: 1, entityIds: ['陈凡', '唐昊'] }, { id: 'b', chapter: 2, entityIds: ['陈凡'] }],
+    threads: [{ id: 't1', status: 'open', text: '秘密' }, { id: 't2', status: 'closed', text: 'x' }],
+  })
+  assert.equal(view.threads.length, 1)
+  assert.equal(view.threads[0].text, '秘密')
+  assert.equal(view.entities[0].name, '陈凡')
+  assert.equal(view.entities[0].mentions, 2)
+})

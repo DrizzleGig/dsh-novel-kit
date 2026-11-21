@@ -178,7 +178,16 @@ window.__ModuleLoader__.load({
                 h('span', { style: { color: c.sub, fontSize: 10.5 } }, card.layer + ' · 重要度 ' + card.salience),
               ),
               h('div', { style: small }, card.gist),
-            )))
+            )),
+            value.threads && value.threads.length
+              ? h('div', { style: { marginTop: 6 } }, h('div', { style: faint }, '未回收线索'),
+                  value.threads.slice(0, 8).map((thread, index) => h('div', { key: index, style: { color: c.sub, fontSize: 11.5 } }, '· ' + String(thread.text).slice(0, 60))))
+              : null,
+            value.entities && value.entities.length
+              ? h('div', { style: { marginTop: 6 } }, h('div', { style: faint }, '常出现人物'),
+                  h('div', { style: { color: c.sub, fontSize: 11.5 } }, value.entities.slice(0, 12).map((entity) => entity.name + '×' + entity.mentions).join('、')))
+              : null,
+          )
         }
         if (tab === 'style') {
           if (!value.available) return h('div', { style: faint }, '没有 voice 书库')

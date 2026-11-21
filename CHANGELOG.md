@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.16 — 2026-11-22
+
+- 记忆视图补「未回收线索」（fade threads）与「常出现人物」（按 entityIds 统计），面板记忆页签展示。
+- 测试 **69 → 70**。
 ## 0.1.0-dev.15 — 2026-11-22
 
 - **疑似写错名字**：`checkNames` 用 canon 人物名（2–3 字）做一字差比对，进 finish verify（只 warning，不阻塞）。
