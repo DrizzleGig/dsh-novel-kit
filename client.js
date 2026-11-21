@@ -581,6 +581,11 @@ window.__ModuleLoader__.load({
                 h('span', { style: { color: value ? c.sub : c.faint, fontSize: 11.5 } }, value ? `rev ${value.revision ?? '-'}` : '无'),
               )
             }),
+            data && data.session && data.session.chapterFile
+              ? h('div', { style: { marginTop: 8 } },
+                  h('div', { style: faint }, '正文文件'),
+                  h('div', { style: { color: c.sub, fontSize: 11, wordBreak: 'break-all' } }, data.session.chapterFile))
+              : null,
             data && data.session && data.session.verification
               ? h('div', { style: { marginTop: 8 } },
                   h('div', { style: faint }, '本章检查'),
