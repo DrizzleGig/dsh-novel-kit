@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { startChapter, writeChapter, finishChapter, queryChapter, resumeChapter } from '../lib/engine/chapter.js'
+import { startChapter, writeChapter, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal } from '../lib/engine/chapter.js'
 
 function workspace({ withFade = true } = {}) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'kit-chapter-'))
@@ -215,4 +215,50 @@ test('finish：fanfic 禁忌词命中时 verify-failed，不落账', async () =>
 
   const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
   assert.equal(beat.segments.length, 1, 'verify 失败时账本不变')
+})
+
+test('decideProposal：adopt 写 beat 决策并清空待拍板；重复幂等', async () => {
+  const root = workspace()
+  const planned = await planChapter({
+    root, book: '书', chapter: 13, intent: '雪夜出城',
+    proposals: [{ id: 'p1', title: '出城方式', options: [{ label: '夜行', impact: '紧张' }, { label: '白天', impact: '稳' }] }],
+  })
+  const sessionId = planned.session.id
+  const beatFile = path.join(root, '.dsh-novel-beat', '书', 'book.json')
+  const before = JSON.parse(readFileSync(beatFile, 'utf8'))
+
+  const adopted = await decideProposal({ root, sessionId, proposalId: 'p1', action: 'adopt', option: '夜行' })
+  assert.equal(adopted.ok, true)
+  assert.equal(adopted.written, true)
+  const after = JSON.parse(readFileSync(beatFile, 'utf8'))
+  assert.equal(after.decisions.length, before.decisions.length + 1)
+  assert.equal(after.decisions.at(-1).change, '紧张')
+  assert.equal(after.decisions.at(-1).source, 'kit')
+  assert.equal(after.revision, before.revision + 1)
+
+  const again = await decideProposal({ root, sessionId, proposalId: 'p1', action: 'adopt', option: '夜行' })
+  assert.equal(again.idempotent, true)
+  const after2 = JSON.parse(readFileSync(beatFile, 'utf8'))
+  assert.equal(after2.decisions.length, after.decisions.length)
+})
+
+test('decideProposal：有选项却没给 option 时拒绝；reject 不写账本', async () => {
+  const root = workspace()
+  const planned = await planChapter({
+    root, book: '书', chapter: 13,
+    proposals: [{ id: 'p1', title: '出城方式', options: [{ label: '夜行', impact: '紧张' }, { label: '白天', impact: '稳' }] }],
+  })
+  const sessionId = planned.session.id
+  const needOption = await decideProposal({ root, sessionId, proposalId: 'p1', action: 'adopt' })
+  assert.equal(needOption.ok, false)
+  assert.equal(needOption.code, 'option-required')
+
+  const beatFile = path.join(root, '.dsh-novel-beat', '书', 'book.json')
+  const before = JSON.parse(readFileSync(beatFile, 'utf8'))
+  const rejected = await decideProposal({ root, sessionId, proposalId: 'p1', action: 'reject' })
+  assert.equal(rejected.ok, true)
+  assert.equal(rejected.written, false)
+  const after = JSON.parse(readFileSync(beatFile, 'utf8'))
+  assert.equal(after.decisions.length, before.decisions.length)
+  assert.equal(after.revision, before.revision)
 })

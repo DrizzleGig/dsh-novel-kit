@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.11 — 2026-11-22
+
+- **作者拍板落账**：`novel_plan` 增加 `action: adopt|reject`（带 `proposal_id` / `option`），`adopt` 走事务写 beat `decisions` + revision + audit；重复拍板幂等；有多个选项却未指定时拒绝。
+- 面板「拍板」页签：选项按钮 → 二次确认 → `decide` remote 落账，并刷新列表。
+- 测试 **57 → 59**。
 ## 0.1.0-dev.10 — 2026-11-22
 
 - **finish 增加 verify 闸门**：`engine/checks.js` 做确定性检查（禁忌词 blocker、长句 warning、称呼矩阵 warning），blocker 时返回 `verify-failed` 且不落账。

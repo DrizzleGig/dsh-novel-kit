@@ -33,6 +33,7 @@ window.__ModuleLoader__.load({
         { method: 'getMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'takeover', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'restore', parameters: [param('sessionId', sessionIdSchema)] },
       ].map(({ method, parameters }) => ({
@@ -78,6 +79,7 @@ window.__ModuleLoader__.load({
       const [action, setAction] = React.useState({ phase: 'idle', message: '' })
       const [tab, setTab] = React.useState('overview')
       const [tabData, setTabData] = React.useState({})
+      const [pendingDecision, setPendingDecision] = React.useState(null)
 
       const openTab = React.useCallback(async function (name) {
         setTab(name)
@@ -98,8 +100,25 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, book, state.data])
 
-      function renderTab() {
-        const value = tabData[tab]
+      const runDecide = React.useCallback(async function (proposalId, option) {
+        const chapterSessionId = state.data && state.data.session ? state.data.session.id : null
+        if (!chapterSessionId) {
+          setAction({ phase: 'error', message: '没有活动章节会话，无法写拍板账' })
+          return
+        }
+        setPendingDecision(null)
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = await Promise.resolve(remote.decide(sessionId, { chapterSessionId, proposalId, action: 'adopt', option })).then(unwrap)
+          setAction({ phase: 'done', message: result.written ? '已写进拍板账' : (result.idempotent ? '这条已经拍过了' : '未写入') })
+          setTabData((prev) => { const next = { ...prev }; delete next.decisions; return next })
+          await openTab('decisions')
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, state.data, openTab])
+
+      function renderTab() {        const value = tabData[tab]
         if (!value) return h('div', { style: faint }, '加载中…')
         if (value.error) return h('div', { style: { color: c.error, fontSize: 11.5 } }, value.error)
         if (tab === 'decisions') {
@@ -109,9 +128,35 @@ window.__ModuleLoader__.load({
             value.intent ? h('div', { style: small }, '意图：' + value.intent) : null,
             value.proposals.length
               ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '待拍板'),
-                  value.proposals.map((item) => h('div', { key: item.id, style: { padding: '3px 0' } },
+                  value.proposals.map((item) => h('div', { key: item.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
                     h('div', { style: small }, item.title || item.id),
-                    item.options.map((option, index) => h('div', { key: index, style: { color: c.faint, fontSize: 11 } }, '· ' + option.label + (option.impact ? '：' + option.impact : '') )),
+                    item.options.length
+                      ? h('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 } },
+                          item.options.map((option, index) => h('button', {
+                            key: index,
+                            type: 'button',
+                            onClick: function () { setPendingDecision({ proposalId: item.id, option: option.label }) },
+                            style: {
+                              appearance: 'none', border: '1px solid ' + (pendingDecision && pendingDecision.proposalId === item.id && pendingDecision.option === option.label ? c.brand : c.border),
+                              background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+                            },
+                          }, option.label)))
+                      : null,
+                    item.options.map((option, index) => h('div', { key: 'i' + index, style: { color: c.faint, fontSize: 11 } }, '· ' + option.label + (option.impact ? '：' + option.impact : ''))),
+                    pendingDecision && pendingDecision.proposalId === item.id
+                      ? h('div', { style: { display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' } },
+                          h('span', { style: { color: c.faint, fontSize: 11 } }, '确认把「' + pendingDecision.option + '」写进拍板账？'),
+                          h('button', {
+                            type: 'button',
+                            onClick: function () { runDecide(item.id, pendingDecision.option) },
+                            style: { appearance: 'none', border: '1px solid ' + c.brand, background: 'transparent', color: c.text, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
+                          }, '确认'),
+                          h('button', {
+                            type: 'button',
+                            onClick: function () { setPendingDecision(null) },
+                            style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
+                          }, '取消'))
+                      : null,
                   )))
               : null,
             value.committed.length
