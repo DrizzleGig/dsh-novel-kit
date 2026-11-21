@@ -3,7 +3,9 @@
 > **一个独立包，装它一个就能写长篇**：章节引擎、七个 `novel_*` 工具、右栏「小说」面板与章节工作台。
 > 兼容旧五件（beat / fade / voice / fanfic / conductor）的 `.dsh-novel-*` 账本——只读解码，不迁移、不改格式。
 
-`0.1.13` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness
+[![stars](https://img.shields.io/github/stars/DrizzleGig/dsh-novel-kit)](https://github.com/DrizzleGig/dsh-novel-kit/stargazers)
+
+`0.1.14` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness
 
 ## 它解决什么
 
@@ -116,6 +118,10 @@ New-Item -ItemType Junction -Path node_modules\@deepseek-ai\dsh-typert-protocol 
 | [docs/COEXIST.md](docs/COEXIST.md) | 与旧五件共存：会撞的、不会撞的、正确用法 |
 | [docs/LIMITS.md](docs/LIMITS.md) | 已知边界与未做清单 |
 | [docs/RELEASE.md](docs/RELEASE.md) | 发布清单：登录、发布、校验、GitHub Release |
+
+## 喜欢它？
+
+如果「小说整合包」帮你把一章从拍板写到落账、把前文记忆和文风都接上了，欢迎在 [GitHub](https://github.com/DrizzleGig/dsh-novel-kit) 点亮 ⭐，也欢迎 [Issue](https://github.com/DrizzleGig/dsh-novel-kit/issues) 或 [PR](https://github.com/DrizzleGig/dsh-novel-kit/pulls)。
 
 ## 共同作者
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.14 — 2026-11-22
+
+- **修复仓库署名**：57 个历史提交的作者/提交者邮箱从 `MiyueWinter@users.noreply.github.com` 改回 `captain2233@qq.com`（此前 GitHub 贡献者页把整个仓库算在 MiyueWinter 名下，实际应记在 DrizzleGig 账上）；共同贡献仍以 `Co-authored-by: MiyueWinter <mingyue_11129@qq.com>` 记在提交与 Release 里。
+- README 补 stars 徽章与「喜欢它？」小节（与 beat / fade / voice / fanfic / conductor 的写法一致）。
+- npm `dsh-novel-kit@0.1.14` 发布，GitHub Release `v0.1.14`。
+
 ## 0.1.13 — 2026-11-22
 
 - **npm 首发**：`dsh-novel-kit@0.1.13` 发布到 npm 官方 registry（`latest`；2026-11-21T19:28:59Z，shasum `605075fd…`，46 文件），GitHub Release [v0.1.13](https://github.com/DrizzleGig/dsh-novel-kit/releases/tag/v0.1.13) 同源。
