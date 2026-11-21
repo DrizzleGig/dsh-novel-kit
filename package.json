@@ -1,11 +1,12 @@
 {
   "name": "dsh-novel-kit",
-  "version": "0.0.1-stage",
-  "description": "小说整合包（Pro）：一次装齐 beat / fade / voice / fanfic / conductor——一个开关、一块面板、一套工具分层；本版是名字与仓库占位。",
+  "version": "0.1.0-dev",
+  "description": "小说整合包（Pro）：一个包提供 beat / fade / voice / fanfic / conductor 的全部功能——章节引擎、七个 novel_* 工具、右栏「小说」面板与章节工作台。",
   "type": "module",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
+    "./lib/*": "./lib/*",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
@@ -20,6 +21,10 @@
     "LICENSE",
     "docs"
   ],
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check index.js && node --check lib/workspace.js && node --check lib/repositories/ledger.js && node --check lib/codecs/beat.js && node --check lib/codecs/fade.js && node --check lib/codecs/voice.js && node --check lib/codecs/fanfic.js"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
