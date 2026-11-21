@@ -1,7 +1,7 @@
 // S2：三块视图的纯函数。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { memoryView, styleView, canonView } from '../lib/host/views.js'
+import { memoryView, styleView, canonView, searchMemory } from '../lib/host/views.js'
 
 const fade = {
   revision: 13,
@@ -91,4 +91,20 @@ test('memoryView：未回收线索与人物出场统计', () => {
   assert.equal(view.threads[0].text, '秘密')
   assert.equal(view.entities[0].name, '陈凡')
   assert.equal(view.entities[0].mentions, 2)
+})
+
+test('searchMemory：按词命中 gist/实体，按重要度排序，空词不返回', () => {
+  const fade = {
+    revision: 3,
+    cards: [
+      { id: 'a', chapter: 1, salience: 2, gist: '陈凡确认穿越', entityIds: ['陈凡'] },
+      { id: 'b', chapter: 2, salience: 5, gist: '陈凡与唐昊出城', entityIds: ['陈凡', '唐昊'] },
+      { id: 'c', chapter: 3, salience: 4, gist: '小舞登场' },
+    ],
+  }
+  const hits = searchMemory(fade, '陈凡')
+  assert.equal(hits.total, 2)
+  assert.deepEqual(hits.hits.map((item) => item.id), ['b', 'a'])
+  assert.equal(searchMemory(fade, '').total, 0)
+  assert.equal(searchMemory(null, 'x').available, false)
 })

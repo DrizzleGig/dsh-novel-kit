@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.18 — 2026-11-22
+
+- **记忆检索**：`searchMemory`（gist / 实体 / 引文匹配，按重要度排序）+ remote `searchMemory`；面板记忆页签加搜索框与「命中 N 条」列表。
+- 测试 **73 → 74**。
 ## 0.1.0-dev.17 — 2026-11-22
 
 - **记忆卡作者操作**：`engine/memory.js` 的 `updateMemoryCard`（pin / forget / restore）走事务写 fade 账本：lifecycle + 卡片状态 + audit + revision+1；未知卡/未知动作直接拒绝。

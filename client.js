@@ -35,6 +35,7 @@ window.__ModuleLoader__.load({
         { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'memoryAction', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'searchMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'takeover', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'restore', parameters: [param('sessionId', sessionIdSchema)] },
       ].map(({ method, parameters }) => ({
@@ -81,6 +82,8 @@ window.__ModuleLoader__.load({
       const [tab, setTab] = React.useState('overview')
       const [tabData, setTabData] = React.useState({})
       const [pendingDecision, setPendingDecision] = React.useState(null)
+      const [query, setQuery] = React.useState('')
+      const [searchHits, setSearchHits] = React.useState(null)
 
       const openTab = React.useCallback(async function (name) {
         setTab(name)
@@ -118,6 +121,18 @@ window.__ModuleLoader__.load({
           setAction({ phase: 'error', message: String(error?.message ?? error) })
         }
       }, [remote, sessionId, state.data, openTab])
+
+      const runSearch = React.useCallback(async function () {
+        const term = query.trim()
+        if (!term) { setSearchHits(null); return }
+        const activeBook = book || (state.data && state.data.book) || null
+        try {
+          const result = await Promise.resolve(remote.searchMemory(sessionId, { book: activeBook, query: term, limit: 40 })).then(unwrap)
+          setSearchHits(result)
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, book, state.data, query])
 
       const runMemory = React.useCallback(async function (cardId, memoryAction) {
         const activeBook = book || (state.data && state.data.book) || null
@@ -185,20 +200,42 @@ window.__ModuleLoader__.load({
         }
         if (tab === 'memory') {
           if (!value.available) return h('div', { style: faint }, '没有 fade 记忆账本')
+          const rows = searchHits
+            ? searchHits.hits.map((card) => h('div', { key: card.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
+                h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
+                  h('span', { style: faint }, 'ch' + card.chapter),
+                  h('span', { style: { color: c.sub, fontSize: 10.5 } }, '命中 · 重要度 ' + card.salience),
+                ),
+                h('div', { style: small }, card.gist),
+              ))
+            : value.cards.map((card) => h('div', { key: card.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
+                h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
+                  h('span', { style: faint }, 'ch' + card.chapter),
+                  h('span', { style: { color: c.sub, fontSize: 10.5 } }, card.layer + ' · 重要度 ' + card.salience),
+                ),
+                h('div', { style: small }, card.gist),
+                h('div', { style: { display: 'flex', gap: 6, marginTop: 2 } },
+                  h('button', { type: 'button', onClick: function () { runMemory(card.id, 'pin') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '钉'),
+                  h('button', { type: 'button', onClick: function () { runMemory(card.id, 'forget') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '忘'),
+                  h('button', { type: 'button', onClick: function () { runMemory(card.id, 'restore') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '恢复'),
+                ),
+              ))
           return h('div', null,
-            h('div', { style: faint }, `${value.total} 张卡 · rev ${value.revision}${value.drift ? ' · drift' : ''}`),
-            value.cards.map((card) => h('div', { key: card.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
-              h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
-                h('span', { style: faint }, 'ch' + card.chapter),
-                h('span', { style: { color: c.sub, fontSize: 10.5 } }, card.layer + ' · 重要度 ' + card.salience),
-              ),
-              h('div', { style: small }, card.gist),
-              h('div', { style: { display: 'flex', gap: 6, marginTop: 2 } },
-                h('button', { type: 'button', onClick: function () { runMemory(card.id, 'pin') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '钉'),
-                h('button', { type: 'button', onClick: function () { runMemory(card.id, 'forget') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '忘'),
-                h('button', { type: 'button', onClick: function () { runMemory(card.id, 'restore') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '恢复'),
-              ),
-            )),
+            h('div', { style: { display: 'flex', gap: 6, marginBottom: 4 } },
+              h('input', {
+                value: query,
+                placeholder: '搜记忆（gist / 实体 / 引文）',
+                onChange: function (event) { setQuery(event.target.value) },
+                style: { flex: 1, minWidth: 0, fontSize: 11.5, padding: '2px 6px', borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text, fontFamily: 'inherit' },
+              }),
+              h('button', {
+                type: 'button',
+                onClick: function () { runSearch() },
+                style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
+              }, '搜'),
+            ),
+            h('div', { style: faint }, searchHits ? `命中 ${searchHits.total} 条（“${searchHits.query}”）` : `${value.total} 张卡 · rev ${value.revision}${value.drift ? ' · drift' : ''}`),
+            rows,
             value.threads && value.threads.length
               ? h('div', { style: { marginTop: 6 } }, h('div', { style: faint }, '未回收线索'),
                   value.threads.slice(0, 8).map((thread, index) => h('div', { key: index, style: { color: c.sub, fontSize: 11.5 } }, '· ' + String(thread.text).slice(0, 60))))
