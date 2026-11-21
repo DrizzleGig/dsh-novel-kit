@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-dev.2 — 2026-11-22
+
+右栏「小说」面板接线（S2 第一步）。
+
+- 新增 `novelKitPanel` typert remote（`identity` / `getSnapshot`）：读宿主只读快照，**不执行任何命令**。
+- `cordis.patch.yml` 增加 remote 行；`package.json` 增加 `./remote`、`./client` 与 `dsh.client`。
+- 新增 `client.js`：右栏「小说」tab + 会话头入口 + 面板（书列表、会话状态、四段上下文摘要、五本账 revision、issues）。
+- 面板数据全部来自 remote；`node --test` **32/32**。
 ## 0.1.0-dev — 2026-11-22
 
 S0 只读层：只装 kit 也能读懂已有五本账，且绝不改文件。

@@ -17,6 +17,9 @@ export async function apply(ctx) {
     ctx.effect(() => ctx.tools.register(definition, { when: (context) => gate.isOn(context) }))
   }
 
+  // 面板 remote 读开关状态用（只读视图，避免面板另存一份状态）。
+  ctx.provide?.('novelKitGate', gate)
+
   const commands = ctx.get?.('commands')
   if (commands?.register) {
     ctx.effect(() => registerNovelCommand({ commands, gate, toolCount: definitions.length }))

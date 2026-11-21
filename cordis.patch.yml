@@ -1,3 +1,5 @@
 - insert:
     - id: novel-kit
       name: 'dsh-novel-kit'
+    - id: novel-kit-remote
+      name: 'dsh-novel-kit/remote'
