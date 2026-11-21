@@ -36,6 +36,8 @@ window.__ModuleLoader__.load({
         { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'memoryAction', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'searchMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'importSource', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'listSourceFiles', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'takeover', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'restore', parameters: [param('sessionId', sessionIdSchema)] },
       ].map(({ method, parameters }) => ({
@@ -83,6 +85,7 @@ window.__ModuleLoader__.load({
       const [tabData, setTabData] = React.useState({})
       const [pendingDecision, setPendingDecision] = React.useState(null)
       const [query, setQuery] = React.useState('')
+      const [importPath, setImportPath] = React.useState('')
       const [searchHits, setSearchHits] = React.useState(null)
 
       const openTab = React.useCallback(async function (name) {
@@ -121,6 +124,23 @@ window.__ModuleLoader__.load({
           setAction({ phase: 'error', message: String(error?.message ?? error) })
         }
       }, [remote, sessionId, state.data, openTab])
+
+      const runImport = React.useCallback(async function () {
+        const target = importPath.trim()
+        const activeBook = book || (state.data && state.data.book) || null
+        const project = (state.data && state.data.workspace && state.data.workspace.fanfic && state.data.workspace.fanfic[0]) || activeBook
+        if (!target) { setAction({ phase: 'error', message: '先填原著 txt 的绝对路径' }); return }
+        if (!project) { setAction({ phase: 'error', message: '没有同人项目' }); return }
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = await Promise.resolve(remote.importSource(sessionId, { project, file: target })).then(unwrap)
+          setAction({ phase: 'done', message: result.idempotent ? '这本书已经导入过（' + result.sourceId + '）' : '已导入 ' + result.chapters + ' 章（' + result.sourceId + '）' })
+          setTabData((prev) => { const next = { ...prev }; delete next.canon; return next })
+          await openTab('canon')
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, book, state.data, importPath, openTab])
 
       const runSearch = React.useCallback(async function () {
         const term = query.trim()
@@ -267,6 +287,19 @@ window.__ModuleLoader__.load({
         }
         if (!value.available) return h('div', { style: faint }, '没有同人项目')
         return h('div', null,
+          h('div', { style: { display: 'flex', gap: 6, marginBottom: 4 } },
+            h('input', {
+              value: importPath,
+              placeholder: '原著 txt 的绝对路径（UTF-8）',
+              onChange: function (event) { setImportPath(event.target.value) },
+              style: { flex: 1, minWidth: 0, fontSize: 11, padding: '2px 6px', borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text, fontFamily: 'inherit' },
+            }),
+            h('button', {
+              type: 'button',
+              onClick: function () { runImport() },
+              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
+            }, '导入'),
+          ),
           h('div', { style: faint }, `${value.title || value.id} · 原著 ${value.sourceId || '-'} · rev ${value.revision}`),
           value.forbidden.length
             ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '禁忌'), value.forbidden.map((text, index) => h('div', { key: index, style: small }, '- ' + text)))

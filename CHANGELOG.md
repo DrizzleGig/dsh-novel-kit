@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-dev.21 — 2026-11-22
+
+- **同人原著导入**：`splitChapters`（第N章/序章/楔子/番外）+ `importSource`（source 布局：raw.txt / meta.json / index.json / chapters，project.json 走事务更新，重复导入幂等）。
+- remote 增 `importSource` / `listSourceFiles`；面板「设定」页签加导入路径输入与「导入」按钮。
+- 只支持 UTF-8（含 BOM），GB18030 如实报错提示先转码。
+- 测试 **75 → 80**。
 ## 0.1.0-dev.20 — 2026-11-22
 
 - **一章验收脚本**：`npm run acceptance` 跑 plan → adopt → start → write(坏稿) → finish(verify-failed) → 改写 → finish → query → resume → snapshot → pin，14/14 通过。
