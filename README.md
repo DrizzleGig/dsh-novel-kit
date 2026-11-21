@@ -46,7 +46,7 @@ S0 要验的四件事（见设计方案 §5）：bundle 依赖能否经面板调
 | fade 检索/遗忘/钉卡/历史 | 面板「记忆」+ 搜索框 + 钉/忘/恢复 | 检索、钉卡、遗忘、恢复已迁移；历史仍只读 |
 | voice 书库/档案 | `codecs/voice` + 面板「文风」只读 | 简报与检查已迁移（档案导入/学习未迁移） |
 | fanfic 契约/称呼/禁忌 | 四段「世界契约」+ 面板「设定」 | 契约/禁忌/检查/导入已迁移 |
-| conductor 六步 runbook | kit 的 `plan → start → write → finish`（三段主线） | 已迁移（简化；strict/replay 未迁移） |
+| conductor 六步 runbook | kit 的 `plan → start → write → finish`（三段主线） | 已迁移（简化；strict/replay 未迁移） |`n| conductor 冲突扫描 | `novel_query({view:"conflicts"})` | 已迁移（只报告） |
 | 收据与事务 | `storage/transaction` + `finish` 回执 | 已迁移 |
 | 总开关 | `/novel on|off|status`（会话级） | 已迁移 |
 | 旧五件接管/回退 | 面板按钮（`setBundleEnabled`） | 已迁移 |

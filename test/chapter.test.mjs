@@ -313,3 +313,23 @@ test('start：拍板之后再 start 会刷新上下文，finish 不再误判 con
   assert.equal(done.ok, true)
   assert.equal(done.session.state, 'completed')
 })
+
+test('queryChapter：view=conflicts 找出 beat canon 与同人原著的同键不同值', async () => {
+  const root = workspace()
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(path.join(ficDir, 'canon'), { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', title: '原著', sourceId: 'src_1', revision: 7, schemaVersion: 1,
+    exports: { schemaVersion: 1, revision: 7, forbidden: [], addresses: [] },
+  }, null, 2))
+  writeFileSync(path.join(ficDir, 'canon', 'facts.json'), JSON.stringify([
+    { id: 'f1', subjectName: '陈凡', predicate: '身份', object: '穿越者', chapter: 'ch001', status: 'confirmed', evidence: [{ quote: '他是穿越者' }] },
+  ], null, 2))
+
+  const result = await queryChapter({ root, book: '书', view: 'conflicts' })
+  assert.equal(result.ok, true)
+  assert.equal(result.total, 1)
+  assert.equal(result.conflicts[0].entity, '陈凡')
+  assert.equal(result.conflicts[0].beat.value, '多出来的人')
+  assert.equal(result.conflicts[0].fanfic.value, '穿越者')
+})

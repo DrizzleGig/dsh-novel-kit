@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.23 — 2026-11-22
+
+- **冲突扫描**：`scanConflicts`（beat canon vs 同人原著 facts，同键不同值才报，只报告不裁决）；`novel_query({view:"conflicts", book})` 返回双方的值/章号/引文/决策 id。
+- `decodeFanficCanon` 输出 facts 摘要。
+- 测试 **85 → 89**。
 ## 0.1.0-dev.22 — 2026-11-22
 
 - **三维记忆**：`engine/memory3d.js`（familiarity / accessibility / fidelity，按距章、重要度、人物出场、钉卡计算）；简报改用三维排序，低 fidelity 只给模糊印象不给细节。
