@@ -3,7 +3,18 @@
 > 当前状态：代码、测试、验收、tag 都已就绪；**只剩需要作者本人授权的两步**：
 > npm 登录（2FA）与 GitHub Release（gh 登录或网页操作）。
 
-## 0. 发布前自检（约 1 分钟）
+## 0. 一条命令（登录后）
+
+``powershell
+cd D:\Novel-gate\dsh-novel-kit
+node scripts\publish.mjs          # 自检 → whoami → 发布 → 校验 registry
+node scripts\publish.mjs --skip-publish   # 只自检，不发
+`` 
+
+失败会直接打印原因；whoami 401 就先去 
+pm login。
+
+## 0.1 手工自检（可选，约 1 分钟）
 
 ```powershell
 cd D:\Novel-gate\dsh-novel-kit

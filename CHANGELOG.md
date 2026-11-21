@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.12 — 2026-11-22
+
+- **`scripts/publish.mjs`**：自检（check / 测试 / 合成验收 / 真实验收）→ `npm whoami` → 发布 → `npm view` 校验版本；`--skip-publish` 只自检。Windows 上 npm 通过本机 `npm-cli.js` 调用，不依赖 PATH。
+- RELEASE.md 改成「登录后一条命令」。
+- 测试 110/110。
 ## 0.1.11 — 2026-11-22
 
 - **binding 补测试**：同名绑定、单候选回退、多候选不猜、显式优先、无账本 available:false（此前唯一没有直接测试的引擎模块）。
