@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.17 — 2026-11-22
+
+- **记忆卡作者操作**：`engine/memory.js` 的 `updateMemoryCard`（pin / forget / restore）走事务写 fade 账本：lifecycle + 卡片状态 + audit + revision+1；未知卡/未知动作直接拒绝。
+- remote 增 `memoryAction`；面板「记忆」页签每张卡带「钉 / 忘 / 恢复」按钮。
+- 测试 **70 → 73**。
 ## 0.1.0-dev.16 — 2026-11-22
 
 - 记忆视图补「未回收线索」（fade threads）与「常出现人物」（按 entityIds 统计），面板记忆页签展示。

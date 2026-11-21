@@ -34,6 +34,7 @@ window.__ModuleLoader__.load({
         { method: 'getStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'memoryAction', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'takeover', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'restore', parameters: [param('sessionId', sessionIdSchema)] },
       ].map(({ method, parameters }) => ({
@@ -118,6 +119,20 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, state.data, openTab])
 
+      const runMemory = React.useCallback(async function (cardId, memoryAction) {
+        const activeBook = book || (state.data && state.data.book) || null
+        if (!activeBook) { setAction({ phase: 'error', message: '没有书，无法改记忆' }); return }
+        setAction({ phase: 'busy', message: '' })
+        try {
+          await Promise.resolve(remote.memoryAction(sessionId, { book: activeBook, cardId, action: memoryAction })).then(unwrap)
+          setAction({ phase: 'done', message: memoryAction === 'pin' ? '已钉住' : memoryAction === 'forget' ? '已遗忘' : '已恢复' })
+          setTabData((prev) => { const next = { ...prev }; delete next.memory; return next })
+          await openTab('memory')
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, book, state.data, openTab])
+
       function renderTab() {        const value = tabData[tab]
         if (!value) return h('div', { style: faint }, '加载中…')
         if (value.error) return h('div', { style: { color: c.error, fontSize: 11.5 } }, value.error)
@@ -178,6 +193,11 @@ window.__ModuleLoader__.load({
                 h('span', { style: { color: c.sub, fontSize: 10.5 } }, card.layer + ' · 重要度 ' + card.salience),
               ),
               h('div', { style: small }, card.gist),
+              h('div', { style: { display: 'flex', gap: 6, marginTop: 2 } },
+                h('button', { type: 'button', onClick: function () { runMemory(card.id, 'pin') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '钉'),
+                h('button', { type: 'button', onClick: function () { runMemory(card.id, 'forget') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '忘'),
+                h('button', { type: 'button', onClick: function () { runMemory(card.id, 'restore') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '恢复'),
+              ),
             )),
             value.threads && value.threads.length
               ? h('div', { style: { marginTop: 6 } }, h('div', { style: faint }, '未回收线索'),
