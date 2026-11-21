@@ -59,6 +59,11 @@ DSH 插件以 `link:` 安装时，Node 从仓库真实路径解析依赖；要�
 ```powershell
 New-Item -ItemType Junction -Path node_modules\@deepseek-ai\dsh-typert-protocol -Target D:\Novel-gate\.tmp\dsh-asar-2026-11-21\node_modules\@deepseek-ai\dsh-typert-protocol
 ```
+## 复审
+
+- 外部评审简报：[docs/CODEX-REVIEW-BRIEF.md](docs/CODEX-REVIEW-BRIEF.md)（代码地图 + 五个待决问题）
+- 已知边界：[docs/LIMITS.md](docs/LIMITS.md)
+
 ## 发布清单
 
 见 [docs/RELEASE.md](docs/RELEASE.md)：自检命令、npm 登录、发布、GitHub Release 模板。
