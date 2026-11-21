@@ -29,6 +29,9 @@
 
 ## 4. 发布与验收状态
 
-- npm 首发**未完成**：需要作者重新登录 npm（PUT 404 为登录态过期）。
+- npm 首发**未完成**：
+pm whoami 返回 401（token 为空/过期），publish 返回 404；需要作者 
+pm login 后发布（命令见 docs/RELEASE.md）。gh 也未登录，GitHub Release 需网页或 gh 登录。
+- 已备好：tag v0.1.5、CHANGELOG、DETAIL、market-intro、release 清单，登录后一条命令即可发布。
 - 隔离 profile 的安装/卸载/回退矩阵**未做**（Codex 验收第 1 条）。
 - 真实请求（PTC/native）下的工具面**未验**（第 7 条）。
