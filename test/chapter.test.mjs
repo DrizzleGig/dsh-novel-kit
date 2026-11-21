@@ -397,3 +397,28 @@ test('resume：context_stale 后重新装配上下文并回到 writing，再 fin
   assert.equal(done.ok, true)
   assert.equal(done.session.state, 'completed')
 })
+
+test('queryChapter：memory / style / canon / ledgers 四个只读视图', async () => {
+  const root = workspace()
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(path.join(ficDir, 'canon'), { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', title: '原著', sourceId: 'src_1', revision: 7, schemaVersion: 1,
+    exports: { schemaVersion: 1, revision: 7, forbidden: [], addresses: [] },
+  }, null, 2))
+  writeFileSync(path.join(ficDir, 'canon', 'characters.json'), JSON.stringify([{ id: 'c1', name: '唐三' }], null, 2))
+
+  const ledgers = await queryChapter({ root, book: '书', view: 'ledgers' })
+  assert.equal(ledgers.ledgers.beat.revision, 41)
+  assert.equal(ledgers.ledgers.fade.cards, 2)
+
+  const memory = await queryChapter({ root, book: '书', view: 'memory', query: '陈凡' })
+  assert.equal(memory.hits.length, 1)
+
+  const style = await queryChapter({ root, book: '书', view: 'style' })
+  assert.equal(style.available, false, '没有 voice 书库')
+
+  const canon = await queryChapter({ root, book: '书', view: 'canon' })
+  assert.equal(canon.available, true)
+  assert.equal(canon.characters.length, 1)
+})

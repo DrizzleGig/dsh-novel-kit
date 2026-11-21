@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 — 2026-11-22
+
+- **novel_query 扩展为只读视图入口**：`view` 增加 `memory`（可带 query/chapter）、`style`、`canon`、`ledgers`；模型不装配上下文也能按需查账本。
+- 测试 **93 → 94**。
 ## 0.1.1 — 2026-11-22
 
 - **resume 能解除 blocked**：`context_stale` 后调用 `novel_chapter_resume` 会重新装配四段、回到出错前的状态，随后 `finish` 可以正常完成（之前只能停在那里）。
