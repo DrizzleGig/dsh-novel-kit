@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.19 — 2026-11-22
+
+- 发布资料：`docs/DETAIL.md`（详情页长描述）、`docs/market-intro.md`（市场简介）、locale `meta.detail`。
+- 尝试 npm 首发（`--tag dev`）：npm 会话已过期（PUT 404），需作者重新登录 + 2FA 后再发。
+- 打包 38 files。
 ## 0.1.0-dev.18 — 2026-11-22
 
 - **记忆检索**：`searchMemory`（gist / 实体 / 引文匹配，按重要度排序）+ remote `searchMemory`；面板记忆页签加搜索框与「命中 N 条」列表。

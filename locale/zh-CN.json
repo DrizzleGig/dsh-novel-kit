@@ -1,8 +1,9 @@
 {
   "meta": {
     "title": "小说",
-    "description": "小说整合包（Pro）：一次装齐事件、记忆、文风、同人、总控五个插件，一个开关、一块面板、一套工具分层。本版为名字与仓库占位。"
+    "detail": "docs/DETAIL.md",
+    "description": "小说整合包：一个包提供事件、记忆、文风、同人与编排能力，含章节引擎、右栏「小说」面板与章节工作台。"
   },
   "name": "小说整合包",
-  "description": "一次装齐 beat / fade / voice / fanfic / conductor：一个开关、一块右栏「小说」面板、默认 8 个工具。"
+  "description": "一个包提供 beat / fade / voice / fanfic / conductor 的能力：7 个 novel_* 工具、四段上下文、可恢复事务、右栏「小说」面板与章节工作台。"
 }
