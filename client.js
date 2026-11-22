@@ -32,6 +32,7 @@ window.__ModuleLoader__.load({
         { method: 'getDecisions', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getStyleBrief', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getPlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getOperations', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
@@ -1153,6 +1154,7 @@ window.__ModuleLoader__.load({
       const [workOrder, setWorkOrder] = React.useState('')
       const [memoryOpen, setMemoryOpen] = React.useState(null)
       const [styleOpen, setStyleOpen] = React.useState(null)
+      const [styleBrief, setStyleBrief] = React.useState(null)
       const [canonBusy, setCanonBusy] = React.useState(false)
       const [canonMessage, setCanonMessage] = React.useState('')
       const [memoryQuery, setMemoryQuery] = React.useState('')
@@ -1222,6 +1224,7 @@ window.__ModuleLoader__.load({
         setWorkOrder('')
         setMemoryOpen(null)
         setStyleOpen(null)
+        setStyleBrief(null)
         setCanonMessage('')
         setMemoryQuery('')
         setMemoryHits(null)
@@ -1458,8 +1461,17 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, data, session, planDraft, planData])
 
-      const previewContextNow = React.useCallback(async function () {
-        if (!remote || !data || !data.book) return
+      const loadStyleBrief = React.useCallback(async function (profile) {
+        if (!remote || !profile) return
+        try {
+          const result = await Promise.resolve(remote.getStyleBrief(sessionId, { profileId: profile.id })).then(unwrap)
+          setStyleBrief(result)
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId])
+
+      const previewContextNow = React.useCallback(async function () {        if (!remote || !data || !data.book) return
         try {
           const preview = await Promise.resolve(remote.previewContext(sessionId, {
             book: data.book,
@@ -1838,7 +1850,11 @@ window.__ModuleLoader__.load({
                 (profile.avoid || []).length ? h('div', { style: { marginTop: 6 } },
                   h('div', { style: { ...faint, fontSize: 10.5, marginBottom: 3 } }, '避免'),
                   h('div', { style: { display: 'flex', gap: 4, flexWrap: 'wrap' } }, profile.avoid.slice(0, 12).map((word) => h('span', { key: word, style: { border: '1px solid ' + c.border, borderRadius: 999, padding: '2px 7px', fontSize: 10 } }, word)))) : null,
-                profile.decisionPolicy && Object.keys(profile.decisionPolicy).length ? h('div', { style: { ...faint, marginTop: 6, fontSize: 10.5 } }, '决策倾向：' + JSON.stringify(profile.decisionPolicy)) : null) : null)
+                profile.decisionPolicy && Object.keys(profile.decisionPolicy).length ? h('div', { style: { ...faint, marginTop: 6, fontSize: 10.5 } }, '决策倾向：' + JSON.stringify(profile.decisionPolicy)) : null,
+                h('button', { className: 'nk-btn', style: { marginTop: 7 }, onClick: function (event) { event.stopPropagation(); loadStyleBrief(profile) } }, '生成写前简报'),
+                styleBrief && styleBrief.profileId === profile.id && styleBrief.brief && styleBrief.brief.available
+                  ? h('pre', { style: { marginTop: 6, whiteSpace: 'pre-wrap', color: c.sub, fontSize: 11.5, lineHeight: 1.65, fontFamily: '"Songti SC", "Noto Serif SC", serif', background: c.base, border: '1px solid ' + c.border, borderRadius: 8, padding: 8 } }, styleBrief.brief.markdown)
+                  : null) : null)
             })),            h('div', { style: { ...faint, margin: '14px 0 6px' } }, '旧 voice 书库'),
             (style.works || []).length ? (style.works || []).map((work) => h('div', { key: work.workId, style: { ...row, borderBottom: '1px dashed ' + c.border } },
               h('span', { style: small }, work.title || work.workId), h('span', { style: { ...faint, fontSize: 10 } }, work.chapters + ' 章 · ' + work.chars + ' 字'))) : h('div', { style: faint }, '没有旧 voice 书库；kit 的档案在下方/上方。'))

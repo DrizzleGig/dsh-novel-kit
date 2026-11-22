@@ -49,6 +49,7 @@
 - **收件箱**：拍板/canon/冲突/failed operation 统一汇总；`getOperations` 只读最近操作，资料页显示状态与 attempts。
 - **依据预览**：`previewContext` 现场重算四段，资料页显示字/预算/revision；与 session 已装配快照分开。
 - **恢复**：blocked/committing 主行动为「恢复本章」，走 `resumeChapter`；面板与书桌共用同一判断。
+- **文风简报**：档案可生成 ≤600 字 brief（`getStyleBrief`），显示在档案展开区。
 - **五插件审计**：新增 [FIVE-PLUGIN-PARITY.md](FIVE-PLUGIN-PARITY.md)，逐项对照五件 UI 与能力，列出 kit 缺口。
 
 ### 第二刀：作者命令、完整草稿、收尾事务

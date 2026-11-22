@@ -41,6 +41,7 @@
 - **收件箱汇总**：右栏/书桌统一收 pending 拍板、canon 待确认、冲突、failed operation；资料页显示最近操作日志。
 - **依据预览**：资料页可现场调用 `previewContext`，显示重新计算的四段字数/预算/revision，与已装配快照区分。
 - **恢复会话**：blocked/committing 状态的主行动变成「恢复本章」，走 `resumeChapter`，避免重复收尾。
+- **文风简报**：风格档案可现场编译 ≤600 字写前简报（`getStyleBrief`），不再只显示规则条数。
 - 测试 **169/169**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
 
 ## 0.1.14 — 2026-11-22
