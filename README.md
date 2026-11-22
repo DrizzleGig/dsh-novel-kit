@@ -1,12 +1,12 @@
-﻿# dsh-novel-kit · 小说整合包
+# dsh-novel-kit · 小说整合包
 
 > **一个包，写完一部长篇。** 章节引擎、四段写作依据、八个 `novel_*` 工具、右栏任务卡与四入口小说工作台，都在一个 DSH 插件里。
 >
-> 当前 `0.2.0-dev.0`：三层开关、原创/同人模式、文风/世界观双导入、作者命令链、完整草稿与收尾事务已落地；真实 DSH 界面验收仍在小步进行。
+> 当前 `0.2.0`：三层开关、原创/同人模式、文风/世界观双导入、作者命令链、完整草稿与收尾事务已落地；真实 DSH 界面验收仍在小步进行。
 
 [![stars](https://img.shields.io/github/stars/DrizzleGig/dsh-novel-kit)](https://github.com/DrizzleGig/dsh-novel-kit/stargazers)
 
-`0.2.0-dev.0` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness
+`0.2.0` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness
 
 ## 为什么是整合包
 
@@ -200,7 +200,7 @@ npm run acceptance:load      8/8
 npm run acceptance          19/19
 npm run acceptance:real     11/11
 npm run check               通过
-npm pack --dry-run          57 文件
+npm pack --dry-run          58 文件
 ```
 
 > `acceptance:load` 模拟 DSH 的加载链：package 元数据、bundle patch 两条 entry、Host index/tools/remote 导入、client tab/面板/工作台注册。它专门锁住「重启后整包不出现」这类事故。
@@ -209,7 +209,7 @@ npm pack --dry-run          57 文件
 
 ## 边界与未完成
 
-- 这是 `0.2.0-dev.0`，不是最终稳定版；
+- 这是 `0.2.0`，不是最终稳定版；
 - 真实 DSH 界面验收、写盘故障注入还没完成；
 - operation/canon 锁目前是单 Host 进程内锁，多进程同时写同一工作区未覆盖；
 - canon 逐条接受/证据回查、页边批注、文风规则/锚句编辑仍在后续；
@@ -231,6 +231,7 @@ npm run check
 ## 许可
 
 MIT。作者：DrizzleGig。
+
 
 
 

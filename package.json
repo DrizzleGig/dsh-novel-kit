@@ -1,6 +1,6 @@
 {
   "name": "dsh-novel-kit",
-  "version": "0.2.0-dev.0",
+  "version": "0.2.0",
   "description": "小说整合包（Pro）：一个包提供 beat / fade / voice / fanfic / conductor 的能力——八个 novel_* 工具、三层开关、原创/同人模式、文风与世界观双导入、右栏任务卡与小说工作台；旧五件账本可 /novel legacy 接管后再卸载五件。",
   "type": "module",
   "main": "index.js",
