@@ -1121,6 +1121,7 @@ window.__ModuleLoader__.load({
       const [beatNote, setBeatNote] = React.useState('')
       const [beatMessage, setBeatMessage] = React.useState('')
       const [workOrder, setWorkOrder] = React.useState('')
+      const [memoryOpen, setMemoryOpen] = React.useState(null)
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
@@ -1177,6 +1178,7 @@ window.__ModuleLoader__.load({
         setBeatEditing(null)
         setBeatMessage('')
         setWorkOrder('')
+        setMemoryOpen(null)
       }, [data && data.book])
 
       const saveDraft = React.useCallback(async function () {
@@ -1520,24 +1522,38 @@ window.__ModuleLoader__.load({
             h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 12 } },
               stat('卡片', fadeData.total || cards.length), stat('未回收线索', threads.length), stat('人物', entities.length), stat('已褪', cards.filter((card) => card.status === 'forgotten').length)),
             h('div', { style: { ...faint, margin: '16px 0 6px' } }, '记忆卡'),
-            cards.length === 0 ? h('div', { style: faint }, '还没有记忆卡；收尾一章后生成。') : cards.slice(0, 24).map((card) => h('div', { key: card.id, style: { padding: '10px 12px', border: '1px solid ' + c.border, borderRadius: 10, marginBottom: 6, background: c.layer } },
+            cards.length === 0 ? h('div', { style: faint }, '还没有记忆卡；收尾一章后生成。') : cards.slice(0, 24).map((card) => {
+              const open = memoryOpen === card.id
+              return h('div', {
+                key: card.id,
+                onClick: function () { setMemoryOpen(open ? null : card.id) },
+                style: { padding: '10px 12px', border: '1px solid ' + (open ? c.brand : c.border), borderRadius: 10, marginBottom: 6, background: c.layer, cursor: 'pointer' },
+              },
               h('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
                 h('span', { style: { fontSize: 10, color: c.brand, fontWeight: 700 } }, card.layer || 'L2'),
                 h('span', { style: { fontSize: 10 } }, '第 ' + card.chapter + ' 章'),
+                card.pinned ? h('span', { style: { fontSize: 9.5, color: c.success } }, '已钉住') : null,
                 h('span', { style: { marginLeft: 'auto', ...faint, fontSize: 10 } }, card.status || 'active')),
               h('div', { style: { fontSize: 12.5, marginTop: 4, lineHeight: 1.6 } }, card.gist || '（无摘要）'),
               card.emotion ? h('div', { style: { ...faint, marginTop: 2 } }, card.emotion) : null,
+              open ? h('div', { style: { marginTop: 7, paddingTop: 7, borderTop: '1px dashed ' + c.border } },
+                h('div', { style: { ...faint, fontSize: 10.5 } }, '三维 · ' + (card.familiarity !== null ? '熟 ' + Math.round(card.familiarity * 100) + '%' : '熟 —') + ' / ' + (card.accessibility !== null ? '可及 ' + Math.round(card.accessibility * 100) + '%' : '可及 —') + ' / ' + (card.fidelity !== null ? '保真 ' + Math.round(card.fidelity * 100) + '%' : '保真 —')),
+                card.quote ? h('div', { style: { marginTop: 6, paddingLeft: 9, borderLeft: '2px solid ' + c.brand, color: c.sub, fontSize: 11.5, lineHeight: 1.7, fontFamily: '"Songti SC", "Noto Serif SC", serif' } }, '“' + card.quote + '”') : null,
+                card.cause || card.effect ? h('div', { style: { ...faint, marginTop: 5, fontSize: 10.5 } }, (card.cause ? '因：' + card.cause : '') + (card.effect ? '　果：' + card.effect : '')) : null,
+                card.entityIds && card.entityIds.length ? h('div', { style: { ...faint, marginTop: 5, fontSize: 10.5 } }, '人物：' + card.entityIds.join('、')) : null,
+                h('div', { style: { ...faint, marginTop: 5, fontSize: 10.5 } }, '原句回查：收尾时已按引文锚定；正文与卡片同事务落账。')) : null,
               h('div', { style: { display: 'flex', gap: 5, marginTop: 6 } },
                 card.status === 'forgotten'
-                  ? h('button', { className: 'nk-btn', onClick: function () { actOnMemory(card, 'restore') } }, '恢复')
-                  : h('button', { className: 'nk-btn', onClick: function () { actOnMemory(card, 'forget') } }, '遗忘'),
-                card.pinned ? null : h('button', { className: 'nk-btn', onClick: function () { actOnMemory(card, 'pin') } }, '钉住')))),
+                  ? h('button', { className: 'nk-btn', onClick: function (event) { event.stopPropagation(); actOnMemory(card, 'restore') } }, '恢复')
+                  : h('button', { className: 'nk-btn', onClick: function (event) { event.stopPropagation(); actOnMemory(card, 'forget') } }, '遗忘'),
+                card.pinned ? null : h('button', { className: 'nk-btn', onClick: function (event) { event.stopPropagation(); actOnMemory(card, 'pin') } }, '钉住')))
+            })),
             h('div', { style: { ...faint, margin: '14px 0 6px' } }, '未回收线索'),
             threads.length === 0 ? h('div', { style: faint }, '没有未回收线索。') : threads.slice(0, 12).map((thread) => h('div', { key: thread.id, style: { ...row, borderBottom: '1px dashed ' + c.border } },
               h('span', { style: small }, thread.text), h('span', { style: { ...faint, fontSize: 10 } }, '第 ' + thread.chapter + ' 章'))),
             h('div', { style: { ...faint, margin: '14px 0 6px' } }, '常出现人物'),
             entities.length === 0 ? h('div', { style: faint }, '还没有人物统计。') : h('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap' } },
-              entities.slice(0, 20).map((entity) => h('span', { key: entity.name, style: { border: '1px solid ' + c.border, borderRadius: 999, padding: '3px 8px', fontSize: 11 } }, entity.name + ' ×' + entity.mentions)))))
+              entities.slice(0, 20).map((entity) => h('span', { key: entity.name, style: { border: '1px solid ' + c.border, borderRadius: 999, padding: '3px 8px', fontSize: 11 } }, entity.name + ' ×' + entity.mentions))))
       }
 
       function voiceView() {
@@ -1578,8 +1594,9 @@ window.__ModuleLoader__.load({
               h('div', { style: { fontSize: 20, fontWeight: 700 } }, canon.title || '同人原著'),
               h('span', { style: { fontSize: 10, color: canon.canonReady ? c.success : c.warning } }, canon.canonReady ? 'canon 已确认' : (canon.contractStatus || '待抽取'))),
             h('div', { style: { ...faint, marginTop: 2 } }, '原著 ' + (canon.sourceId || '-') + ' · rev ' + (canon.revision ?? '-')),
-            section('事实', canon.facts || [], (fact, index) => h('div', { key: index, style: { ...row, borderBottom: '1px dashed ' + c.border } },
-              h('span', { style: small }, String(fact.entity ?? fact.subjectName ?? '?') + (fact.key ? '·' + fact.key : '') + '：' + String(fact.value ?? fact.object ?? '')))),
+            section('事实', canon.facts || [], (fact, index) => h('div', { key: index, style: { padding: '6px 0', borderBottom: '1px dashed ' + c.border } },
+              h('div', { style: small }, String(fact.subject ?? fact.entity ?? '?') + (fact.key ? '·' + fact.key : '') + '：' + String(fact.value ?? fact.object ?? '')),
+              fact.quote ? h('div', { style: { color: c.faint, fontSize: 10.5, marginTop: 2, fontFamily: '"Songti SC", "Noto Serif SC", serif' } }, '“' + fact.quote + '”' + (fact.chapter ? ' · 第 ' + fact.chapter + ' 章' : '')) : null)),
             section('人物', canon.characters || [], (person, index) => h('div', { key: index, style: { ...row, borderBottom: '1px dashed ' + c.border } },
               h('span', { style: small }, person.name || '?'), h('span', { style: { ...faint, fontSize: 10 } }, person.role || ''))),
             section('世界规则', canon.worldRules || [], (rule, index) => h('div', { key: index, style: small }, '- ' + (typeof rule === 'string' ? rule : rule?.text ?? ''))),

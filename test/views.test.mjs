@@ -114,3 +114,24 @@ test('memoryView：给 currentChapter 时附带 fidelity', () => {
   assert.equal(typeof view.cards[0].fidelity, 'number')
   assert.equal(typeof view.cards[0].familiarity, 'number')
 })
+
+test('memoryView：保留引文、钉住状态与三维可及性', () => {
+  const view = memoryView({
+    revision: 1,
+    cards: [{ id: 'c-quote', chapter: 3, salience: 5, gist: '令牌', quote: '城门在子时落锁', pinned: true, entityIds: ['守城人'] }],
+  }, { currentChapter: 3 })
+  assert.equal(view.cards[0].quote, '城门在子时落锁')
+  assert.equal(view.cards[0].pinned, true)
+  assert.equal(typeof view.cards[0].accessibility, 'number')
+  assert.deepEqual(view.cards[0].entityIds, ['守城人'])
+})
+
+test('canonView：事实带原文引文', () => {
+  const view = canonView({
+    id: 'douluo', revision: 1,
+    exports: { facts: [{ subject: '陈凡', key: '令牌', value: '唐昊所留', chapter: 2, evidence: [{ quote: '把令牌放在桌上' }] }] },
+  })
+  assert.equal(view.facts.length, 1)
+  assert.equal(view.facts[0].quote, '把令牌放在桌上')
+  assert.equal(view.facts[0].chapter, 2)
+})

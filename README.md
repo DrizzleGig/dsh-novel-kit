@@ -195,7 +195,7 @@ profile 级总开关在 `$DSH_HOME/profiles/<name>/novel-kit/prefs.json`。
 当前开发版的模拟验收（不依赖真实 DSH 界面）：
 
 ```text
-node --test                 165/165
+node --test                 167/167
 npm run acceptance:load      8/8
 npm run acceptance          19/19
 npm run acceptance:real     11/11
@@ -231,6 +231,7 @@ npm run check
 ## 许可
 
 MIT。作者：DrizzleGig。
+
 
 
 
