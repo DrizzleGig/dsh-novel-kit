@@ -85,3 +85,38 @@ test('client.js：能装进宿主替身并渲染小说工作台，不抛异常',
   const text = collectText(tree).join(' ')
   assert.match(text, /小说工作台|加载|章节|书桌/, config.name + ' 首屏文案')
 })
+
+// 七个页面都要能真渲染：只测书桌，其它页写崩了也发现不了。
+const SECTIONS = ['desk', 'chapter', 'beat', 'fade', 'voice', 'fanfic', 'data']
+
+test('client.js：七页逐页渲染都不抛异常', async () => {
+  let plugin = null
+  globalThis.window = { __ModuleLoader__: { load(definition) { plugin = definition } } }
+  globalThis.React = makeReact()
+  // 带 query 的 import：否则拿到的是上一个测试缓存过的模块，__ModuleLoader__.load 不会再触发。
+  await import('../client.js?seven-pages')
+  assert.ok(plugin, 'client.js 重新注册')
+
+  const mod = plugin.factory((name) => {
+    if (name === 'react') return globalThis.React
+    throw new Error('unexpected require: ' + name)
+  })
+  let Component = null
+  const ctx = {
+    effect(fn) { const dispose = fn(); if (typeof dispose === 'function') dispose() },
+    get(key) { return key === 'remote.novelKitPanel' ? fakeRemote : null },
+    remote: { $mount: async () => undefined },
+    slots: {
+      inject(_name, fn) { return fn() },
+      register(_config, component) { Component = component; return () => {} },
+    },
+  }
+  await mod.apply(ctx)
+  assert.ok(Component, '拿到工作台组件')
+
+  for (const section of SECTIONS) {
+    const tree = Component({ sessionId: 's-test', remote: fakeRemote, initialSection: section })
+    assert.ok(tree, section + ' 渲染出树')
+    assert.ok(collectText(tree).join(' ').length > 0, section + ' 渲染出文本')
+  }
+})
