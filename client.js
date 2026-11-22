@@ -1552,6 +1552,7 @@ window.__ModuleLoader__.load({
         const cards = fadeData.cards || []
         const threads = fadeData.threads || []
         const entities = fadeData.entities || []
+        const lowFidelity = cards.filter((card) => card.fidelity !== null && card.fidelity < 0.33).length
         const stat = (label, value) => h('div', { style: { border: '1px solid ' + c.border, borderRadius: 12, padding: '10px 12px', background: c.layer } },
           h('div', { style: { ...faint, fontSize: 10.5 } }, label),
           h('div', { style: { fontSize: 18, fontWeight: 700, marginTop: 2 } }, String(value)))
@@ -1560,8 +1561,9 @@ window.__ModuleLoader__.load({
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
               h('div', { style: { fontSize: 20, fontWeight: 700 } }, '长篇记忆'),
               h('span', { style: faint }, 'rev ' + (fadeData.revision ?? '-') + (fadeData.drift ? ' · drift' : ''))),
+            fadeData.drift ? h('div', { style: { marginTop: 8, padding: '8px 10px', border: '1px solid ' + c.warning, borderRadius: 9, color: c.warning, fontSize: 11.5 } }, '记忆账本检测到漂移：下一章写作前先回查旧卡，或收尾时重新锚定原文。') : null,
             h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 12 } },
-              stat('卡片', fadeData.total || cards.length), stat('未回收线索', threads.length), stat('人物', entities.length), stat('已褪', cards.filter((card) => card.status === 'forgotten').length)),
+              stat('卡片', fadeData.total || cards.length), stat('未回收线索', threads.length), stat('人物', entities.length), stat('低保真', lowFidelity)),
             h('div', { style: { display: 'flex', gap: 6, marginTop: 12 } },
               h('input', {
                 value: memoryQuery,
@@ -1589,6 +1591,7 @@ window.__ModuleLoader__.load({
               h('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
                 h('span', { style: { fontSize: 10, color: c.brand, fontWeight: 700 } }, card.layer || 'L2'),
                 h('span', { style: { fontSize: 10 } }, '第 ' + card.chapter + ' 章'),
+                card.fidelity !== null && card.fidelity < 0.33 ? h('span', { style: { fontSize: 9.5, color: c.warning } }, '已褪色') : null,
                 card.pinned ? h('span', { style: { fontSize: 9.5, color: c.success } }, '已钉住') : null,
                 h('span', { style: { marginLeft: 'auto', ...faint, fontSize: 10 } }, card.status || 'active')),
               h('div', { style: { fontSize: 12.5, marginTop: 4, lineHeight: 1.6 } }, card.gist || '（无摘要）'),
@@ -1657,6 +1660,7 @@ window.__ModuleLoader__.load({
         if (!materialData) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '加载同人资料…'))
         const canon = materialData.canon || {}
         if (!canon.available) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '没有绑定同人 canon；在右栏「设置与详情 → 写同人」导入。'))
+        const findings = (session && session.verification && Array.isArray(session.verification.findings)) ? session.verification.findings : []
         const section = (title, items, render) => h('div', { style: { marginTop: 14 } },
           h('div', { style: { ...faint, marginBottom: 5 } }, title + ' · ' + items.length),
           items.length ? items.slice(0, 20).map(render) : h('div', { style: faint }, '暂无'))
@@ -1680,7 +1684,18 @@ window.__ModuleLoader__.load({
               h('span', { style: small }, person.name || '?'), h('span', { style: { ...faint, fontSize: 10 } }, person.role || ''))),
             section('世界规则', canon.worldRules || [], (rule, index) => h('div', { key: index, style: small }, '- ' + (typeof rule === 'string' ? rule : rule?.text ?? ''))),
             section('禁忌', canon.forbidden || [], (item, index) => h('div', { key: index, style: small }, '- ' + String(typeof item === 'string' ? item : item?.text ?? ''))),
-            section('称呼', canon.addresses || [], (row, index) => h('div', { key: index, style: small }, (row.from || '?') + '→' + (row.to || '?') + '：' + (row.form || '')))))
+            section('称呼', canon.addresses || [], (row, index) => h('div', { key: index, style: small }, (row.from || '?') + '→' + (row.to || '?') + '：' + (row.form || ''))),
+            h('div', { style: { marginTop: 16, paddingTop: 12, borderTop: '1px solid ' + c.border } },
+              h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
+                h('div', { style: { fontSize: 14, fontWeight: 700 } }, '本章检查'),
+                h('span', { style: { ...faint, fontSize: 10 } }, session ? '第 ' + session.chapter + ' 章 · ' + session.state : '没有活动章节')),
+              findings.length === 0
+                ? h('div', { style: { ...faint, marginTop: 5 } }, '还没有检查记录；写完本章草稿后运行检查。')
+                : findings.slice(0, 12).map((finding, index) => h('div', { key: index, style: { marginTop: 5, padding: '7px 9px', border: '1px solid ' + (finding.severity === 'blocker' ? c.error : c.border), borderRadius: 8, background: c.layer } },
+                    h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
+                      h('span', { style: { fontSize: 9.5, color: finding.severity === 'blocker' ? c.error : c.warning, fontWeight: 700 } }, String(finding.severity || 'info').toUpperCase()),
+                      h('span', { style: { fontSize: 11.5, color: c.sub } }, finding.message || finding.code || '')),
+                    finding.quote ? h('div', { style: { ...faint, fontFamily: '"Songti SC", "Noto Serif SC", serif', marginTop: 2 } }, '“' + finding.quote + '”') : null)))))
       }
 
       function flowView() {

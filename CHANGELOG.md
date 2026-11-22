@@ -35,6 +35,8 @@
 - **风格档案详情**：风格页档案可展开看规则、避免词、六项区间与决策倾向；`styleView`/`listStyleProfiles` 提供 `ruleTexts`。
 - **同人 canon 确认**：同人页显示 contract 状态/版本，可直接「确认这份 canon」，走 `canon.confirm` 作者命令并刷新。
 - **记忆检索**：记忆页可按人物/物品/秘密搜索，命中结果可点开对应卡片。
+- **记忆漂移提示**：drift 时显示回查提醒，低保真卡片标「已褪色」。
+- **同人检查**：同人页显示本章 `verification.findings`（severity / message / 引文），没有检查时如实提示。
 - 测试 **167/167**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
 
 ## 0.1.14 — 2026-11-22
