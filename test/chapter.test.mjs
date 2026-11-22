@@ -54,6 +54,41 @@ function workspace({ withFade = true } = {}) {
 
 const draft = '陈凡推门进来，屋里没有别人。\n\n“你来了。”唐昊说。\n\n他把那枚令牌放在桌上，没有解释。'
 
+test('旧口径会话：finish 要求先升级，resume 才重新装配依据', async () => {
+  const root = workspace()
+  const started = await startChapter({ root, book: '书', chapter: 13 })
+  assert.equal(started.ok, true)
+  const sessionId = started.session.id
+
+  // 模拟旧会话：没有口径版本，指纹是旧口径
+  const legacy = await loadSession(root, sessionId)
+  delete legacy.contextFingerprintVersion
+  legacy.contextFingerprint = 'legacy-fingerprint'
+  await saveSession(root, legacy)
+
+  await writeChapter({ root, sessionId, text: draft })
+  const quote = '陈凡推门进来，屋里没有别人。'
+  const start = draft.indexOf(quote)
+  const blocked = await finishChapter({
+    root,
+    sessionId,
+    extraction: {
+      segments: [{ start, end: start + quote.length, quote, decisionIds: ['d1'] }],
+      memory: { cards: [{ topic: '陈凡进屋', gist: '陈凡推门进来，屋里没有别人。', quote, salience: 4, entityIds: ['陈凡'] }] },
+    },
+  })
+  assert.equal(blocked.ok, false)
+  assert.equal(blocked.code, 'context-upgrade-required')
+
+  const resumed = await resumeChapter({ root, sessionId })
+  assert.equal(resumed.ok, true)
+  assert.equal(resumed.upgraded, true)
+  const upgraded = await loadSession(root, sessionId)
+  assert.equal(upgraded.contextFingerprintVersion, 2)
+  assert.equal(upgraded.contextFingerprint, upgraded.context.fingerprint, '会话存的是装配指纹本身，不再二次哈希')
+  assert.ok(upgraded.draft, '升级不丢正文')
+})
+
 test('start：装配四段上下文，缺 fade 时如实报错', async () => {
   const root = workspace()
   const started = await startChapter({ root, book: '书', chapter: 13 })

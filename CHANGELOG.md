@@ -50,6 +50,10 @@
 - **导入不再覆盖坏契约**：`importCanon` 只在文件不存在（ENOENT）时创建默认契约，损坏或不支持的 schema 直接抛错。
 - **界面收口**：同人页去掉「确认这份 canon」按钮（确认已由「应用候选」隐含完成），页头改为生效状态 + 指向待审阅队列；删掉随之失效的 `confirmCanonNow`。
 - 测试 **195/195**。
+- **上下文指纹改口径（version 2）**：`assembleContext()` 的指纹不再只哈希裁剪后的 markdown，而是把每段的完整来源身份（beat/fade 修订号、canon 的 `contentHash`、文风档案 id、原著名）一起压进去——**改了预算之外的事实/人物/规则也会让依据失效**。返回值新增 `fingerprintVersion` 与 `dependency`。
+- **会话不再二次哈希**：`session.contextFingerprint` 直接存装配指纹本身，并记录 `contextFingerprintVersion`；`start / plan / resume / finish` 共用 `stampContext()` 一个 setter。
+- **旧会话显式升级**：缺口径版本的会话在收尾时返回 `context-upgrade-required`（不能拿旧指纹判定「有没有变」）；只有显式 `resume` 才重新装配，保留正文、恢复 blocked 状态，并要求重新提取与检查。
+- **测试**：上下文指纹三条新用例（裁剪外 canon 改动使指纹失效、同内容但 revision 变化使指纹失效、口径版本号）+ 章节级「旧会话必须先升级」用例；测试 **199/199**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。
