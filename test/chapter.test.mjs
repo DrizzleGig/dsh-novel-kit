@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { startChapter, writeChapter, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal, chapterHistory } from '../lib/engine/chapter.js'
+import { startChapter, writeChapter, readDraft, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal, chapterHistory } from '../lib/engine/chapter.js'
 import { writeProjectSettings } from '../lib/engine/settings.js'
 import { worldContractFile } from '../lib/engine/canon.js'
 import { writeJsonAtomic } from '../lib/storage/atomic-json.js'
@@ -95,7 +95,9 @@ test('write → finish：写正文、落 beat 段落与 fade 卡、事务回执�
   })
   assert.equal(result.ok, true)
   assert.equal(result.session.state, 'completed')
-  assert.equal(result.effects.length, 2)
+  assert.equal(result.effects.length, 3, '正文 + beat + fade 同一事务')
+  assert.ok(result.chapterFile && result.chapterFile.endsWith('.md'))
+  assert.match(readFileSync(result.chapterFile, 'utf8'), /陈凡推门进来/)
 
   const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
   assert.equal(beat.segments.length, 2)
@@ -605,6 +607,31 @@ test('原创模式：旧同人证据不参与 finish 检查', async () => {
   await writeChapter({ root, sessionId: session.id, text: '陈凡推门进来。屋里没有别人，手机也不在。' })
   const done = await finishChapter({ root, sessionId: session.id, extraction: { segments: [{ quote: '陈凡推门进来' }] } })
   assert.equal(done.ok, true, '原创模式不因旧同人禁忌/复制/名字被拦')
+})
+
+test('readDraft/saveDraft：完整 8000 字、expectedVersion/hash CAS、并发冲突', async () => {
+  const root = workspace()
+  const { session } = await startChapter({ root, book: '书', chapter: 21 })
+  const big = '字'.repeat(8000)
+  const first = await writeChapter({ root, sessionId: session.id, text: big })
+  assert.equal(first.ok, true)
+  const read = await readDraft({ root, sessionId: session.id })
+  assert.equal(read.ok, true)
+  assert.equal(read.draft.chars, 8000, '不截断')
+  assert.equal(read.draft.text.length, 8000)
+
+  const wrong = await writeChapter({ root, sessionId: session.id, text: '短稿', expectedVersion: 0, expectedDraftHash: 'deadbeef' })
+  assert.equal(wrong.ok, false)
+  assert.equal(wrong.code, 'draft-conflict')
+  assert.equal(wrong.current.version, 1)
+
+  const conflictA = writeChapter({ root, sessionId: session.id, text: '并发 A', expectedVersion: read.draft.version, expectedDraftHash: read.draft.hash })
+  const conflictB = writeChapter({ root, sessionId: session.id, text: '并发 B', expectedVersion: read.draft.version, expectedDraftHash: read.draft.hash })
+  const [a, b] = await Promise.all([conflictA, conflictB])
+  const okCount = [a, b].filter((item) => item.ok).length
+  const conflictCount = [a, b].filter((item) => item.code === 'draft-conflict').length
+  assert.equal(okCount, 1)
+  assert.equal(conflictCount, 1)
 })
 
 test('作者拍板不能被 write 绕过：有 pending 提案时 finish 拒绝', async () => {

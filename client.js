@@ -47,6 +47,9 @@ window.__ModuleLoader__.load({
         { method: 'importCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'listSources', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'listStyleProfiles', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getDraft', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'saveDraft', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'confirmCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
       ].map(({ method, parameters }) => ({
         id: 'dsh-novel-kit#novelKitPanel/' + method,
         namespace: 'novelKitPanel',
@@ -316,6 +319,19 @@ window.__ModuleLoader__.load({
         return h('div', null,
           h('div', { style: faint }, '同人原著请用上方「写同人」导入；这里展示已绑定的契约。'),
           h('div', { style: faint }, `${value.title || value.id} · 原著 ${value.sourceId || '-'} · rev ${value.revision}`),
+          value.source === 'kit'
+            ? h('div', { style: { marginTop: 3, color: value.canonReady ? c.success : c.error, fontSize: 11 } },
+                'canon：' + (value.canonReady ? '已确认，可开写' : (value.contractStatus || '待抽取')))
+            : null,
+          value.facts && value.facts.length
+            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '事实'),
+                value.facts.slice(0, 10).map((fact, index) => h('div', { key: index, style: small },
+                  `${fact.entity ?? fact.subjectName ?? '?'}${fact.key ? '·' + fact.key : ''}：${fact.value ?? fact.object ?? ''}`)))
+            : null,
+          value.worldRules && value.worldRules.length
+            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '世界规则'),
+                value.worldRules.slice(0, 10).map((rule, index) => h('div', { key: index, style: small }, '- ' + (typeof rule === 'string' ? rule : rule?.text ?? ''))))
+            : null,
           value.forbidden.length
             ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '禁忌'), value.forbidden.map((text, index) => h('div', { key: index, style: small }, '- ' + text)))
             : null,
@@ -332,6 +348,13 @@ window.__ModuleLoader__.load({
             ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '秘密'),
                 value.secrets.slice(0, 8).map((secret, index) => h('div', { key: index, style: { color: c.faint, fontSize: 11 } },
                   (secret.publicAtChapter ? secret.publicAtChapter + ' 起公开' : '未公开') + '：' + String(secret.what).slice(0, 40))))
+            : null,
+          value.source === 'kit' && !value.canonReady && ((value.facts && value.facts.length) || (value.worldRules && value.worldRules.length) || (value.characters && value.characters.length))
+            ? h('button', {
+                type: 'button',
+                onClick: function () { runConfirmCanon(value) },
+                style: { appearance: 'none', border: '1px solid ' + c.brand, background: 'transparent', color: c.text, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', marginTop: 6 },
+              }, '确认 canon（之后可开写）')
             : null,
         )
       }
@@ -438,6 +461,25 @@ window.__ModuleLoader__.load({
           setAction({ phase: 'error', message: String(error?.message ?? error) })
         }
       }, [remote, sessionId, book, state.data, importPath, openTab])
+
+      const runConfirmCanon = React.useCallback(async function (canonValue) {
+        if (!remote || !canonValue || !canonValue.sourceId) return
+        const activeBook = book || (state.data && state.data.book) || null
+        if (!activeBook) { setAction({ phase: 'error', message: '先选一本书' }); return }
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = await Promise.resolve(remote.confirmCanon(sessionId, { book: activeBook, sourceId: canonValue.sourceId })).then(unwrap)
+          if (!result || result.ok === false) {
+            setAction({ phase: 'error', message: result?.message || result?.code || '确认失败' })
+            return
+          }
+          setAction({ phase: 'done', message: 'canon 已确认；同人章节现在可以开写。' })
+          setTabData((prev) => { const next = { ...prev }; delete next.canon; return next })
+          await openTab('canon')
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, book, state.data, openTab])
 
       React.useEffect(function () { load() }, [load])
 
@@ -612,6 +654,8 @@ window.__ModuleLoader__.load({
       const { sessionId, remote } = props
       const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
+      const [draftState, setDraftState] = React.useState({ text: '', version: 0, hash: null, chars: 0, loaded: false, dirty: false })
+      const [saveState, setSaveState] = React.useState({ phase: 'idle', message: '' })
 
       const requestRef = React.useRef(0)
       const load = React.useCallback(async function (nextBook) {
@@ -635,7 +679,60 @@ window.__ModuleLoader__.load({
 
       React.useEffect(function () { load() }, [load])
 
+      const loadDraft = React.useCallback(async function (session) {
+        if (!remote || !session || !session.id || typeof remote.getDraft !== 'function') return
+        try {
+          const result = await Promise.resolve(remote.getDraft(sessionId, { chapterSessionId: session.id })).then(unwrap)
+          if (result && result.draft) {
+            setDraftState({
+              text: result.draft.text ?? '', version: result.draft.version ?? 0, hash: result.draft.hash ?? null,
+              chars: result.draft.chars ?? 0, loaded: true, dirty: false,
+            })
+          } else {
+            setDraftState({ text: '', version: 0, hash: null, chars: 0, loaded: true, dirty: false })
+          }
+        } catch (error) {
+          setSaveState({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId])
+
       const data = state.data
+      const sessionKey = data && data.session ? data.session.id : null
+      React.useEffect(function () {
+        if (sessionKey) loadDraft(data.session)
+      }, [sessionKey, loadDraft])
+
+      const saveDraft = React.useCallback(async function () {
+        if (!remote || !data || !data.session || typeof remote.saveDraft !== 'function') return
+        setSaveState({ phase: 'saving', message: '' })
+        try {
+          const result = await Promise.resolve(remote.saveDraft(sessionId, {
+            chapterSessionId: data.session.id,
+            text: draftState.text,
+            expectedVersion: draftState.version,
+            expectedDraftHash: draftState.hash,
+          })).then(unwrap)
+          if (!result || result.ok === false) {
+            const message = result?.message || result?.code || '保存失败'
+            setSaveState({ phase: 'error', message })
+            if (result && result.code === 'draft-conflict') await loadDraft(data.session)
+            return
+          }
+          setDraftState((prev) => ({
+            ...prev,
+            version: result.draft?.version ?? prev.version,
+            hash: result.draft?.hash ?? prev.hash,
+            chars: result.draft?.chars ?? prev.chars,
+            dirty: false,
+            loaded: true,
+          }))
+          setSaveState({ phase: 'saved', message: '已保存 v' + (result.draft?.version ?? '?') })
+          await load()
+        } catch (error) {
+          setSaveState({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, data, draftState, loadDraft, load])
+
       const books = (data && data.workspace && data.workspace.beat) || []
       const draft = data && data.session && data.session.draft
 
@@ -659,14 +756,45 @@ window.__ModuleLoader__.load({
         ),
         state.error ? h('div', { style: { color: c.error, padding: '8px 14px' } }, state.error) : null,
         h('div', { style: { display: 'flex', gap: 0, flex: 1, minHeight: 0 } },
-          h('div', { style: { flex: 1, minWidth: 0, padding: '10px 14px', overflowY: 'auto' } },
-            h('div', { style: { ...faint, marginBottom: 6 } }, draft ? `正文 v${draft.version} · ${draft.chars ?? '?'} 字` : '还没有正文草稿'),
-            h('pre', {
-              style: {
-                margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 13, lineHeight: 1.8,
-                color: draft ? c.text : c.faint, fontFamily: 'inherit',
-              },
-            }, draft && draft.text ? draft.text : '（用 novel_chapter_write 保存正文后，这里显示草稿；工作台只读，编辑回聊天或原插件。）'),
+          h('div', { style: { flex: 1, minWidth: 0, padding: '10px 14px', display: 'flex', flexDirection: 'column', minHeight: 0 } },
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 } },
+              h('span', { style: faint }, draft ? `正文 v${draft.version} · ${draftState.loaded ? draftState.chars : (draft.chars ?? '?')} 字` : '还没有正文草稿'),
+              h('span', { style: { color: draftState.dirty ? c.error : c.faint, fontSize: 11 } }, draftState.dirty ? '未保存' : (draftState.loaded ? '已保存' : '')),
+              h('span', { style: { marginLeft: 'auto', color: saveState.phase === 'error' ? c.error : c.sub, fontSize: 11 } }, saveState.message),
+              h('button', {
+                type: 'button',
+                disabled: !draftState.dirty || saveState.phase === 'saving',
+                onClick: function () { saveDraft() },
+                style: {
+                  appearance: 'none', border: '1px solid ' + (draftState.dirty ? c.brand : c.border),
+                  background: draftState.dirty ? c.layer : 'transparent', color: draftState.dirty ? c.text : c.faint,
+                  borderRadius: 6, padding: '3px 10px', fontSize: 11.5, cursor: draftState.dirty ? 'pointer' : 'default', fontFamily: 'inherit',
+                },
+              }, saveState.phase === 'saving' ? '保存中…' : '保存草稿（Ctrl S）')),
+            typeof remote.getDraft === 'function'
+              ? h('textarea', {
+                  value: draftState.loaded ? draftState.text : (draft && draft.text ? draft.text : ''),
+                  placeholder: '在这里写本章正文；保存后旧检查作废。',
+                  spellCheck: false,
+                  onChange: function (event) { setDraftState((prev) => ({ ...prev, text: event.target.value, dirty: true, loaded: true })) },
+                  onKeyDown: function (event) {
+                    if ((event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === 's') {
+                      event.preventDefault()
+                      saveDraft()
+                    }
+                  },
+                  style: {
+                    flex: 1, width: '100%', minHeight: 220, resize: 'none', boxSizing: 'border-box',
+                    border: '1px solid ' + c.border, borderRadius: 8, background: c.base, color: c.text,
+                    fontFamily: 'inherit', fontSize: 13, lineHeight: 1.8, padding: 10,
+                  },
+                })
+              : h('pre', {
+                  style: {
+                    margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 13, lineHeight: 1.8,
+                    color: draft ? c.text : c.faint, fontFamily: 'inherit',
+                  },
+                }, draft && draft.text ? draft.text : '（当前 DSH/插件版本没有完整草稿读写；升级后工作台可编辑。）'),
           ),
           h('div', { style: { width: 260, flexShrink: 0, borderLeft: '1px solid ' + c.border, padding: '10px 12px', overflowY: 'auto' } },
             h('div', { style: { ...faint, marginBottom: 4 } }, '写作依据'),

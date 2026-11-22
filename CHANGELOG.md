@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 ## 0.2.0-dev.0 — 2026-11-22
 
@@ -10,7 +10,12 @@
 - **硬预算**：四段 `clip` 按预算截断（不再 2 倍），返回 `truncated`；文风段优先用 kit `StyleProfile`，≤600 字。
 - **文风决策**：`planChapter` 返回 `styleHint`；提案选项可带 `styleFit/styleWhy`，插件做轻量规则标注；`novel_plan` 只允许 propose，模型不能再 adopt/reject。
 - **P0 修复**：remote 写操作检查 master、`decide`/`memoryAction` 严格枚举、接管记录持久化且无记录不默认恢复全部五件、快照绑定统一走 `resolveBinding`、native 工具输出补四段上下文。
-- 测试 **139/139**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
+- **作者命令与操作日志**：`executeAuthorCommand`（decision.adopt/reject、draft.save、mode.set、import.style/import.canon、canon.confirm）；`operationId` + 输入 hash 幂等，同键不同输入 conflict；模型工具不能调用。
+- **canon 审阅**：新增 `novel_canon` 工具（outline/read/propose）；propose 进入 `pending-review`，作者在面板「确认 canon」后才 `confirmed`；空契约拒绝确认。
+- **完整草稿读写**：`readDraft` 不截断；`writeChapter` 支持 `expectedVersion`/`expectedDraftHash`，同会话保存串行化，冲突返回 `draft-conflict`。
+- **收尾事务覆盖正文**：`finish` 把正文文件、beat 段落、fade 卡放进同一个可恢复事务，不再先写正文后提交账本。
+- **工作台编辑器**：工作台可编辑完整正文并保存（Ctrl S），显示未保存/已保存/冲突；旧 DSH 版本自动退回只读。
+- 测试 **149/149**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
 
 ## 0.1.14 — 2026-11-22
 
@@ -249,5 +254,7 @@ S0 只读层：只装 kit 也能读懂已有五本账，且绝不改文件。
 - npm 名字与 GitHub 仓库占位：只注册包名、声明 bundle 入口，不挂工具、面板或命令。
 - 目的：市场 PR 要求仓库满 1 天；先建仓，`0.1.0` 发布后即可提 PR。
 - 方案见 `docs/小说插件系列-dsh-novel-kit-整合包设计方案-2026-11-21.md`。
+
+
 
 

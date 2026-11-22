@@ -1,4 +1,4 @@
-// S1：宿主接线——总开关 master + /novel 会话开关 + 7 个工具按会话门控 + 项目模式。
+﻿// S1：宿主接线——总开关 master + /novel 会话开关 + 8 个工具按会话门控 + 项目模式。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, readFileSync } from 'node:fs'
@@ -43,11 +43,12 @@ function fakeHost({ root = null } = {}) {
 
 const agentOf = (id) => ({ session: { id } })
 
-test('apply：注册 7 个 novel_* 工具 + /novel 命令；总开关默认关', async () => {
+test('apply：注册 8 个 novel_* 工具 + /novel 命令；总开关默认关', async () => {
   const { ctx, tools, commands } = fakeHost()
   await apply(ctx)
-  assert.equal(tools.length, 7)
+  assert.equal(tools.length, 8)
   assert.deepEqual(tools.map(({ definition }) => definition.name).sort(), [
+    'novel_canon',
     'novel_chapter_abort',
     'novel_chapter_finish',
     'novel_chapter_resume',
@@ -82,7 +83,7 @@ test('/novel master on|off：总开关关掉时 /novel on 不越权', async () =
   const on = await command.handler({ agent: a, rawInput: 'on' })
   assert.equal(on.kind, 'success')
   assert.match(on.text, /已开启/)
-  assert.equal(visible(a), 7, '本会话 7 个工具可见')
+  assert.equal(visible(a), 8, '本会话 8 个工具可见')
 
   const b = agentOf('session-b')
   assert.equal(visible(b), 0, '别的会话不受影响')
@@ -145,3 +146,5 @@ test('/novel mode：写项目设置，非法模式拒绝', async () => {  const 
   assert.equal(savedBack.mode, 'original')
   assert.equal(savedBack.revision, 2)
 })
+
+

@@ -1,4 +1,4 @@
-﻿# dsh-novel-kit 0.2.0 开发状态（2026-11-22）
+# dsh-novel-kit 0.2.0 开发状态（2026-11-22）
 
 > 版本：`0.2.0-dev.0`（未发布）｜基线：`0.1.14`｜设计：[v0.2.0 设计方案](../../docs/小说插件系列-dsh-novel-kit-v0.2.0-设计方案.md)
 > 这一页只写「已经能跑什么、还没做什么、怎么验证」，不替代 README 与 CHANGELOG。
@@ -34,6 +34,15 @@
 - 决策记录带 `option/proposalId/styleFit/styleWhy/effect:'option-recorded'`。
 - `novel_plan` 只允许 propose；模型不能再 `adopt/reject`。
 
+### 第二刀：作者命令、完整草稿、收尾事务
+
+- **canon 审阅**：新增 `novel_canon` 工具（outline/read/propose）；propose 只进 `pending-review`，作者在面板确认后才 `confirmed`；空契约拒绝确认。
+- **作者命令**：`decision.adopt` / `decision.reject` / `draft.save` / `mode.set` / `import.style` / `import.canon` / `canon.confirm`；`operationId` + 输入 hash 幂等，同键不同输入 `operation-conflict`；模型身份 `author-required`。
+- **操作日志**：`.dsh-novel-kit/operations/<operationId>.json`，running → completed/failed，含 attempts/result/receipt；失败可重试。
+- **完整草稿**：`readDraft` 不截断；`writeChapter` 带 `expectedVersion`/`expectedDraftHash`，同会话串行化；冲突 `draft-conflict` 不覆盖。
+- **收尾事务**：`finish` 把正文文件 + beat 段落 + fade 卡放进同一个事务（`effects` 3 项），不再先写正文再提交账本。
+- **工作台编辑**：完整正文 textarea + 保存（Ctrl S），显示未保存/已保存/冲突；旧宿主无 `getDraft` 时退回只读。
+
 ### P0 顺手修复
 
 - `decide` / `memoryAction` 的 action 严格枚举（不再静默回退）。
@@ -59,7 +68,7 @@
 
 ```powershell
 cd D:\Novel-gate\dsh-novel-kit
-node --test                 # 139/139
+node --test                 # 149/149
 npm run acceptance          # 19/19
 npm run acceptance:real     # 11/11
 npm run check               # 通过
@@ -82,13 +91,11 @@ npm run check               # 通过
 
 ## 4. 还没做（按优先级）
 
-1. **作者命令 + 操作收据**：`executeAuthorCommand`、operationId、前后镜像、幂等/冲突；把 adopt/reject/canon 审阅/保存草稿统一。
-2. **收尾事务覆盖全部产物**：正文文件、beat、fade、会话结果在一个可恢复操作里；当前正文仍先写、事务只覆盖 beat/fade。
-3. **完整草稿读写**：工作台可编辑 8,000 字，保存带 `expectedVersion` + `expectedDraftHash`；当前 snapshot 仍截 4000 字、工作台只读。
-4. **canon 抽取/审阅**：目前 `world.json` 是 `pending-extraction`；需要抽取 + 作者确认，才能让同人真正开写。
-5. **文风高阶归纳**：目前只做确定性 bands + 少量规则；锚句/decisionPolicy/rules 的作者确认流程未做。
-6. **完整 UI**：右栏任务卡 + 四入口工作台 + 收件箱 + 页边批注；当前是过渡面板。
-7. **P0 剩余**：接管「原状态」而非只记 disabled；写盘故障注入；面板写操作统一二次确认；冲突页签全量。
+1. **canon 审阅编辑器**：工具与确认链路已通；面板还只是只读列表 + 确认按钮，缺结构化编辑/逐条接受/证据回查。
+2. **会话完成结果纳入事务**：正文/beat/fade 已同一事务；会话 `completed` 与收据仍在事务后单独写，故障窗口还在。
+3. **文风高阶归纳**：目前只做确定性 bands + 少量规则；锚句/decisionPolicy/rules 的作者确认流程未做。
+4. **完整 UI**：右栏任务卡 + 四入口工作台 + 收件箱 + 页边批注；当前是过渡面板（工作台已可编辑）。
+5. **P0 剩余**：接管「原状态」而非只记 disabled；写盘故障注入；面板写操作统一二次确认；冲突页签全量。
 
 ## 5. 关键文件
 
@@ -102,11 +109,14 @@ npm run check               # 通过
 | `lib/engine/canon.js` | CanonSource/WorldContract、requireCanon |
 | `lib/engine/context.js` | 四段装配、mode 隔离、硬预算 |
 | `lib/engine/chapter.js` | 章节流程、mode/canon/style 接入、决策记录 |
-| `lib/host/remote.js` | 面板读/写、master 检查、双导入 |
-| `client.js` | 过渡面板（顶部开关/模式/导入） |
+| `lib/host/remote.js` | 面板读/写、master 检查、双导入、草稿/CANON 作者命令 |
+| `lib/engine/operations.js` / `author.js` | operationId 幂等、作者命令入口 |
+| `client.js` | 过渡面板（顶部开关/模式/导入）+ 可编辑工作台 |
 
 ## 6. 下一刀建议
 
-先做「作者命令 + 收尾事务 + 完整草稿读写」三件；它们决定 0.2.0 的「一条链」是否闭合。canon 抽取/审阅与完整 UI 可以并行，但不要先于这三件。每刀完成后更新本页与 CHANGELOG，并跑 `node --test` + 两个 acceptance。
+先做「canon 审阅编辑器 + 会话完成结果纳入事务 + 完整新 UI」三件；它们决定同人能不能顺畅开写、崩溃窗口是否真正闭合、以及 0.2.0 的界面是否落地。写盘故障注入与真实 DSH UI 验收并行。每刀完成后更新本页与 CHANGELOG，并跑 `node --test` + 两个 acceptance。
+
+
 
 

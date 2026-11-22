@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { toolDefinitions } from '../lib/host/tools.js'
+import { importCanon } from '../lib/engine/canon.js'
 
 const RESERVED = ['title', 'description', 'type', 'required', 'enum', 'items', 'default', 'format', 'pattern', 'properties', 'additionalProperties']
 
@@ -67,6 +68,30 @@ test('端到端：start → write → finish → query 通过工具调用完成'
 
   const queried = await tools.novel_query.execute({ session_id: sessionId }, exec)
   assert.equal(queried.session.state, 'completed')
+})
+
+test('novel_canon：outline / read / propose 通过工具调用', async () => {
+  const root = workspace()
+  const file = path.join(root, '原著.txt')
+  writeFileSync(file, '第1章 雪夜\n陈凡推门进来。唐昊把令牌放在桌上。\n\n第2章 城门\n两人一路无话。', 'utf8')
+  const imported = await importCanon({ root, book: '书', file, title: '原著', confirmMode: true })
+  const tools = Object.fromEntries(toolDefinitions().map((tool) => [tool.name, tool]))
+  const exec = { cwd: root }
+
+  const outline = await tools.novel_canon.execute({ action: 'outline', source_id: imported.sourceId }, exec)
+  assert.equal(outline.ok, true)
+  assert.equal(outline.chapterCount, 2)
+
+  const read = await tools.novel_canon.execute({ action: 'read', source_id: imported.sourceId, chapter_id: 'ch000' }, exec)
+  assert.equal(read.ok, true)
+  assert.match(read.text, /陈凡推门进来/)
+
+  const proposed = await tools.novel_canon.execute({
+    action: 'propose', book: '书', source_id: imported.sourceId,
+    contract: { characters: [{ name: '陈凡' }], facts: [{ entity: '唐昊', key: '身份', value: '封号斗罗' }] },
+  }, exec)
+  assert.equal(proposed.ok, true)
+  assert.equal(proposed.contract.status, 'pending-review')
 })
 
 test('工具：缺参数时返回可读错误而不是抛栈', async () => {

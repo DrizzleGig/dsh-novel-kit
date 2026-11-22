@@ -1,6 +1,6 @@
-# dsh-novel-kit · 小说整合包
+﻿# dsh-novel-kit · 小说整合包
 
-> **一个独立包，装它一个就能写长篇**：章节引擎、七个 `novel_*` 工具、右栏「小说」面板与章节工作台。
+> **一个独立包，装它一个就能写长篇**：章节引擎、八个 `novel_*` 工具、右栏「小说」面板与章节工作台。
 > 兼容旧五件（beat / fade / voice / fanfic / conductor）的 `.dsh-novel-*` 账本——只读解码，不迁移、不改格式。
 >
 > **0.2.0-dev.0 开发中**：新增总开关、原创/同人项目模式、文风/同人双导入口、文风决策提示。当前面板仍是过渡版，完整「书桌 + 四入口工作台」在开发中；开发记录见 [docs/DEV-STATUS.md](docs/DEV-STATUS.md)。
@@ -27,7 +27,7 @@ DSH → 设置 → 插件 → 搜索 **小说**（`dsh-novel-kit`）→ 安装�
 装好后：
 
 1. 右栏出现「小说」页签（总览 / 拍板 / 记忆 / 文风 / 设定 / 冲突）；0.2.0-dev 顶部有总开关、项目模式与两个导入口；
-2. 在会话里先 `/novel master on` 打开总开关，再 `/novel on` 打开本会话的七个 `novel_*` 工具（默认关，只影响本会话）。
+2. 在会话里先 `/novel master on` 打开总开关，再 `/novel on` 打开本会话的八个 `novel_*` 工具（默认关，只影响本会话）。
 
 ## 0.2.0-dev：总开关、模式与双导入
 
@@ -59,11 +59,12 @@ novel_chapter_finish({ session_id, segments, memory }) # 引文校验 → verify
 
 `novel_plan` 只允许 propose：模型不能自己 adopt/reject；拍板走面板的作者命令。`finish` 先跑确定性检查：禁忌词、20 字原著复制（同人）、疑似写错名字、长句、称呼矩阵、文风 bands。**blocker 不落账**；`strict: true` 时只检查本章声明过的能力。落账走「计划 → CAS → 回读 → 回执」的可恢复事务，原子写带 fsync。
 
-## 七个工具
+## 八个工具
 
 | 工具 | 作用 |
 |---|---|
 | `novel_plan` | 只登记提案（`propose`）；作者在面板拍板，模型不能 adopt/reject |
+| `novel_canon` | 同人 canon：outline/read/propose；propose 只进 pending-review，作者确认后才可开写 |
 | `novel_chapter_start` | 开一章：四段上下文 + 会话 |
 | `novel_chapter_write` | 写正文（新版本；不落账） |
 | `novel_chapter_finish` | 校验并落账（正文 + beat 段落 + fade 记忆卡 + 回执） |
@@ -75,7 +76,7 @@ novel_chapter_finish({ session_id, segments, memory }) # 引文校验 → verify
 
 - **六个页签**：总览（含最近章节历史）、拍板、记忆（搜索 + 钉/忘/恢复）、文风、设定、冲突；
 - **0.2.0-dev 顶部**：总开关、项目模式（原创/同人）、两个导入口（学文笔 / 写同人）；
-- **章节工作台**（会话主视图）：正文只读预览、四段依据、账本 revision、本章检查、正文文件路径；
+- **章节工作台**（会话主视图）：完整正文编辑/保存（Ctrl S，版本/hash CAS）、四段依据、账本 revision、本章检查、正文文件路径；
 - **写操作**：拍板、记忆钉/忘/恢复、原著导入、接管旧五件；0.2.0-dev 起全部先检查总开关，remote 的 action 严格枚举。
 
 > 完整「书桌 + 四入口工作台」还在开发中；当前面板是过渡版，不能代表 0.2.0 最终 UI。
@@ -112,7 +113,7 @@ novel_chapter_finish({ session_id, segments, memory }) # 引文校验 → verify
 
 | 项目 | 结果 | 命令 |
 |---|---|---|
-| 单元/集成测试 | **139/139** | `npm test` |
+| 单元/集成测试 | **149/149** | `npm test` |
 | 合成工作区完整一章 | **19/19** | `npm run acceptance` |
 | 真实账本验收（复制，不动原书） | **11/11** | `npm run acceptance:real` |
 | 语法检查 | 通过 | `npm run check` |
@@ -160,5 +161,8 @@ New-Item -ItemType Junction -Path node_modules\@deepseek-ai\dsh-typert-protocol 
 ## 许可证
 
 MIT
+
+
+
 
 
