@@ -23,58 +23,70 @@ window.__ModuleLoader__.load({
     const param = (name, schema) => ({ name, wire: name, source: 'json', codec: codec(name, schema) })
     const sessionIdSchema = scalar((v) => { if (typeof v !== 'string' || !v) throw new Error('sessionId must be a non-empty string') })
     const requestSchema = scalar((v) => { if (v !== undefined && v !== null && (typeof v !== 'object' || Array.isArray(v))) throw new Error('request must be a plain object') })
+    // 契约方法表由 scripts/build-client.mjs 从 lib/host/remote-contract.js 同源内联，
+    // 不要再手抄第二份：两处不一致会让客户端 mount 出对不上的 descriptor。
+    /* NK:REMOTE:BEGIN —— 由 scripts/build-client.mjs 维护 */
+    const REMOTE_METHOD_SPECS = [
+      ['identity', false],
+      ['getSnapshot', true],
+      ['getDiagnostics', false],
+      ['getDecisions', true],
+      ['getMemory', true],
+      ['getStyle', true],
+      ['getStyleBrief', true],
+      ['getCanon', true],
+      ['getPlan', true],
+      ['getOperations', true],
+      ['previewContext', true],
+      ['resumeChapter', true],
+      ['searchMemory', true],
+      ['importSource', true],
+      ['listSourceFiles', true],
+      ['decide', true],
+      ['reviseDecision', true],
+      ['savePlan', true],
+      ['memoryAction', true],
+      ['takeover', false],
+      ['restore', false],
+      ['getSettings', true],
+      ['setMaster', true],
+      ['setMode', true],
+      ['importStyle', true],
+      ['confirmStyle', true],
+      ['importCanon', true],
+      ['listSources', true],
+      ['listStyleProfiles', true],
+      ['createBook', true],
+      ['startChapter', true],
+      ['getDraft', true],
+      ['saveDraft', true],
+      ['updateCanon', true],
+      ['confirmCanon', true],
+      ['getInbox', true],
+      ['getSourceExcerpt', true],
+      ['getCanonQueue', true],
+      ['reviewCanonChange', true],
+      ['applyCanonChanges', true],
+    ]
+/* NK:REMOTE:END */
+
     const TYPERT_REMOTE = {
       package: 'dsh-novel-kit',
-      descriptors: [
-        { method: 'identity', parameters: [param('sessionId', sessionIdSchema)] },
-        { method: 'getSnapshot', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getDiagnostics', parameters: [param('sessionId', sessionIdSchema)] },
-        { method: 'getDecisions', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getStyleBrief', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getPlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getOperations', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'previewContext', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'resumeChapter', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'reviseDecision', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'savePlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'memoryAction', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'searchMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'importSource', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'listSourceFiles', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'takeover', parameters: [param('sessionId', sessionIdSchema)] },
-        { method: 'restore', parameters: [param('sessionId', sessionIdSchema)] },
-        { method: 'getSettings', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'setMaster', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'setMode', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'importStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'confirmStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'importCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'listSources', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'listStyleProfiles', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'createBook', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'startChapter', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getDraft', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'saveDraft', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'updateCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'confirmCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getInbox', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getSourceExcerpt', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'getCanonQueue', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'reviewCanonChange', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-        { method: 'applyCanonChanges', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
-      ].map(({ method, parameters }) => ({
-        id: 'dsh-novel-kit#novelKitPanel/' + method,
-        namespace: 'novelKitPanel',
-        service: 'novelKitPanel',
-        method,
-        invocation: { kind: 'direct' },
-        parameters,
-        result: codec('KitPanelPayload', scalar(() => {})),
-      })),
+      descriptors: REMOTE_METHOD_SPECS.map(function (spec) {
+        const method = spec[0]
+        const withRequest = spec[1] === true
+        return {
+          id: 'dsh-novel-kit#novelKitPanel/' + method,
+          namespace: 'novelKitPanel',
+          service: 'novelKitPanel',
+          method,
+          invocation: { kind: 'direct' },
+          parameters: withRequest
+            ? [param('sessionId', sessionIdSchema), param('request', requestSchema)]
+            : [param('sessionId', sessionIdSchema)],
+          result: codec('KitPanelPayload', scalar(() => {})),
+        }
+      }),
     }
 
     const c = {

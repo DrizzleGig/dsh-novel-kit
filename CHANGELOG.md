@@ -68,6 +68,8 @@
 - **客户端拆分第一步：样式出源 + 构建入口**：`NK_SKIN` 移到 `client-src/styles.css`，`client.js` 里只留标记块；新增 `scripts/build-client.mjs`（`npm run build:client`）负责内联写回，`--check` 模式校验产物与源文件一致，并检查三条产物不变量：唯一 `__ModuleLoader__.load` 入口、`id: 'dsh-novel-kit'`、**不出现运行时相对 `require('./…')`**（宿主只提供 React）。`npm run check` 现在先跑这一步。
 - **截图脚本改用样式源文件**：`ui-snapshot` 不再从 `client.js` 里正则抠 CSS，直接读 `client-src/styles.css`，拆分后取到的就是实际注入的样式。
 - 测试 **210/210**（新增 `test/build.test.mjs`：样式一致、产物不变量、源文件不含模板残留）。
+- **契约同源生成**：`lib/host/remote-contract.js` 导出 `REMOTE_METHOD_SPECS`（`[方法名, 是否带 request]`），构建脚本把它内联进 `client.js` 的 `NK:REMOTE` 块，客户端 `descriptors` 由这张表生成——40 个方法不再有两份手抄。`--check` 同时校验样式块与契约块，`npm run check` 一次跑完。
+- **契约一致性测试改口径**：`client.test.mjs` 从「找 `method: 'xxx'` 字面量」改为「逐行核对 Host 方法表都在产物里」，防止有人手改生成块。测试 **210/210**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。

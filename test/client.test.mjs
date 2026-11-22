@@ -7,7 +7,6 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DESCRIPTORS } from '../lib/host/remote-contract.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 
@@ -109,11 +108,14 @@ test('client：工作台数据走 snapshot remote，不执行命令', async () =
   assert.equal(typeof panel.getSnapshot, 'function')
 })
 
-test('契约两侧一致：客户端内嵌的 descriptor 与 Host 相同', async () => {
+test('契约两侧一致：客户端方法表与 Host 同源', async () => {
   const client = await readFile(path.join(here, '..', 'client.js'), 'utf8')
-  for (const descriptor of DESCRIPTORS) {
-    assert.ok(client.includes(`method: '${descriptor.method}'`), `client.js 缺少 ${descriptor.method} 的 descriptor`)
+  // 客户端的方法表由构建脚本从 remote-contract.js 生成：这里逐行核对，防止有人手改产物。
+  const { REMOTE_METHOD_SPECS } = await import('../lib/host/remote-contract.js')
+  for (const [method, withRequest] of REMOTE_METHOD_SPECS) {
+    assert.ok(client.includes(`['${method}', ${withRequest === true}]`), `client.js 缺少 ${method} 的契约方法行`)
   }
+  assert.ok(client.includes("descriptors: REMOTE_METHOD_SPECS.map(function (spec)"), '客户端应从方法表生成 descriptors')
   assert.ok(client.includes('$mount(TYPERT_REMOTE)'))
   assert.ok(!client.includes('commands.execute('), '界面不允许执行命令')
 })
