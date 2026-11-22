@@ -2,8 +2,8 @@
   "meta": {
     "title": "Novel Suite",
     "detail": "docs/DETAIL.md",
-    "description": "The novel suite: events, long-form memory, style, fanfic and orchestration in one install, with a chapter engine, a Novel sidebar panel and a chapter workbench."
+    "description": "The novel suite: chapter engine, four context segments, style/canon imports and recoverable transactions, with a Novel task card and four-section workbench."
   },
   "name": "Novel Suite",
-  "description": "One install for beat / fade / voice / fanfic / conductor: seven novel_* tools, four context segments, recoverable transactions, a Novel sidebar panel and a chapter workbench."
+  "description": "One install for beat / fade / voice / fanfic / conductor: eight novel_* tools, master/project/session switches, original/fanfic modes, style and world imports, a Novel task card and workbench. Adopt legacy ledgers, then uninstall the five separate plugins."
 }

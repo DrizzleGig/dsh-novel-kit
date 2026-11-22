@@ -1,4 +1,4 @@
-# dsh-novel-kit 发布清单
+﻿# dsh-novel-kit 发布清单
 
 > 发布 = 自检 → 登录 → `npm publish` → 校 registry → GitHub Release。
 > 本机默认源是 npmmirror，**所有版本查询都要显式加 `--registry=https://registry.npmjs.org`**，否则会读到滞后的镜像。
@@ -69,13 +69,13 @@ gh release create v0.1.13 --repo DrizzleGig/dsh-novel-kit --title "v0.1.13" --no
 ```markdown
 ## dsh-novel-kit v0.1.13
 
-一个独立包：章节引擎 + 四段上下文 + 7 个 `novel_*` 工具 + 右栏「小说」面板 + 旧五件接管。
+一个独立包：章节引擎 + 四段上下文 + 8 个 `novel_*` 工具 + 右栏「小说」面板 + 旧五件接管。
 
 - 章节引擎：`plan → start → write → finish`，可恢复事务（CAS + fsync）、回执、blocker 不落账
 - 验证：禁忌 / 20 字复制 / 疑似错名 / 长句 / 称呼矩阵 / 文风 bands；`strict` 只查声明过的能力
 - 作者操作：拍板、记忆钉/忘/恢复、原著导入、旧五件接管（只关选择层，可回退）
 - 相容性：只读兼容 beat / fade / voice / fanfic 的 `.dsh-novel-*` 账本；与五件共存说明见 docs/COEXIST.md
-- 证据：测试 110/110、合成验收 19/19、真实验收 10/10、`npm pack` 45 文件
+- 证据：测试 161/161、合成验收 19/19、真实验收 11/11、`npm pack` 54 文件
 
 Co-authored-by: MiyueWinter <mingyue_11129@qq.com>
 ```
@@ -93,3 +93,4 @@ git commit -m "<type>(kit): <what>" -m "Co-authored-by: MiyueWinter <mingyue_111
 git tag v0.1.13
 git push origin main --tags
 ```
+

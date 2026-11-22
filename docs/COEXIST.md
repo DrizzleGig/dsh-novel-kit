@@ -3,14 +3,14 @@
 结论先说：**能装在同一个 DSH 里，而且不会因为「工具同名」报错**——六件各用各的命名空间。
 真正需要小心的是**账本**：kit 的 `finish` 落账写的就是 beat / fade 的原文件。两边同时写同一章会冲突。
 
-本文的证据来自 2026-11-22 的真机检查：desktop profile 里六件共 12 行插件全部 `enabled=true`、`fiberPhase=active`（`plugin_manager list_plugins`），没有注册冲突。
+本文的证据来自 2026-11-22 的 desktop profile 检查；修复 `package.json` 的 UTF-8 BOM 后，`plugin_manager list_plugins` 显示 `novel-kit` / `novel-kit-remote` 与旧五件均 `enabled=true`、`fiberPhase=active`，没有注册冲突。
 
 ## 1. 不会撞的部分
 
 | 层面 | kit | 旧五件 |
 |---|---|---|
 | 插件条目 id | `novel-kit` / `novel-kit-remote` | `novel-beat(-remote)` / `novel-fade(-remote)` / `novel-voice(-remote)` / `novel-fanfic(-remote)` / `novel-conductor(-remote)` |
-| 工具名 | `novel_*`（7 个） | `beat_*`（11）、`memo_*`（8）、`voice_*`（8）、`fic_*`（7）、`cue_*`（3） |
+| 工具名 | `novel_*`（8 个） | `beat_*`（11）、`memo_*`（8）、`voice_*`（8）、`fic_*`（7）、`cue_*`（3） |
 | 会话命令 | `/novel` | `/beat` `/memo` `/voice` `/fic` `/cue` |
 | 右栏页签 / 槽位 id | `novel-kit.*` | 各自前缀 |
 | remote 命名空间 | `dsh-novel-kit` | 各自的包名 |
@@ -48,9 +48,15 @@ kit 的 `novel_chapter_finish` 提交时写这两份文件——它们属于 bea
 
 ## 3. 正确用法
 
-**只用 kit（推荐）**
+**只用 kit（推荐，长期使用）**
 
-装 kit，面板点「接管旧五件」。它只关**选择层**（`setBundleEnabled(false)`）：不卸载、不改安装，五件的账本与数据都不动。随时「退出接管」，而且只恢复 kit 关过的那几件，不会把你手动停用的重新打开。
+1. 先备份 `.dsh-novel-*`；
+2. 装 kit，`/novel master on` → `/novel on` → `/novel legacy`，让 kit 接管旧账本；
+3. 确认面板能看到旧书、章节、拍板、记忆；
+4. 在插件管理里**卸载** beat / fade / voice / fanfic / conductor（不是只停用），让同一本账只有一个执行者；
+5. 旧账本留在原目录，kit 就地读写；卸载插件不会删除这些文件。
+
+如果只是暂时不想卸载，面板「接管旧五件」只关选择层（`setBundleEnabled(false)`），随时可回退；但它不等于卸载，长期仍建议只留一套执行者。
 
 **只用旧五件**
 
@@ -68,4 +74,4 @@ kit 的 `novel_chapter_finish` 提交时写这两份文件——它们属于 bea
 | 工具同名会冲突吗？ | 不会，`novel_*` 与其他五件前缀不同，实测共存 |
 | 会读取错误吗？ | 读到坏账本会明确报 `ledger-corrupt`；正常共存不报错 |
 | 会写坏数据吗？ | 同时写同一章会重复登记或 CAS 冲突（停下，不覆盖） |
-| 怎么最稳？ | 一套执行者：要么 kit + 接管，要么五件 + 不开 kit |
+| 怎么最稳？ | 一套执行者：先 `/novel legacy` 接管，再卸载五件；临时可「接管旧五件」 |

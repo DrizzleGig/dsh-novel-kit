@@ -20,7 +20,11 @@
 - **Codex 第五轮复核修复**：finish/write 共用会话锁；decision 重试按提案 id 找回；operationId 加锁；草稿保存期间的新输入保持 dirty；冲突不自动覆盖本地稿；canon 编辑固定 book/source 并带 contract revision；canon 条目有效性与已确认保护；事务按 after 原文写入，合法 JSON 正文不再被重序列化。
 - **收尾回执恢复**：事务已完成但会话未保存时，从 receipt 补齐 `receipt/chapterFile`，不再只标 completed。
 - **文风确认**：面板可把 provisional `StyleProfile` 确认为 confirmed；`style.confirm` 走作者命令，带 revision 校验。
-- 测试 **159/159**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
+- **启动修复**：`package.json` 被写成带 BOM 的 UTF-8，`remote.js` 的 `JSON.parse` 抛错，DSH 里表现为整个 kit 不出现；已去 BOM 并加回归测试，锁死这个入口。
+- **加载模拟验收**：新增 `npm run acceptance:load`（8/8），逐段验证 package 元数据、bundle patch、Host index/tools/remote 导入与 client tab/工作台注册。
+- **旧账本迁移**：新增 `/novel legacy`，扫描 `.dsh-novel-*` 为每本书建立 kit 项目设置（有 fanfic 项目即同人，否则原创）；旧账本就地读写，不复制、不迁移格式。
+- **README / 市场简介重写**：补「先 `/novel legacy` 接管、验证、再卸载五件」的迁移步骤，并更正旧文档里「只读解码」「7 个工具」「45 文件」等过期说法。
+- 测试 **161/161**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
 
 ## 0.1.14 — 2026-11-22
 
@@ -259,6 +263,7 @@ S0 只读层：只装 kit 也能读懂已有五本账，且绝不改文件。
 - npm 名字与 GitHub 仓库占位：只注册包名、声明 bundle 入口，不挂工具、面板或命令。
 - 目的：市场 PR 要求仓库满 1 天；先建仓，`0.1.0` 发布后即可提 PR。
 - 方案见 `docs/小说插件系列-dsh-novel-kit-整合包设计方案-2026-11-21.md`。
+
 
 
 

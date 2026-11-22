@@ -1,4 +1,4 @@
-# dsh-novel-kit 状态一页纸（2026-11-22 · 0.1.13）
+﻿# dsh-novel-kit 状态一页纸（2026-11-22 · 0.1.13）
 
 > 0.2.0-dev 的开发状态、已完成/未做清单见 [DEV-STATUS.md](DEV-STATUS.md)；本页保留 0.1.14 发布口径。
 
@@ -26,7 +26,7 @@
 | 真实账本验收（复制，不动原书） | **10/10** | `npm run acceptance:real` |
 | 客户端渲染冒烟（面板/工作台/按钮） | 通过 | `node --test test/render.test.mjs` |
 | 语法检查 | 通过 | `npm run check` |
-| 打包 | 45 文件 | `npm pack --dry-run` |
+| 打包 | 54 文件 | `npm pack --dry-run` |
 | 真机插件行 | `novel-kit` / `novel-kit-remote` 均 `fiberPhase=active` | `plugin_manager list_plugins` |
 | 与旧五件共存 | 六件 12 行全部 active，无注册冲突（工具/命令/条目 id 各异） | 同上 + [COEXIST](COEXIST.md) |
 
@@ -71,3 +71,4 @@ novel_chapter_finish({session_id, segments, memory})
 - [RELEASE](RELEASE.md)：发布清单（登录 → 发布 → 校验 → GitHub Release）
 - [CODEX-REVIEW-BRIEF](CODEX-REVIEW-BRIEF.md)：给外部评审的代码地图与五个待决问题
 - [验收记录](../../docs/kit-acceptance-2026-11-22.md)：一章验收 19 项的证据
+

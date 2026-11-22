@@ -2,8 +2,8 @@
   "meta": {
     "title": "小说",
     "detail": "docs/DETAIL.md",
-    "description": "小说整合包：一个包提供事件、记忆、文风、同人与编排能力，含章节引擎、右栏「小说」面板与章节工作台。"
+    "description": "小说整合包：一个包装齐章节引擎、四段写作依据、文风/同人双导入与可恢复事务，含右栏任务卡与四入口工作台。"
   },
   "name": "小说整合包",
-  "description": "一个包提供 beat / fade / voice / fanfic / conductor 的能力：7 个 novel_* 工具、四段上下文、可恢复事务、右栏「小说」面板与章节工作台。"
+  "description": "一个包装齐 beat / fade / voice / fanfic / conductor 的能力：八个 novel_* 工具、三层开关、原创/同人模式、文风与世界观双导入、右栏任务卡与小说工作台。旧五件账本可就地接管后再卸载五件。"
 }
