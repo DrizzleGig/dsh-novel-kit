@@ -1122,6 +1122,7 @@ window.__ModuleLoader__.load({
       const [beatMessage, setBeatMessage] = React.useState('')
       const [workOrder, setWorkOrder] = React.useState('')
       const [memoryOpen, setMemoryOpen] = React.useState(null)
+      const [styleOpen, setStyleOpen] = React.useState(null)
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
@@ -1179,6 +1180,7 @@ window.__ModuleLoader__.load({
         setBeatMessage('')
         setWorkOrder('')
         setMemoryOpen(null)
+        setStyleOpen(null)
       }, [data && data.book])
 
       const saveDraft = React.useCallback(async function () {
@@ -1565,20 +1567,35 @@ window.__ModuleLoader__.load({
             h('div', { style: { fontSize: 20, fontWeight: 700 } }, '风格工作室'),
             h('div', { style: { ...faint, marginTop: 2 } }, '先确认档案，再用于写作简报与决策提示。'),
             h('div', { style: { ...faint, margin: '16px 0 6px' } }, '文风档案'),
-            profiles.length === 0 ? h('div', { style: faint }, '还没有文风档案；在右栏「设置与详情 → 学文笔」导入。') : profiles.map((profile) => h('div', { key: profile.id, style: { padding: 14, border: '1px solid ' + c.border, borderRadius: 12, background: c.layer, marginBottom: 8 } },
+            profiles.length === 0 ? h('div', { style: faint }, '还没有文风档案；在右栏「设置与详情 → 学文笔」导入。') : profiles.map((profile) => {
+              const open = styleOpen === profile.id
+              const ruleTexts = Array.isArray(profile.ruleTexts) ? profile.ruleTexts : []
+              return h('div', {
+                key: profile.id,
+                onClick: function () { setStyleOpen(open ? null : profile.id) },
+                style: { padding: 14, border: '1px solid ' + (open ? c.brand : c.border), borderRadius: 12, background: c.layer, marginBottom: 8, cursor: 'pointer' },
+              },
               h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
                 h('div', { style: { fontSize: 15, fontWeight: 700 } }, profile.name || profile.id),
                 h('span', { style: { fontSize: 10, color: profile.status === 'confirmed' ? c.success : c.warning } }, profile.status === 'confirmed' ? '已确认' : '待确认'),
                 h('span', { style: { marginLeft: 'auto', ...faint, fontSize: 10 } }, 'v' + (profile.version ?? '?') + ' · rev ' + (profile.revision ?? 0))),
-              h('div', { style: { ...faint, marginTop: 6 } }, (profile.rules || []).length + ' 条规则 · ' + (profile.avoid || []).length + ' 个避免词'),
+              h('div', { style: { ...faint, marginTop: 6 } }, (profile.rules ?? 0) + ' 条规则 · ' + (profile.avoid || []).length + ' 个避免词'),
               h('div', { style: { display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 } },
                 Object.entries(profile.bands || {}).slice(0, 6).map(([key, spec]) => {
                   const band = Array.isArray(spec) ? spec : spec && Array.isArray(spec.band) ? spec.band : null
                   return band ? h('span', { key, style: { border: '1px solid ' + c.border, borderRadius: 999, padding: '2px 7px', fontSize: 10 } }, key + ' ' + band[0] + '–' + band[1]) : null
-                })))),
-            h('div', { style: { ...faint, margin: '14px 0 6px' } }, '旧 voice 书库'),
+                })),
+              open ? h('div', { style: { marginTop: 9, paddingTop: 8, borderTop: '1px dashed ' + c.border } },
+                ruleTexts.length ? h('div', null,
+                  h('div', { style: { ...faint, fontSize: 10.5, marginBottom: 3 } }, '规则'),
+                  ruleTexts.slice(0, 8).map((text, index) => h('div', { key: index, style: { color: c.sub, fontSize: 11.5, lineHeight: 1.65 } }, '· ' + text))) : h('div', { style: faint }, '规则尚未编译；先确认档案。'),
+                (profile.avoid || []).length ? h('div', { style: { marginTop: 6 } },
+                  h('div', { style: { ...faint, fontSize: 10.5, marginBottom: 3 } }, '避免'),
+                  h('div', { style: { display: 'flex', gap: 4, flexWrap: 'wrap' } }, profile.avoid.slice(0, 12).map((word) => h('span', { key: word, style: { border: '1px solid ' + c.border, borderRadius: 999, padding: '2px 7px', fontSize: 10 } }, word)))) : null,
+                profile.decisionPolicy && Object.keys(profile.decisionPolicy).length ? h('div', { style: { ...faint, marginTop: 6, fontSize: 10.5 } }, '决策倾向：' + JSON.stringify(profile.decisionPolicy)) : null) : null)
+            })),            h('div', { style: { ...faint, margin: '14px 0 6px' } }, '旧 voice 书库'),
             (style.works || []).length ? (style.works || []).map((work) => h('div', { key: work.workId, style: { ...row, borderBottom: '1px dashed ' + c.border } },
-              h('span', { style: small }, work.title || work.workId), h('span', { style: { ...faint, fontSize: 10 } }, work.chapters + ' 章 · ' + work.chars + ' 字'))) : h('div', { style: faint }, '没有旧 voice 书库；kit 的档案在下方/上方。')))
+              h('span', { style: small }, work.title || work.workId), h('span', { style: { ...faint, fontSize: 10 } }, work.chapters + ' 章 · ' + work.chars + ' 字'))) : h('div', { style: faint }, '没有旧 voice 书库；kit 的档案在下方/上方。'))
       }
 
       function fanficView() {

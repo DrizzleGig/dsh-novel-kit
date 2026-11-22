@@ -64,6 +64,7 @@ test('styleView：带档案时给出 bands / rules / avoid', () => {
   assert.equal(view.profiles.length, 1)
   assert.deepEqual(view.profiles[0].bands.sentenceMean, [16, 41])
   assert.equal(view.profiles[0].rules, 2)
+  assert.deepEqual(view.profiles[0].ruleTexts, ['a', 'b'])
   assert.deepEqual(view.profiles[0].avoid, ['仿佛'])
 })
 
