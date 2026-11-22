@@ -82,8 +82,8 @@ novel_chapter_finish({ session_id, segments, memory })  # 检查 → 事务落�
 
 ### 面板与工作台
 
-- **右栏任务卡**：总开关 / 项目模式 / 两个导入口 / 下一笔 / 四段预算尺 / 收件箱 / 最近章节；详细六页签收进「详情」；
-- **小说工作台**：书桌、章节、故事、资料四个入口；
+- **右栏 v2**：品牌头 + 当前作品 + 大号「下一笔」卡 + 本章依据/收件箱/最近章节；总开关、模式、导入、诊断和六页签都收进「设置与详情」，首屏不再被表单占满；
+- **小说工作台**：书桌、章节、故事、资料四个入口；作品头、状态胶囊、书桌主行动；
   - 书桌：下一笔、收件箱、最近章节；
   - 章节：完整正文编辑 + Ctrl S 保存 + 四段依据 + 检查；
   - 故事：拍板记录、待拍板提案、未回收线索、章节历史；
@@ -194,7 +194,7 @@ profile 级总开关在 `$DSH_HOME/profiles/<name>/novel-kit/prefs.json`。
 当前开发版的模拟验收（不依赖真实 DSH 界面）：
 
 ```text
-node --test                 161/161
+node --test                 162/162
 npm run acceptance:load      8/8
 npm run acceptance          19/19
 npm run acceptance:real     11/11
@@ -230,4 +230,5 @@ npm run check
 ## 许可
 
 MIT。作者：DrizzleGig。
+
 

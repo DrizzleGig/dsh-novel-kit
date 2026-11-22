@@ -48,6 +48,7 @@ window.__ModuleLoader__.load({
         { method: 'importCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'listSources', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'listStyleProfiles', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'startChapter', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getDraft', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'saveDraft', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'updateCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
@@ -71,7 +72,10 @@ window.__ModuleLoader__.load({
       base: 'var(--dsw-alias-bg-base)',
       layer: 'var(--dsw-alias-bg-layer-1)',
       brand: 'var(--dsw-alias-brand-primary)',
+      onBrand: 'var(--dsw-alias-label-primary-foreground, #fff)',
+      hover: 'var(--dsw-alias-interactive-bg-hover)',
       error: 'var(--dsw-alias-state-error-primary)',
+      warning: 'var(--dsw-alias-state-warning-primary, #c58a16)',
       success: 'var(--dsw-alias-state-success-primary)',
     }
 
@@ -94,6 +98,8 @@ window.__ModuleLoader__.load({
       const [pendingTakeover, setPendingTakeover] = React.useState(false)
       const [pendingCanon, setPendingCanon] = React.useState(false)
       const [details, setDetails] = React.useState(false)
+      const [settingsOpen, setSettingsOpen] = React.useState(false)
+      const [startPhase, setStartPhase] = React.useState('idle')
       const [canonEdit, setCanonEdit] = React.useState(null)
       const [action, setAction] = React.useState({ phase: 'idle', message: '' })
       const [tab, setTab] = React.useState('overview')
@@ -586,6 +592,30 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, openTab])
 
+      const runStartChapter = React.useCallback(async function (bookName, chapterNo) {
+        if (!remote || typeof remote.startChapter !== 'function') {
+          setAction({ phase: 'error', message: '宿主还没加载开章接口；刷新或重启 DSH 后再试。' })
+          return
+        }
+        if (!bookName || !chapterNo) { setAction({ phase: 'error', message: '先选一本书' }); return }
+        setStartPhase('starting')
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = await Promise.resolve(remote.startChapter(sessionId, { book: bookName, chapter: chapterNo })).then(unwrap)
+          if (!result || result.ok === false) {
+            setAction({ phase: 'error', message: result?.message || result?.code || '开章失败' })
+            setStartPhase('idle')
+            return
+          }
+          setAction({ phase: 'done', message: '第 ' + chapterNo + ' 章已装配；可以打开工作台开始写。' })
+          setStartPhase('idle')
+          await load()
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+          setStartPhase('idle')
+        }
+      }, [remote, sessionId, load])
+
       React.useEffect(function () { load() }, [load])
 
       const data = state.data
@@ -602,6 +632,22 @@ window.__ModuleLoader__.load({
               ? { title: '继续写第 ' + panelSession.chapter + ' 章', detail: (panelSession.draft.chars || 0) + ' 字 · ' + panelSession.state }
               : { title: '写第 ' + panelSession.chapter + ' 章', detail: '依据已装配，打开工作台开始写。' }
       const panelContexts = (data && data.contexts) || []
+      const panelBook = book || (data && data.book) || books[0] || ''
+      const lastChapter = data && data.history && Array.isArray(data.history.chapters) && data.history.chapters.length
+        ? Math.max(...data.history.chapters.map((item) => Number(item.chapter) || 0))
+        : 0
+      const nextChapter = panelSession
+        ? (panelSession.state === 'completed' ? Number(panelSession.chapter) + 1 : Number(panelSession.chapter))
+        : lastChapter + 1
+      const panelPrimary = !panelBook
+        ? { label: '先选择一本书', action: null, disabled: true }
+        : panelPending > 0
+          ? { label: '去拍板（' + panelPending + '）', action: function () { setDetails(true); openTab('decisions') }, disabled: false }
+          : (!panelSession || panelSession.state === 'completed')
+            ? { label: startPhase === 'starting' ? '正在装配…' : '开第 ' + nextChapter + ' 章', action: function () { runStartChapter(panelBook, nextChapter) }, disabled: startPhase === 'starting' }
+            : panelSession.verification && panelSession.verification.blockers > 0
+              ? { label: '去章节修 blocker', action: function () { setDetails(true); openTab('overview') }, disabled: false }
+              : { label: '继续写第 ' + panelSession.chapter + ' 章', action: function () { setDetails(true); openTab('overview') }, disabled: false }
       const panelInbox = []
       if (panelSession) {
         for (const id of (panelSession.pendingDecisionIds || [])) panelInbox.push({ kind: '拍板', text: String(id) })
@@ -613,43 +659,39 @@ window.__ModuleLoader__.load({
         panelInbox.push({ kind: 'canon', text: '同人原著待确认（' + (data.canon.status || '?') + '）' })
       }
 
-      return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, padding: '10px 12px', color: c.text, background: c.base, height: '100%', overflowY: 'auto', fontSize: 12.5 } },
-        h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } },
-          h('div', { style: { fontWeight: 600, fontSize: 13.5 } }, LABEL),
-          h('span', { style: { marginLeft: 'auto', display: 'flex', gap: 4 } },
+      return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 16px 28px', color: c.text, background: c.base, height: '100%', overflowY: 'auto', fontSize: 13 } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+          h('div', { style: { width: 32, height: 32, flexShrink: 0, borderRadius: 10, background: c.brand, color: c.onBrand, display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 700, letterSpacing: '-.04em' } }, '小'),
+          h('div', { style: { minWidth: 0, flex: 1 } },
+            h('div', { style: { fontSize: 15, fontWeight: 700, letterSpacing: '-.01em' } }, '小说'),
+            h('div', { style: { ...faint, marginTop: 1 } }, panelBook || '还没有选择作品')),
+          h('div', { style: { display: 'flex', gap: 6 } },
             h('button', {
               type: 'button',
-              onClick: function () { setDetails(!details) },
-              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
-            }, details ? '收起详情' : '详情'),
+              title: '高级详情',
+              onClick: function () { const next = !details; setDetails(next); if (next) setSettingsOpen(true) },
+              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
+            }, details ? '收起' : '详情'),
             h('button', {
               type: 'button',
               onClick: function () { load() },
-              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
-            }, state.phase === 'refreshing' ? '刷新中…' : '刷新')),
+              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
+            }, state.phase === 'refreshing' ? '…' : '刷新')),
         ),
         books.length
-          ? h('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap' } },
-              books.map(function (name) {
-                const active = (book || (data && data.book)) === name
-                return h('button', {
-                  key: name, type: 'button',
-                  onClick: function () { setBook(name); load(name) },
-                  style: {
-                    appearance: 'none', border: '1px solid ' + (active ? c.brand : c.border),
-                    background: active ? c.layer : 'transparent', color: active ? c.text : c.sub,
-                    borderRadius: 999, padding: '3px 10px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
-                  },
-                }, name)
-              }))
-          : h('div', { style: faint }, '这个工作区还没有 beat 账本；先在聊天里 /novel on 后用 novel_plan 建书。'),
+          ? h('select', {
+              value: panelBook,
+              onChange: function (event) { setBook(event.target.value); load(event.target.value) },
+              style: { width: '100%', boxSizing: 'border-box', appearance: 'none', border: '1px solid ' + c.border, background: c.layer, color: c.text, borderRadius: 10, padding: '9px 11px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' },
+            }, books.map((name) => h('option', { key: name, value: name }, name)))
+          : h('div', { style: { ...faint, padding: '2px 2px' } }, '这个工作区还没有 beat 账本；先在聊天里 /novel on 后用 novel_plan 建书。'),
 
         state.error ? h('div', { style: { color: c.error, fontSize: 12 } }, state.error) : null,
 
-        data ? h('div', null,
-          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px', display: 'flex', flexDirection: 'column', gap: 7 } },
-            h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-              h('span', { style: small }, '总开关'),
+        data ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } },
+          settingsOpen ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, padding: 12, border: '1px solid ' + c.border, borderRadius: 12, background: c.layer } },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+            h('span', { style: small }, '总开关'),
               h('span', { style: { color: data.master ? c.success : c.faint, fontSize: 11.5 } }, data.master ? '开' : '关'),
               h('button', {
                 type: 'button',
@@ -673,7 +715,6 @@ window.__ModuleLoader__.load({
               !(data.settings && data.settings.activeCanonSourceId)
                 ? h('span', { style: { ...faint, marginLeft: 'auto', fontSize: 10 } }, (data.settings && data.settings.mode) === 'fanfic' ? '待绑定原著' : '')
                 : null),
-          ),
           h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px', display: 'flex', flexDirection: 'column', gap: 6 } },
             h('div', { style: faint }, '导入作品：两个入口'),
             h('input', {
@@ -690,38 +731,58 @@ window.__ModuleLoader__.load({
               : h('div', { style: { display: 'flex', gap: 6 } },
                   h('button', { type: 'button', onClick: function () { runImportKind('style') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '学文笔'),
                   h('button', { type: 'button', onClick: function () { runImportKind('canon') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '写同人'))),
-          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px', background: c.layer } },
-            h('div', { style: { ...faint, fontSize: 10, letterSpacing: '.08em' } }, 'NEXT · 下一笔'),
-            h('div', { style: { fontSize: 14, fontWeight: 600, margin: '2px 0' } }, panelNext.title),
-            h('div', { style: { ...faint, fontSize: 10.5, lineHeight: 1.5 } }, panelNext.detail)),
+          ) : null,
+          h('div', { style: { padding: '18px 16px 16px', border: '1px solid ' + c.border, borderRadius: 16, background: c.layer, boxShadow: '0 2px 14px rgba(0,0,0,.05)' } },
+            h('div', { style: { ...faint, fontSize: 10.5, letterSpacing: '.12em', textTransform: 'uppercase' } }, 'NEXT · 下一笔'),
+            h('div', { style: { fontSize: 22, fontWeight: 700, lineHeight: 1.35, margin: '7px 0 4px', letterSpacing: '-.02em' } }, panelNext.title),
+            h('div', { style: { color: c.sub, fontSize: 12.5, lineHeight: 1.65 } }, panelNext.detail),
+            h('button', {
+              type: 'button',
+              disabled: panelPrimary.disabled || !panelPrimary.action,
+              onClick: panelPrimary.action || undefined,
+              style: {
+                width: '100%', marginTop: 14, appearance: 'none', border: 'none',
+                background: panelPrimary.disabled ? c.border : c.brand, color: panelPrimary.disabled ? c.faint : c.onBrand,
+                borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: panelPrimary.disabled ? 'default' : 'pointer', fontFamily: 'inherit',
+              },
+            }, panelPrimary.label),
+            action.message ? h('div', { style: { marginTop: 8, fontSize: 11.5, lineHeight: 1.5, color: action.phase === 'error' ? c.error : c.sub } }, action.message) : null),
           panelContexts.length
-            ? h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px' } },
-                h('div', { style: { ...faint, fontSize: 10, display: 'flex', justifyContent: 'space-between' } }, '本章依据', '四段 · ' + panelContexts.filter((item) => item.available).length + '/4'),
-                h('div', { style: { display: 'flex', gap: 2, height: 6, borderRadius: 6, overflow: 'hidden', marginTop: 6, background: c.border } },
+            ? h('div', { style: { border: '1px solid ' + c.border, borderRadius: 12, padding: 12, background: c.base } },
+                h('div', { style: { ...faint, fontSize: 11, display: 'flex', justifyContent: 'space-between', letterSpacing: '.04em' } }, '本章依据', '四段 · ' + panelContexts.filter((item) => item.available).length + '/4'),
+                h('div', { style: { display: 'flex', gap: 2, height: 8, borderRadius: 8, overflow: 'hidden', marginTop: 8, background: c.border } },
                   panelContexts.map(function (segment, index) {
                     const colors = [c.brand, '#5b6ac4', '#2f7d6b', '#a96a22']
                     return h('i', { key: segment.component || index, style: { flexGrow: Math.max(1, segment.chars || 1), background: colors[index % colors.length], opacity: segment.available ? 1 : 0.25 } })
                   })),
-                h('div', { style: { display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' } },
+                h('div', { style: { display: 'flex', gap: 8, marginTop: 7, flexWrap: 'wrap' } },
                   panelContexts.map(function (segment) {
-                    return h('span', { key: segment.component, style: { ...faint, fontSize: 9.5 } },
+                    return h('span', { key: segment.component, style: { ...faint, fontSize: 10.5 } },
                       segment.component + ' ' + (segment.chars ?? 0) + (segment.available ? '' : '·缺'))
                   })))
-            : h('div', { style: { ...faint, fontSize: 10.5 } }, '还没有装配本章依据；开一章后显示四段预算。'),
-          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px' } },
-            h('div', { style: { ...faint, fontSize: 10, display: 'flex', justifyContent: 'space-between' } }, '收件箱', String(panelInbox.length)),
+            : h('div', { style: { ...faint, fontSize: 12, padding: '2px 2px' } }, '还没有装配本章依据；开一章后显示四段预算。'),
+          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 12, padding: 12, background: c.base } },
+            h('div', { style: { ...faint, fontSize: 11, display: 'flex', justifyContent: 'space-between', letterSpacing: '.04em' } }, '收件箱', String(panelInbox.length)),
             panelInbox.length === 0
-              ? h('div', { style: { ...faint, fontSize: 10.5, marginTop: 3 } }, '没有待处理事项。')
+              ? h('div', { style: { color: c.faint, fontSize: 12, marginTop: 6 } }, '没有待处理事项。')
               : panelInbox.slice(0, 4).map(function (item, index) {
-                  return h('div', { key: index, style: { ...faint, fontSize: 10.5, marginTop: 3 } }, item.kind + ' · ' + item.text)
+                  return h('div', { key: index, style: { display: 'flex', gap: 8, alignItems: 'baseline', marginTop: 7, fontSize: 12, lineHeight: 1.45 } },
+                    h('span', { style: { color: c.brand, fontSize: 10, fontWeight: 700, flexShrink: 0 } }, item.kind),
+                    h('span', { style: { color: c.sub } }, item.text))
                 })),
-          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px' } },
-            h('div', { style: { ...faint, fontSize: 10, display: 'flex', justifyContent: 'space-between' } }, '最近章节', (data.history && data.history.total) || 0),
+          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 12, padding: 12, background: c.base } },
+            h('div', { style: { ...faint, fontSize: 11, display: 'flex', justifyContent: 'space-between', letterSpacing: '.04em' } }, '最近章节', (data.history && data.history.total) || 0),
             (data.history && data.history.chapters ? data.history.chapters : []).slice(0, 3).map(function (item, index) {
-              return h('div', { key: index, style: { ...faint, fontSize: 10.5, marginTop: 3, display: 'flex', justifyContent: 'space-between' } },
+              return h('div', { key: index, style: { display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 7, fontSize: 12, color: c.sub } },
                 h('span', null, '第 ' + item.chapter + ' 章 · ' + (item.state || '?')),
-                h('span', null, item.chars ? item.chars + ' 字' : ''))
+                h('span', { style: { color: c.faint } }, item.chars ? item.chars + ' 字' : ''))
             })),
+          h('button', {
+            type: 'button',
+            onClick: function () { setSettingsOpen(!settingsOpen) },
+            style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 10, padding: '9px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
+          }, settingsOpen ? '收起设置与详情' : '设置与详情'),
+          settingsOpen ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, padding: 12, border: '1px solid ' + c.border, borderRadius: 12, background: c.layer } },
           h('div', { style: row },
             h('span', { style: small }, '开关'),
             h('span', { style: { color: data.driving ? c.success : c.faint } }, data.driving ? '本会话：开' : '本会话：关（/novel on）'),
@@ -813,6 +874,7 @@ window.__ModuleLoader__.load({
           data.issues && data.issues.length
             ? h('div', { style: { color: c.error, fontSize: 11.5, marginTop: 6 } }, data.issues.map((issue) => issue.message).join('；'))
             : null,
+          ) : null,
         ) : null,
       )
     }
@@ -824,6 +886,7 @@ window.__ModuleLoader__.load({
       const [book, setBook] = React.useState('')
       const [draftState, setDraftState] = React.useState({ text: '', version: 0, hash: null, chars: 0, loaded: false, dirty: false })
       const [saveState, setSaveState] = React.useState({ phase: 'idle', message: '' })
+      const [startPhase, setStartPhase] = React.useState('idle')
       const [section, setSection] = React.useState('desk')
       const [storyData, setStoryData] = React.useState(null)
       const [materialData, setMaterialData] = React.useState(null)
@@ -909,6 +972,29 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, data, draftState, loadDraft, load])
 
+      const startChapterFromDesk = React.useCallback(async function (bookName, chapterNo) {
+        if (!remote || typeof remote.startChapter !== 'function' || !bookName || !chapterNo) {
+          setSaveState({ phase: 'error', message: '宿主还没加载开章接口；刷新或重启 DSH 后再试。' })
+          return
+        }
+        setStartPhase('starting')
+        setSaveState({ phase: 'idle', message: '' })
+        try {
+          const result = await Promise.resolve(remote.startChapter(sessionId, { book: bookName, chapter: chapterNo })).then(unwrap)
+          if (!result || result.ok === false) {
+            setSaveState({ phase: 'error', message: result?.message || result?.code || '开章失败' })
+            setStartPhase('idle')
+            return
+          }
+          setSaveState({ phase: 'saved', message: '第 ' + chapterNo + ' 章已装配。' })
+          setStartPhase('idle')
+          await load()
+        } catch (error) {
+          setSaveState({ phase: 'error', message: String(error?.message ?? error) })
+          setStartPhase('idle')
+        }
+      }, [remote, sessionId, load])
+
       React.useEffect(function () {
         if (section !== 'story' || !remote || !data || !data.book) return undefined
         let alive = true
@@ -947,6 +1033,21 @@ window.__ModuleLoader__.load({
         if (session.draft) return { title: '继续写第 ' + session.chapter + ' 章', detail: (draft.chars || 0) + ' 字 · ' + session.state + '；保存后旧检查作废。' }
         return { title: '写第一段正文', detail: '第 ' + session.chapter + ' 章已装配，工作台可以开始写。' }
       })()
+      const workbenchLastChapter = data && data.history && Array.isArray(data.history.chapters) && data.history.chapters.length
+        ? Math.max(...data.history.chapters.map((item) => Number(item.chapter) || 0))
+        : 0
+      const workbenchNextChapter = session
+        ? (session.state === 'completed' ? Number(session.chapter) + 1 : Number(session.chapter))
+        : workbenchLastChapter + 1
+      const deskPrimary = !data || !data.book
+        ? { label: '先选择一本书', action: null, disabled: true }
+        : pendingIds.length > 0
+          ? { label: '去故事里拍板', action: function () { setSection('story') }, disabled: false }
+          : (!session || session.state === 'completed')
+            ? { label: startPhase === 'starting' ? '正在装配…' : '开第 ' + workbenchNextChapter + ' 章', action: function () { startChapterFromDesk(data.book, workbenchNextChapter) }, disabled: startPhase === 'starting' }
+            : session.verification && session.verification.blockers > 0
+              ? { label: '去章节修 blocker', action: function () { setSection('chapter') }, disabled: false }
+              : { label: '去章节继续写', action: function () { setSection('chapter') }, disabled: false }
 
       const sectionLabel = { desk: '书桌', chapter: '章节', story: '故事', data: '资料' }
       const sectionButton = (key) => h('button', {
@@ -964,15 +1065,17 @@ window.__ModuleLoader__.load({
         const stat = (label, value, color) => h('div', { style: { border: '1px solid ' + c.border, borderRadius: 10, padding: '8px 10px', minWidth: 0 } },
           h('div', { style: { ...faint, fontSize: 10 } }, label),
           h('div', { style: { fontSize: 16, color: color || c.text, marginTop: 2 } }, value))
-        return h('div', { style: { padding: '14px 18px', overflowY: 'auto' } },
+        return h('div', { style: { padding: '18px 20px 28px', overflowY: 'auto' } },
           h('div', { style: { maxWidth: 760 } },
-            h('div', { style: { ...faint, fontSize: 10.5, letterSpacing: '.08em' } }, 'NEXT · 下一笔'),
-            h('div', { style: { fontSize: 22, fontWeight: 600, margin: '5px 0 3px' } }, nextAction.title),
-            h('div', { style: { color: c.sub, fontSize: 12.5, lineHeight: 1.7 } }, nextAction.detail),
-            h('div', { style: { display: 'flex', gap: 8, marginTop: 12 } },
-              h('button', { type: 'button', onClick: function () { setSection('chapter') }, style: { appearance: 'none', border: '1px solid ' + c.brand, background: c.layer, color: c.text, borderRadius: 7, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' } }, '去章节'),
-              h('button', { type: 'button', onClick: function () { load() }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 7, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' } }, '刷新')),
-            h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 16 } },
+            h('div', { style: { padding: '18px 18px 16px', border: '1px solid ' + c.border, borderRadius: 16, background: c.layer, boxShadow: '0 2px 14px rgba(0,0,0,.05)' } },
+              h('div', { style: { ...faint, fontSize: 10.5, letterSpacing: '.12em' } }, 'NEXT · 下一笔'),
+              h('div', { style: { fontSize: 24, fontWeight: 700, margin: '7px 0 4px', letterSpacing: '-.02em' } }, nextAction.title),
+              h('div', { style: { color: c.sub, fontSize: 13, lineHeight: 1.7 } }, nextAction.detail),
+              h('div', { style: { display: 'flex', gap: 8, marginTop: 14 } },
+                h('button', { type: 'button', disabled: deskPrimary.disabled || !deskPrimary.action, onClick: deskPrimary.action || undefined, style: { appearance: 'none', border: 'none', background: deskPrimary.disabled ? c.border : c.brand, color: deskPrimary.disabled ? c.faint : c.onBrand, borderRadius: 9, padding: '9px 14px', fontSize: 12.5, fontWeight: 600, cursor: deskPrimary.disabled ? 'default' : 'pointer', fontFamily: 'inherit' } }, deskPrimary.label),
+                h('button', { type: 'button', onClick: function () { load() }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 9, padding: '9px 14px', fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' } }, '刷新'))),
+            saveState.message ? h('div', { style: { marginTop: 8, color: saveState.phase === 'error' ? c.error : c.sub, fontSize: 11.5 } }, saveState.message) : null,
+            h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 14 } },
               stat('当前章', session ? '第 ' + session.chapter + ' 章' : '—'),
               stat('状态', session ? session.state : '—', session && session.state === 'completed' ? c.success : c.text),
               stat('字数', session && session.draft ? (session.draft.chars ?? '?') : '—'),
@@ -1052,25 +1155,28 @@ window.__ModuleLoader__.load({
       }
 
       return h('div', { style: { display: 'flex', flexDirection: 'column', height: '100%', background: c.base, color: c.text, fontSize: 13 } },
-        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderBottom: '1px solid ' + c.border } },
-          h('span', { style: { fontWeight: 600 } }, '小说工作台'),
-          books.length
-            ? h('select', {
-                value: book || (data && data.book) || '',
-                onChange: function (event) { setBook(event.target.value); load(event.target.value) },
-                style: { fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text },
-              }, books.map((name) => h('option', { key: name, value: name }, name)))
-            : null,
-          h('span', { style: faint }, data && data.session ? `第 ${data.session.chapter} 章 · ${data.session.state}` : '无活动会话'),
-          h('span', { style: { marginLeft: 'auto' } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px 10px', borderBottom: '1px solid ' + c.border } },
+          h('div', { style: { minWidth: 0 } },
+            h('div', { style: { ...faint, fontSize: 9.5, letterSpacing: '.16em', textTransform: 'uppercase' } }, 'NOVEL WORKBENCH'),
+            h('div', { style: { fontSize: 17, fontWeight: 700, marginTop: 2, letterSpacing: '-.02em' } }, (data && data.book) || '小说工作台')),
+          h('span', { style: { color: data && data.session ? c.sub : c.faint, border: '1px solid ' + c.border, borderRadius: 999, padding: '3px 9px', fontSize: 11 } },
+            data && data.session ? '第 ' + data.session.chapter + ' 章 · ' + data.session.state : '无活动会话'),
+          h('span', { style: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 } },
+            books.length
+              ? h('select', {
+                  value: book || (data && data.book) || '',
+                  onChange: function (event) { setBook(event.target.value); load(event.target.value) },
+                  style: { fontSize: 12, padding: '5px 8px', borderRadius: 8, border: '1px solid ' + c.border, background: c.layer, color: c.text, fontFamily: 'inherit' },
+                }, books.map((name) => h('option', { key: name, value: name }, name)))
+              : null,
             h('button', {
               type: 'button',
               onClick: function () { load() },
-              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
-            }, state.phase === 'refreshing' ? '刷新中…' : '刷新')),
+              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
+            }, state.phase === 'refreshing' ? '…' : '刷新')),
         ),
-        state.error ? h('div', { style: { color: c.error, padding: '8px 14px' } }, state.error) : null,
-        h('div', { style: { display: 'flex', gap: 4, padding: '6px 14px', borderBottom: '1px solid ' + c.border } },
+        state.error ? h('div', { style: { color: c.error, padding: '8px 18px' } }, state.error) : null,
+        h('div', { style: { display: 'flex', gap: 6, padding: '8px 18px', borderBottom: '1px solid ' + c.border, background: c.layer } },
           ['desk', 'chapter', 'story', 'data'].map(sectionButton)),
         section === 'chapter' ? h('div', { style: { display: 'flex', gap: 0, flex: 1, minHeight: 0 } },
           h('div', { style: { flex: 1, minWidth: 0, padding: '10px 14px', display: 'flex', flexDirection: 'column', minHeight: 0 } },

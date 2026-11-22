@@ -124,6 +124,19 @@ test('作者命令：同 operationId 并发不同输入只成功一个', async (
   assert.equal([a, b].filter((item) => item.code === 'operation-conflict').length, 1)
 })
 
+test('作者命令：chapter.start 从面板开章，写 operation', async () => {
+  const root = workspace()
+  const result = await executeAuthorCommand({
+    root, operationId: 'op-start-1', command: 'chapter.start',
+    targetRef: { book: '书', chapter: 22 }, actor: AUTHOR,
+  })
+  assert.equal(result.ok, true)
+  assert.equal(result.session.chapter, 22)
+  const log = await readOperation(root, 'op-start-1')
+  assert.equal(log.command, 'chapter.start')
+  assert.equal(log.status, 'completed')
+})
+
 test('作者命令：未知命令与非法 operationId 被拒', async () => {
   const root = workspace()
   const unknown = await executeAuthorCommand({ root, operationId: 'op-x', command: 'nope', actor: AUTHOR })

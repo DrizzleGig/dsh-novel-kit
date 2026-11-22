@@ -61,6 +61,7 @@
 - **启动修复（2026-11-22）**：`package.json` 被写成带 BOM 的 UTF-8；`remote.js` 用 `JSON.parse` 读它，导致 Host remote 导入失败，DSH 中整包不出现。已去 BOM，新增 `test/package.test.mjs` 锁回归，并加 `npm run acceptance:load` 逐段模拟加载。
 - **加载模拟验收**：8/8；package 元数据、bundle patch、Host index/tools/remote、client tab/工作台注册。
 - **旧账本迁移**：`/novel legacy` 扫描 `.dsh-novel-beat/fade/voice/fanfic/conductor`，为每本书建 kit 项目设置（fanfic 项目 → 同人，否则原创），已有设置跳过；旧账本就地读写。
+- **UI v2（2026-11-22）**：右栏重做为品牌头 + 当前作品 + 大号「下一笔」卡 + 依据/收件箱/最近；设置/导入/诊断/六页签收进「设置与详情」；主行动接 `chapter.start`，可真正开章。工作台补作品头、状态胶囊与书桌主行动。
 - **文档重写**：README / market-intro / DETAIL / locale 改成 0.2.0 口径，补「先接管、验证、再卸载五件」的迁移建议。
 
 
@@ -89,7 +90,7 @@
 
 ```powershell
 cd D:\Novel-gate\dsh-novel-kit
-node --test                 # 161/161
+node --test                 # 162/162
 npm run acceptance:load     # 8/8
 npm run acceptance          # 19/19
 npm run acceptance:real     # 11/11
@@ -138,6 +139,7 @@ npm run check               # 通过
 ## 6. 下一刀建议
 
 先做「canon 逐条接受/证据回查 + 会话完成结果纳入事务 + 统一收件箱（含页边批注）」三件；它们决定同人能不能顺畅开写、崩溃窗口是否真正闭合、以及任务卡是否从摘要变成可操作。写盘故障注入与真实 DSH UI 验收并行。每刀完成后更新本页与 CHANGELOG，并跑 `node --test` + 两个 acceptance。
+
 
 
 
