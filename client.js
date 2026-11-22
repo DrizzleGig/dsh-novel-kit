@@ -44,6 +44,7 @@ window.__ModuleLoader__.load({
         { method: 'setMaster', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'setMode', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'importStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'confirmStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'importCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'listSources', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'listStyleProfiles', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
@@ -310,7 +311,14 @@ window.__ModuleLoader__.load({
                       Object.entries(item.bands || {}).map(([key, spec]) => {
                         const band = Array.isArray(spec) ? spec : spec && Array.isArray(spec.band) ? spec.band : null
                         return band ? key + ' ' + band[0] + '–' + band[1] : null
-                      }).filter(Boolean).join('；') || '（无 bands）'))))
+                      }).filter(Boolean).join('；') || '（无 bands）'),
+                    item.status !== 'confirmed'
+                      ? h('button', {
+                          type: 'button',
+                          onClick: function () { runConfirmStyle(item) },
+                          style: { appearance: 'none', border: '1px solid ' + c.brand, background: 'transparent', color: c.text, borderRadius: 6, padding: '1px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit', marginTop: 3 },
+                        }, '确认文风')
+                      : null)))
               : null,
             h('div', { style: { ...faint, marginTop: 6 } }, `${value.works.length} 部 · ${value.chapters} 章 · ${value.chars} 字`),
             value.works.map((work) => h('div', { key: work.workId, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
@@ -537,7 +545,8 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, book, state.data, canonEdit, openTab])
 
-      const runConfirmCanon = React.useCallback(async function (canonValue) {        if (!remote || !canonValue || !canonValue.sourceId) return
+      const runConfirmCanon = React.useCallback(async function (canonValue) {
+        if (!remote || !canonValue || !canonValue.sourceId) return
         const activeBook = book || (state.data && state.data.book) || null
         if (!activeBook) { setAction({ phase: 'error', message: '先选一本书' }); return }
         setAction({ phase: 'busy', message: '' })
@@ -557,6 +566,25 @@ window.__ModuleLoader__.load({
           setAction({ phase: 'error', message: String(error?.message ?? error) })
         }
       }, [remote, sessionId, book, state.data, openTab])
+
+      const runConfirmStyle = React.useCallback(async function (profile) {
+        if (!remote || !profile || !profile.id) return
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = await Promise.resolve(remote.confirmStyle(sessionId, {
+            profileId: profile.id, expectedRevision: profile.revision ?? null,
+          })).then(unwrap)
+          if (!result || result.ok === false) {
+            setAction({ phase: 'error', message: result?.message || result?.code || '确认文风失败' })
+            return
+          }
+          setAction({ phase: 'done', message: '文风档案已确认：' + (profile.name || profile.id || '') })
+          setTabData((prev) => { const next = { ...prev }; delete next.style; return next })
+          await openTab('style')
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, openTab])
 
       React.useEffect(function () { load() }, [load])
 

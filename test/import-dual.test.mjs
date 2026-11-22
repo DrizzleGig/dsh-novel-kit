@@ -6,9 +6,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { writeJsonAtomic } from '../lib/storage/atomic-json.js'
 import { ingestSource, listSources } from '../lib/engine/sources.js'
-import { importStyle, compileStyleBrief, listStyleProfiles, annotateProposal, compileDecisionHint } from '../lib/engine/profiles.js'
+import { importStyle, compileStyleBrief, listStyleProfiles, annotateProposal, compileDecisionHint, confirmStyleProfile, readStyleProfileSummary } from '../lib/engine/profiles.js'
 import { importCanon, readWorldContract, requireCanon, worldContractFile } from '../lib/engine/canon.js'
 import { readProjectSettings } from '../lib/engine/settings.js'
+import { executeAuthorCommand } from '../lib/engine/author.js'
 
 const sample = [
   '第1章 雪夜出城',
@@ -119,6 +120,28 @@ test('门 B：原创模式先拒绝；确认后绑定 canon，契约未抽取时
   const ready = await requireCanon({ root, book: '长夜行', settings: after })
   assert.equal(ready.ok, true)
   assert.equal(ready.sourceId, confirmed.sourceId)
+})
+
+test('文风档案：provisional → 作者确认 confirmed，带 revision 校验', async () => {
+  const { root, file } = workspace()
+  const imported = await importStyle({ root, book: '书', file })
+  assert.equal(imported.profile.status, 'provisional')
+  const before = await readStyleProfileSummary(root, imported.profileId)
+  const stale = await executeAuthorCommand({
+    root, operationId: 'op-style-stale', command: 'style.confirm',
+    targetRef: { profileId: imported.profileId }, payload: { expectedRevision: 999 }, actor: { kind: 'author', trusted: true },
+  })
+  assert.equal(stale.ok, false)
+  assert.equal(stale.code, 'style-conflict')
+  const ok = await executeAuthorCommand({
+    root, operationId: 'op-style-confirm', command: 'style.confirm',
+    targetRef: { profileId: imported.profileId }, payload: { expectedRevision: before.revision }, actor: { kind: 'author', trusted: true },
+  })
+  assert.equal(ok.ok, true)
+  assert.equal(ok.profile.status, 'confirmed')
+  const after = await readStyleProfileSummary(root, imported.profileId)
+  assert.equal(after.status, 'confirmed')
+  assert.equal(after.revision, before.revision + 1)
 })
 
 test('同一作品双导入：一份原文，两个绑定', async () => {

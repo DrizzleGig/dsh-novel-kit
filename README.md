@@ -113,7 +113,7 @@ novel_chapter_finish({ session_id, segments, memory }) # 引文校验 → verify
 
 | 项目 | 结果 | 命令 |
 |---|---|---|
-| 单元/集成测试 | **158/158** | `npm test` |
+| 单元/集成测试 | **159/159** | `npm test` |
 | 合成工作区完整一章 | **19/19** | `npm run acceptance` |
 | 真实账本验收（复制，不动原书） | **11/11** | `npm run acceptance:real` |
 | 语法检查 | 通过 | `npm run check` |
@@ -161,6 +161,7 @@ New-Item -ItemType Junction -Path node_modules\@deepseek-ai\dsh-typert-protocol 
 ## 许可证
 
 MIT
+
 
 
 

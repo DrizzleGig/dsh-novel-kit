@@ -55,6 +55,7 @@
 - **canon 条目有效性**：空白规则、null 事实不通过 ready/confirm；装配与视图对 null 条目容错。
 - **事务原文**：commit 只写 after 文本，正文恰好是合法 JSON 时不再被重新序列化。
 - **收尾回执恢复**：事务已完成但会话未保存时，从 receipt 补齐 receipt/chapterFile。
+- **文风确认**：`style.confirm` 作者命令；面板把 provisional 档案确认成 confirmed，带 revision 校验。
 
 
 ### P0 顺手修复
@@ -82,7 +83,7 @@
 
 ```powershell
 cd D:\Novel-gate\dsh-novel-kit
-node --test                 # 158/158
+node --test                 # 159/159
 npm run acceptance          # 19/19
 npm run acceptance:real     # 11/11
 npm run check               # 通过
@@ -107,7 +108,7 @@ npm run check               # 通过
 
 1. **canon 逐条接受/证据回查**：结构化编辑已通；还缺逐条接受/拒绝、从原文回查证据、提案与已确认版本 diff。
 2. **会话完成结果纳入事务**：正文/beat/fade 已同一事务；会话 `completed` 与收据仍在事务后单独写，故障窗口还在。
-3. **文风高阶归纳**：目前只做确定性 bands + 少量规则；锚句/decisionPolicy/rules 的作者确认流程未做。
+3. **文风高阶归纳**：确认链路已通；rules/decisionPolicy/锚句的编辑、锚句遮蔽与按场景检索未做。
 4. **完整 UI**：右栏任务卡 + 工作台四入口已落地；还剩视觉打磨、页边批注、统一收件箱处理。
 5. **P0 剩余**：接管「原状态」而非只记 disabled；写盘故障注入；面板写操作统一二次确认；冲突页签全量。
 
@@ -130,6 +131,7 @@ npm run check               # 通过
 ## 6. 下一刀建议
 
 先做「canon 逐条接受/证据回查 + 会话完成结果纳入事务 + 统一收件箱（含页边批注）」三件；它们决定同人能不能顺畅开写、崩溃窗口是否真正闭合、以及任务卡是否从摘要变成可操作。写盘故障注入与真实 DSH UI 验收并行。每刀完成后更新本页与 CHANGELOG，并跑 `node --test` + 两个 acceptance。
+
 
 
 
