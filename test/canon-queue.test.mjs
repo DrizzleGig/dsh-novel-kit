@@ -11,6 +11,7 @@ import {
   readWorldContract, proposeCanonChanges, reviewCanonChange, applyCanonChanges,
   diffContractPatch, worldContractFile, migrateWorldContract,
 } from '../lib/engine/canon.js'
+import { worldContractView } from '../lib/host/views.js'
 
 const BOOK = '长夜行'
 const SOURCE = 'b'.repeat(64)
@@ -271,6 +272,87 @@ test('内容指纹：键顺序无关、数组顺序有关、审阅元数据无�
   reviewed.facts[0].reviewedAt = '2026-11-23T00:00:00Z'
   reviewed.facts[0].note = '作者备注'
   assert.equal(computeContentHash(reviewed), computeContentHash(ordered), '审阅元数据不进指纹')
+})
+
+test('审阅历史追加而不覆盖；已应用的提案不能再审阅', async () => {
+  const { root } = await makeContract()
+  const proposed = await proposeCanonChanges({
+    root, book: BOOK, sourceId: SOURCE,
+    changes: [{ collection: 'facts', operation: 'add', after: { id: 'f7', subject: '陈璧', key: '身份', value: '教习' } }],
+    expectedRevision: 19,
+  })
+  const changeId = proposed.created[0]
+
+  const accepted = await reviewCanonChange({ root, book: BOOK, sourceId: SOURCE, changeId, action: 'accepted', expectedRevision: proposed.revision })
+  assert.equal(accepted.ok, true)
+  // 已接受未应用，可以改判为拒绝
+  const rejected = await reviewCanonChange({ root, book: BOOK, sourceId: SOURCE, changeId, action: 'rejected', expectedRevision: proposed.revision + 1 })
+  assert.equal(rejected.ok, true)
+
+  const after = await readWorldContract(root, BOOK, SOURCE)
+  const change = after.pendingChanges.find((item) => item.changeId === changeId)
+  assert.equal(change.decision, 'rejected')
+  assert.equal(change.reviewHistory.length, 2, '两次审阅都要留痕')
+  assert.equal(change.reviewHistory[0].decision, 'accepted')
+  assert.equal(change.reviewHistory[1].decision, 'rejected')
+
+  // 拒绝后不能再应用
+  const applied = await applyCanonChanges({ root, book: BOOK, sourceId: SOURCE, changeIds: [changeId], expectedRevision: after.revision })
+  assert.equal(applied.ok, false)
+  assert.equal(applied.code, 'canon-not-accepted')
+})
+
+test('已应用的提案不能再审阅', async () => {
+  const { root } = await makeContract()
+  const proposed = await proposeCanonChanges({
+    root, book: BOOK, sourceId: SOURCE,
+    changes: [{ collection: 'facts', operation: 'add', after: { id: 'f8', subject: '陈璧', key: '身份', value: '教习' } }],
+    expectedRevision: 19,
+  })
+  const changeId = proposed.created[0]
+  await reviewCanonChange({ root, book: BOOK, sourceId: SOURCE, changeId, action: 'accepted', expectedRevision: proposed.revision })
+  const applied = await applyCanonChanges({ root, book: BOOK, sourceId: SOURCE, changeIds: [changeId], expectedRevision: proposed.revision + 1 })
+  assert.equal(applied.ok, true)
+
+  const again = await reviewCanonChange({ root, book: BOOK, sourceId: SOURCE, changeId, action: 'rejected', expectedRevision: applied.revision })
+  assert.equal(again.ok, false)
+  assert.equal(again.code, 'canon-already-applied')
+})
+
+test('expectedChangeHash 不匹配时拒绝审阅', async () => {
+  const { root } = await makeContract()
+  const proposed = await proposeCanonChanges({
+    root, book: BOOK, sourceId: SOURCE,
+    changes: [{ collection: 'facts', operation: 'add', after: { id: 'f9', subject: '陈璧', key: '身份', value: '教习' } }],
+    expectedRevision: 19,
+  })
+  const changeId = proposed.created[0]
+  const result = await reviewCanonChange({
+    root, book: BOOK, sourceId: SOURCE, changeId, action: 'accepted',
+    expectedChangeHash: 'not-the-hash', expectedRevision: proposed.revision,
+  })
+  assert.equal(result.ok, false)
+  assert.equal(result.code, 'canon-change-conflict')
+})
+
+test('worldContractView：版本分开、没有生效版本时投影为 null、审阅计数正确', () => {
+  const draft = {
+    ...defaultWorldContract({ book: BOOK, sourceId: SOURCE }),
+    revision: 5,
+    pendingChanges: [
+      { changeId: 'c1', decision: 'pending', appliedRevision: null, collection: 'facts' },
+      { changeId: 'c2', decision: 'accepted', appliedRevision: null, collection: 'facts' },
+      { changeId: 'c3', decision: 'rejected', appliedRevision: null, collection: 'facts' },
+      { changeId: 'c4', decision: 'accepted', appliedRevision: 2, collection: 'facts' },
+    ],
+  }
+  const view = worldContractView(draft)
+  assert.equal(view.available, true)
+  assert.equal(view.revision, 5)
+  assert.equal(view.contractRevision, 0)
+  assert.equal(view.published, null, '没有生效版本时不该给投影')
+  assert.deepEqual(view.reviewSummary, { pending: 1, accepted: 1, rejected: 1, applied: 1, total: 4 })
+  assert.equal(view.changes.length, 4)
 })
 
 test('同一批不允许同一条目出现两条变更', async () => {

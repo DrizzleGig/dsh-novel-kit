@@ -728,12 +728,13 @@ window.__ModuleLoader__.load({
         loadCanonQueue()
       }, [section, data && data.book, canonSourceId])
 
-      const reviewCanonChangeNow = React.useCallback(async function (changeId, action) {
+      const reviewCanonChangeNow = React.useCallback(async function (changeId, action, changeHash) {
         if (!remote || typeof remote.reviewCanonChange !== 'function' || !data || !data.book) return
         setCanonQueueBusy(true)
         try {
           const result = await Promise.resolve(remote.reviewCanonChange(sessionId, {
             book: data.book, sourceId: canonSourceId, changeId, action,
+            expectedChangeHash: changeHash || null,
             expectedRevision: canonQueue ? canonQueue.revision : null,
           })).then(unwrap)
           if (result && result.ok === false) { setCanonMessage(result.message || result.code || '审阅失败'); return }
@@ -1786,11 +1787,11 @@ window.__ModuleLoader__.load({
                               h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } }, describeChange(change)),
                               h('button', {
                                 type: 'button', className: 'nk-btn primary', disabled: canonQueueBusy,
-                                onClick: function () { reviewCanonChangeNow(change.changeId, 'accepted') },
+                                onClick: function () { reviewCanonChangeNow(change.changeId, 'accepted', change.changeHash) },
                               }, '接受'),
                               h('button', {
                                 type: 'button', className: 'nk-btn', disabled: canonQueueBusy,
-                                onClick: function () { reviewCanonChangeNow(change.changeId, 'rejected') },
+                                onClick: function () { reviewCanonChangeNow(change.changeId, 'rejected', change.changeHash) },
                               }, '拒绝'))
                           }),
                       (canonQueue.accepted || []).length

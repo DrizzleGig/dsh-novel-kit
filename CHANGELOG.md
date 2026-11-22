@@ -54,6 +54,9 @@
 - **会话不再二次哈希**：`session.contextFingerprint` 直接存装配指纹本身，并记录 `contextFingerprintVersion`；`start / plan / resume / finish` 共用 `stampContext()` 一个 setter。
 - **旧会话显式升级**：缺口径版本的会话在收尾时返回 `context-upgrade-required`（不能拿旧指纹判定「有没有变」）；只有显式 `resume` 才重新装配，保留正文、恢复 blocked 状态，并要求重新提取与检查。
 - **测试**：上下文指纹三条新用例（裁剪外 canon 改动使指纹失效、同内容但 revision 变化使指纹失效、口径版本号）+ 章节级「旧会话必须先升级」用例；测试 **199/199**。
+- **审阅历史不再被覆盖**：`reviewCanonChange` 改为向 `reviewHistory` 追加记录（`decision/reviewedBy/reviewedAt/note`），`decision` 表示当前结论；已接受未应用的可以改判为拒绝，反过来要重新提案；**已应用的提案不能再审阅**（`canon-already-applied`）；请求带 `expectedChangeHash` 且对不上时返回 `canon-change-conflict`。界面审阅时会带上候选的 `changeHash`。
+- **世界契约视图统一**：新增 `worldContractView(contract)`（`lib/host/views.js`），一处理清 `revision` / `contractRevision` / `contentHash` / `published` / `reviewSummary`，`getCanonQueue` 改为读它，不再自己拼版本语义；`published` 在没有生效版本时就是 `null`。
+- 测试 **203/203**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。
