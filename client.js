@@ -1302,6 +1302,18 @@ window.__ModuleLoader__.load({
         if (decisions) setStoryData((prev) => ({ ...(prev || {}), decisions }))
       }, [remote, sessionId, data, session])
 
+      const actOnMemory = React.useCallback(async function (card, action) {
+        if (!remote || !data || !data.book || !card) return
+        try {
+          const result = await Promise.resolve(remote.memoryAction(sessionId, { book: data.book, cardId: card.id, action })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '记忆操作失败'); return }
+          const memory = await Promise.resolve(remote.getMemory(sessionId, { book: data.book, limit: 80, currentChapter: session ? session.chapter : null })).then(unwrap).catch(() => null)
+          if (memory) setFadeData(memory)
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data, session])
+
       const decideFromBeat = React.useCallback(async function (proposal, action, option) {
         if (!remote || !proposal || !session) return
         setBeatMessage(action === 'reject' ? '正在拒绝…' : '正在记录选择…')
@@ -1514,7 +1526,12 @@ window.__ModuleLoader__.load({
                 h('span', { style: { fontSize: 10 } }, '第 ' + card.chapter + ' 章'),
                 h('span', { style: { marginLeft: 'auto', ...faint, fontSize: 10 } }, card.status || 'active')),
               h('div', { style: { fontSize: 12.5, marginTop: 4, lineHeight: 1.6 } }, card.gist || '（无摘要）'),
-              card.emotion ? h('div', { style: { ...faint, marginTop: 2 } }, card.emotion) : null)),
+              card.emotion ? h('div', { style: { ...faint, marginTop: 2 } }, card.emotion) : null,
+              h('div', { style: { display: 'flex', gap: 5, marginTop: 6 } },
+                card.status === 'forgotten'
+                  ? h('button', { className: 'nk-btn', onClick: function () { actOnMemory(card, 'restore') } }, '恢复')
+                  : h('button', { className: 'nk-btn', onClick: function () { actOnMemory(card, 'forget') } }, '遗忘'),
+                card.pinned ? null : h('button', { className: 'nk-btn', onClick: function () { actOnMemory(card, 'pin') } }, '钉住')))),
             h('div', { style: { ...faint, margin: '14px 0 6px' } }, '未回收线索'),
             threads.length === 0 ? h('div', { style: faint }, '没有未回收线索。') : threads.slice(0, 12).map((thread) => h('div', { key: thread.id, style: { ...row, borderBottom: '1px dashed ' + c.border } },
               h('span', { style: small }, thread.text), h('span', { style: { ...faint, fontSize: 10 } }, '第 ' + thread.chapter + ' 章'))),
