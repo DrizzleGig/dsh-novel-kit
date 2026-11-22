@@ -113,22 +113,33 @@ test('canon：expectedRevision 防覆盖；并发编辑只有一个成功', asyn
   assert.equal([a, b].filter((item) => item.code === 'canon-conflict').length, 1)
 })
 
-test('canon：已确认后模型 propose 不能悄悄取消确认；作者编辑可以', async () => {
+test('canon：已确认后模型 propose 不能悄悄取消确认；作者编辑也只产候选', async () => {
   const { root, file } = workspace()
   const imported = await importCanon({ root, book: '书', file, confirmMode: true })
   await updateWorldContract({ root, book: '书', sourceId: imported.sourceId, patch: { characters: [{ name: '陈凡' }] } })
   await confirmWorldContract({ root, book: '书', sourceId: imported.sourceId })
+  const before = await readWorldContract(root, '书', imported.sourceId)
+
+  // 模型直接整份覆盖：被拒绝，模型只能走 novel_canon propose（工具侧已改为产候选）
   const model = await updateWorldContract({ root, book: '书', sourceId: imported.sourceId, patch: { characters: [{ name: '唐昊' }] } })
   assert.equal(model.ok, false)
   assert.equal(model.code, 'canon-confirmed')
+
+  // 作者编辑也只产候选，不改状态与生效版本
   const actor = { kind: 'author', trusted: true, source: 'panel' }
   const author = await executeAuthorCommand({
     root, operationId: 'op-canon-reopen-1', command: 'canon.update',
     targetRef: { book: '书', sourceId: imported.sourceId },
-    payload: { patch: { characters: [{ name: '唐昊' }] } }, actor,
+    payload: { patch: { characters: [{ name: '陈凡' }, { name: '唐昊' }] } }, actor,
   })
   assert.equal(author.ok, true)
-  assert.equal(author.contract.status, 'pending-review')
+  assert.equal(author.created.length, 1, '只新增唐昊一条候选')
+
+  const after = await readWorldContract(root, '书', imported.sourceId)
+  assert.equal(after.status, 'confirmed', '提案与作者编辑都不取消确认')
+  assert.equal(after.contractRevision, before.contractRevision, '生效版本不变')
+  assert.equal(after.contentHash, before.contentHash)
+  assert.equal(after.pendingChanges.length, 1)
 })
 
 test('作者命令：canon.confirm 走 operation，且必须绑定当前 canon', async () => {
@@ -141,9 +152,31 @@ test('作者命令：canon.confirm 走 operation，且必须绑定当前 canon',
     payload: { patch: { characters: [{ name: '陈凡' }] } }, actor,
   })
   assert.equal(updated.ok, true)
-  assert.equal(updated.contract.status, 'pending-review')
-  const ok = await executeAuthorCommand({
+  assert.equal(updated.created.length, 1, 'canon.update 现在只产候选')
+  // 队列里还有未处理的候选：不允许整份确认绕过逐条审阅
+  const blocked = await executeAuthorCommand({
     root, operationId: 'op-canon-confirm-1', command: 'canon.confirm',
+    targetRef: { book: '书', sourceId: imported.sourceId }, actor,
+  })
+  assert.equal(blocked.ok, false)
+  assert.equal(blocked.code, 'canon-queue-pending')
+
+  // 逐条接受并应用后，契约自动成为已确认
+  await executeAuthorCommand({
+    root, operationId: 'op-canon-review-1', command: 'canon.review',
+    targetRef: { book: '书', sourceId: imported.sourceId, changeId: updated.created[0] },
+    payload: { action: 'accepted' }, actor,
+  })
+  const applied = await executeAuthorCommand({
+    root, operationId: 'op-canon-apply-1', command: 'canon.apply',
+    targetRef: { book: '书', sourceId: imported.sourceId },
+    payload: { changeIds: updated.created }, actor,
+  })
+  assert.equal(applied.ok, true)
+  assert.equal(applied.contractRevision, 1)
+
+  const ok = await executeAuthorCommand({
+    root, operationId: 'op-canon-confirm-2', command: 'canon.confirm',
     targetRef: { book: '书', sourceId: imported.sourceId }, actor,
   })
   assert.equal(ok.ok, true)
@@ -152,7 +185,7 @@ test('作者命令：canon.confirm 走 operation，且必须绑定当前 canon',
   assert.equal(settings.activeCanonSourceId, imported.sourceId)
 
   const wrong = await executeAuthorCommand({
-    root, operationId: 'op-canon-confirm-2', command: 'canon.confirm',
+    root, operationId: 'op-canon-confirm-3', command: 'canon.confirm',
     targetRef: { book: '书', sourceId: 'c'.repeat(64) }, actor,
   })
   assert.equal(wrong.ok, false)

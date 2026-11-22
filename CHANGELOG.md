@@ -39,6 +39,10 @@
 - **remote**：新增 `getCanonQueue` / `reviewCanonChange` / `applyCanonChanges`，同步 `DESCRIPTORS` 与客户端契约。
 - **同人页「待审阅队列」**：显示「生效 v4 · 待审 2 · 已接受待应用 1」，逐条接受/拒绝，已接受的可一键应用，并明确「已接受未应用 / 已拒绝都不进上下文」。
 - **测试**：新增 `test/canon-queue.test.mjs`（提案不动生效版本、拒绝不改内容、应用才 +1、漂移整批不写、丢回执幂等、基线过期、schema1 读时升级、同批重复条目），`test/excerpt.test.mjs` 增 emoji 码点用例；测试 **191/191**。
+- **堵死绕队列的口子**：`novel_canon propose` 与作者命令 `canon.update` 不再整份覆盖生效内容——`diffContractPatch()` 把整份契约换算成 add / update / remove 候选，统一走 `pendingChanges`；工具结果改为「已提交 N 条候选，等作者接受并应用」，应用前不进写作依据。
+- **整份确认加闸**：队列里还有「待审」或「已接受未应用」的候选时，`canon.confirm` 返回 `canon-queue-pending` 并列出 changeId，不允许整份批准绕过逐条审阅；这条排在 `canon-empty` 之前，提示更可操作。
+- **修一个静默丢条目的 bug**：`isUsableEntry` 的 facts 只认 `entity`/`subjectName`，而 fanfic 导入用 `subject`——带 `subject` 的事实会被静默过滤掉。现在两个字段都认（由 diff 测试当场发现）。
+- 测试 **192/192**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。

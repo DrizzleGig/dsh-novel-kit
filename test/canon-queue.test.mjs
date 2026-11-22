@@ -9,7 +9,7 @@ import path from 'node:path'
 import {
   defaultWorldContract, computeContentHash, contractHash, getPublishedCanon,
   readWorldContract, proposeCanonChanges, reviewCanonChange, applyCanonChanges,
-  worldContractFile, migrateWorldContract,
+  diffContractPatch, worldContractFile, migrateWorldContract,
 } from '../lib/engine/canon.js'
 
 const BOOK = '长夜行'
@@ -198,6 +198,22 @@ test('schema 1 契约读时升级：有确认内容就给 contractRevision 1 与
   assert.equal(migrated.contentHash, computeContentHash(migrated))
   assert.deepEqual(migrated.pendingChanges, [])
   assert.deepEqual(migrated.appliedOperations, [])
+})
+
+test('diffContractPatch：整份替换换算成 add / update / remove', async () => {
+  const { root } = await makeContract()
+  const current = await readWorldContract(root, BOOK, SOURCE)
+  const changes = diffContractPatch(current, {
+    facts: [
+      { id: 'f1', subject: '沈砚', key: '身份', value: '巡夜人统领' }, // update
+      { id: 'f3', subject: '陈璧', key: '身份', value: '教习' }, // add
+      // f2 没出现在 patch 里 → remove
+    ],
+    characters: [{ id: 'c1', name: '沈砚' }], // 与现有相同 → 无变更
+  })
+  const ops = changes.map((change) => change.operation + ':' + (change.entryId ?? change.after.id)).sort()
+  assert.deepEqual(ops, ['add:f3', 'remove:f2', 'update:f1'])
+  assert.equal(changes.every((change) => change.collection === 'facts'), true, '只有 facts 有改动')
 })
 
 test('同一批不允许同一条目出现两条变更', async () => {

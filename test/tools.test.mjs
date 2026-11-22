@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { toolDefinitions } from '../lib/host/tools.js'
-import { importCanon } from '../lib/engine/canon.js'
+import { importCanon, readWorldContract, getPublishedCanon } from '../lib/engine/canon.js'
 
 const RESERVED = ['title', 'description', 'type', 'required', 'enum', 'items', 'default', 'format', 'pattern', 'properties', 'additionalProperties']
 
@@ -91,7 +91,16 @@ test('novel_canon：outline / read / propose 通过工具调用', async () => {
     contract: { characters: [{ name: '陈凡' }], facts: [{ entity: '唐昊', key: '身份', value: '封号斗罗' }] },
   }, exec)
   assert.equal(proposed.ok, true)
-  assert.equal(proposed.contract.status, 'pending-review')
+  assert.equal(Array.isArray(proposed.created), true)
+  assert.equal(proposed.created.length, 2, 'characters + facts 各一条候选')
+  assert.match(proposed.message, /待审阅队列/, '结果要告诉模型去等作者审阅')
+
+  // 提案不碰生效内容：契约状态不变、候选只在队列里、投影里没有。
+  const contract = await readWorldContract(root, '书', imported.sourceId)
+  assert.equal(contract.status, 'pending-extraction', '提案不改契约状态')
+  assert.equal(contract.pendingChanges.length, 2)
+  assert.equal(getPublishedCanon(contract).characters.length, 0, '未应用不进生效投影')
+  assert.equal(contract.contractRevision, 0)
 })
 
 test('工具：缺参数时返回可读错误而不是抛栈', async () => {
