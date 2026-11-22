@@ -8,6 +8,7 @@ import { importCanon, updateWorldContract, confirmWorldContract, isCanonReady, r
 import { readSourceMeta, readSourceChapter } from '../lib/engine/sources.js'
 import { readProjectSettings } from '../lib/engine/settings.js'
 import { executeAuthorCommand } from '../lib/engine/author.js'
+import { collectSnapshot } from '../lib/host/snapshot.js'
 
 const sample = [
   '第1章 雪夜',
@@ -61,14 +62,30 @@ test('canon：空契约不能确认', async () => {
   assert.equal(result.code, 'canon-empty')
 })
 
+test('canon：快照给任务卡 pending/ready 状态', async () => {
+  const { root, file } = workspace()
+  const imported = await importCanon({ root, book: '书', file, confirmMode: true })
+  const pending = await collectSnapshot({ root, book: '书' })
+  assert.equal(pending.canon.status, 'pending-extraction')
+  assert.equal(pending.canon.ready, false)
+  await updateWorldContract({ root, book: '书', sourceId: imported.sourceId, patch: { worldRules: ['封港后不能点灯'] } })
+  await confirmWorldContract({ root, book: '书', sourceId: imported.sourceId })
+  const ready = await collectSnapshot({ root, book: '书' })
+  assert.equal(ready.canon.ready, true)
+  assert.equal(ready.canon.worldRules, 1)
+})
+
 test('作者命令：canon.confirm 走 operation，且必须绑定当前 canon', async () => {
   const { root, file } = workspace()
   const imported = await importCanon({ root, book: '书', file, confirmMode: true })
-  await updateWorldContract({
-    root, book: '书', sourceId: imported.sourceId,
-    patch: { characters: [{ name: '陈凡' }] },
-  })
   const actor = { kind: 'author', trusted: true, source: 'panel' }
+  const updated = await executeAuthorCommand({
+    root, operationId: 'op-canon-update-1', command: 'canon.update',
+    targetRef: { book: '书', sourceId: imported.sourceId },
+    payload: { patch: { characters: [{ name: '陈凡' }] } }, actor,
+  })
+  assert.equal(updated.ok, true)
+  assert.equal(updated.contract.status, 'pending-review')
   const ok = await executeAuthorCommand({
     root, operationId: 'op-canon-confirm-1', command: 'canon.confirm',
     targetRef: { book: '书', sourceId: imported.sourceId }, actor,

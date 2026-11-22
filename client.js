@@ -1,4 +1,4 @@
-﻿// dsh-novel-kit 的 Web 半：右栏「小说」面板 + 会话头入口。
+// dsh-novel-kit 的 Web 半：右栏「小说」面板 + 会话头入口。
 //
 // 只做展示与导航：数据来自 novelKitPanel remote（Host 只读快照），不读文件、
 // 不执行任何命令（commands.execute 会往会话日志写行，0.2.3 的教训）。
@@ -49,6 +49,7 @@ window.__ModuleLoader__.load({
         { method: 'listStyleProfiles', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getDraft', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'saveDraft', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'updateCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'confirmCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
       ].map(({ method, parameters }) => ({
         id: 'dsh-novel-kit#novelKitPanel/' + method,
@@ -91,6 +92,8 @@ window.__ModuleLoader__.load({
       const [book, setBook] = React.useState('')
       const [pendingTakeover, setPendingTakeover] = React.useState(false)
       const [pendingCanon, setPendingCanon] = React.useState(false)
+      const [details, setDetails] = React.useState(false)
+      const [canonEdit, setCanonEdit] = React.useState(null)
       const [action, setAction] = React.useState({ phase: 'idle', message: '' })
       const [tab, setTab] = React.useState('overview')
       const [tabData, setTabData] = React.useState({})
@@ -323,6 +326,35 @@ window.__ModuleLoader__.load({
             ? h('div', { style: { marginTop: 3, color: value.canonReady ? c.success : c.error, fontSize: 11 } },
                 'canon：' + (value.canonReady ? '已确认，可开写' : (value.contractStatus || '待抽取')))
             : null,
+          value.source === 'kit'
+            ? h('div', { style: { marginTop: 6 } },
+                canonEdit && canonEdit.open
+                  ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
+                      h('div', { style: faint }, '事实（每行：实体·键：值）'),
+                      h('textarea', { value: canonEdit.facts, onChange: function (event) { setCanonEdit((prev) => ({ ...prev, facts: event.target.value })) }, style: { minHeight: 52, fontSize: 10.5, fontFamily: 'var(--dsw-font-mono, monospace)', padding: 6, borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text } }),
+                      h('div', { style: faint }, '人物（每行：名字：角色）'),
+                      h('textarea', { value: canonEdit.characters, onChange: function (event) { setCanonEdit((prev) => ({ ...prev, characters: event.target.value })) }, style: { minHeight: 44, fontSize: 10.5, padding: 6, borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text } }),
+                      h('div', { style: faint }, '世界规则（每行一条）'),
+                      h('textarea', { value: canonEdit.rules, onChange: function (event) { setCanonEdit((prev) => ({ ...prev, rules: event.target.value })) }, style: { minHeight: 44, fontSize: 10.5, padding: 6, borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text } }),
+                      h('div', { style: faint }, '禁忌（每行一条）'),
+                      h('textarea', { value: canonEdit.forbidden, onChange: function (event) { setCanonEdit((prev) => ({ ...prev, forbidden: event.target.value })) }, style: { minHeight: 36, fontSize: 10.5, padding: 6, borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text } }),
+                      h('div', { style: { display: 'flex', gap: 6 } },
+                        h('button', { type: 'button', onClick: function () { runSaveCanon(value) }, style: { appearance: 'none', border: '1px solid ' + c.brand, background: c.layer, color: c.text, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '保存为待审阅'),
+                        h('button', { type: 'button', onClick: function () { setCanonEdit(null) }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '取消')))
+                  : h('button', {
+                      type: 'button',
+                      onClick: function () {
+                        setCanonEdit({
+                          open: true,
+                          facts: (value.facts || []).map((fact) => `${fact.entity ?? fact.subjectName ?? '?'}${fact.key ? '·' + fact.key : ''}：${fact.value ?? fact.object ?? ''}`).join('\n'),
+                          characters: (value.characters || []).map((person) => `${person.name ?? ''}${person.role ? '：' + person.role : ''}`).join('\n'),
+                          rules: (value.worldRules || []).map((rule) => (typeof rule === 'string' ? rule : rule?.text ?? '')).join('\n'),
+                          forbidden: (value.forbidden || []).map((item) => String(item)).join('\n'),
+                        })
+                      },
+                      style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' },
+                    }, '编辑契约'))
+            : null,
           value.facts && value.facts.length
             ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '事实'),
                 value.facts.slice(0, 10).map((fact, index) => h('div', { key: index, style: small },
@@ -462,8 +494,43 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, book, state.data, importPath, openTab])
 
-      const runConfirmCanon = React.useCallback(async function (canonValue) {
-        if (!remote || !canonValue || !canonValue.sourceId) return
+      const runSaveCanon = React.useCallback(async function (canonValue) {
+        if (!remote || !canonValue || !canonValue.sourceId || !canonEdit) return
+        const activeBook = book || (state.data && state.data.book) || null
+        if (!activeBook) { setAction({ phase: 'error', message: '先选一本书' }); return }
+        const lines = (text) => String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+        const facts = lines(canonEdit.facts).map((line) => {
+          const [left, ...rest] = line.split(/[：:]/)
+          const [entity, key] = left.split('·')
+          return { entity: (entity || '').trim(), key: (key || '').trim(), value: rest.join('：').trim() }
+        }).filter((item) => item.entity && item.value)
+        const characters = lines(canonEdit.characters).map((line) => {
+          const [name, ...rest] = line.split(/[：:]/)
+          return { name: (name || '').trim(), role: rest.join('：').trim() }
+        }).filter((item) => item.name)
+        const worldRules = lines(canonEdit.rules)
+        const forbidden = lines(canonEdit.forbidden)
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = await Promise.resolve(remote.updateCanon(sessionId, {
+            book: activeBook,
+            sourceId: canonValue.sourceId,
+            patch: { facts, characters, worldRules, forbidden },
+          })).then(unwrap)
+          if (!result || result.ok === false) {
+            setAction({ phase: 'error', message: result?.message || result?.code || '保存 canon 失败' })
+            return
+          }
+          setAction({ phase: 'done', message: 'canon 已保存为待审阅；确认后才可开写。' })
+          setCanonEdit(null)
+          setTabData((prev) => { const next = { ...prev }; delete next.canon; return next })
+          await openTab('canon')
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, book, state.data, canonEdit, openTab])
+
+      const runConfirmCanon = React.useCallback(async function (canonValue) {        if (!remote || !canonValue || !canonValue.sourceId) return
         const activeBook = book || (state.data && state.data.book) || null
         if (!activeBook) { setAction({ phase: 'error', message: '先选一本书' }); return }
         setAction({ phase: 'busy', message: '' })
@@ -496,15 +563,32 @@ window.__ModuleLoader__.load({
             : panelSession.draft
               ? { title: '继续写第 ' + panelSession.chapter + ' 章', detail: (panelSession.draft.chars || 0) + ' 字 · ' + panelSession.state }
               : { title: '写第 ' + panelSession.chapter + ' 章', detail: '依据已装配，打开工作台开始写。' }
+      const panelContexts = (data && data.contexts) || []
+      const panelInbox = []
+      if (panelSession) {
+        for (const id of (panelSession.pendingDecisionIds || [])) panelInbox.push({ kind: '拍板', text: String(id) })
+      }
+      if (data && data.conflicts && Array.isArray(data.conflicts.items)) {
+        for (const item of data.conflicts.items) panelInbox.push({ kind: '冲突', text: (item.entity || '?') + ' · ' + (item.key || '?') })
+      }
+      if (data && data.canon && !data.canon.ready && data.settings && data.settings.mode === 'fanfic') {
+        panelInbox.push({ kind: 'canon', text: '同人原著待确认（' + (data.canon.status || '?') + '）' })
+      }
 
       return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, padding: '10px 12px', color: c.text, background: c.base, height: '100%', overflowY: 'auto', fontSize: 12.5 } },
         h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } },
           h('div', { style: { fontWeight: 600, fontSize: 13.5 } }, LABEL),
-          h('button', {
-            type: 'button',
-            onClick: function () { load() },
-            style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
-          }, state.phase === 'refreshing' ? '刷新中…' : '刷新'),
+          h('span', { style: { marginLeft: 'auto', display: 'flex', gap: 4 } },
+            h('button', {
+              type: 'button',
+              onClick: function () { setDetails(!details) },
+              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
+            }, details ? '收起详情' : '详情'),
+            h('button', {
+              type: 'button',
+              onClick: function () { load() },
+              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
+            }, state.phase === 'refreshing' ? '刷新中…' : '刷新')),
         ),
         books.length
           ? h('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap' } },
@@ -572,6 +656,34 @@ window.__ModuleLoader__.load({
             h('div', { style: { ...faint, fontSize: 10, letterSpacing: '.08em' } }, 'NEXT · 下一笔'),
             h('div', { style: { fontSize: 14, fontWeight: 600, margin: '2px 0' } }, panelNext.title),
             h('div', { style: { ...faint, fontSize: 10.5, lineHeight: 1.5 } }, panelNext.detail)),
+          panelContexts.length
+            ? h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px' } },
+                h('div', { style: { ...faint, fontSize: 10, display: 'flex', justifyContent: 'space-between' } }, '本章依据', '四段 · ' + panelContexts.filter((item) => item.available).length + '/4'),
+                h('div', { style: { display: 'flex', gap: 2, height: 6, borderRadius: 6, overflow: 'hidden', marginTop: 6, background: c.border } },
+                  panelContexts.map(function (segment, index) {
+                    const colors = [c.brand, '#5b6ac4', '#2f7d6b', '#a96a22']
+                    return h('i', { key: segment.component || index, style: { flexGrow: Math.max(1, segment.chars || 1), background: colors[index % colors.length], opacity: segment.available ? 1 : 0.25 } })
+                  })),
+                h('div', { style: { display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' } },
+                  panelContexts.map(function (segment) {
+                    return h('span', { key: segment.component, style: { ...faint, fontSize: 9.5 } },
+                      segment.component + ' ' + (segment.chars ?? 0) + (segment.available ? '' : '·缺'))
+                  })))
+            : h('div', { style: { ...faint, fontSize: 10.5 } }, '还没有装配本章依据；开一章后显示四段预算。'),
+          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px' } },
+            h('div', { style: { ...faint, fontSize: 10, display: 'flex', justifyContent: 'space-between' } }, '收件箱', String(panelInbox.length)),
+            panelInbox.length === 0
+              ? h('div', { style: { ...faint, fontSize: 10.5, marginTop: 3 } }, '没有待处理事项。')
+              : panelInbox.slice(0, 4).map(function (item, index) {
+                  return h('div', { key: index, style: { ...faint, fontSize: 10.5, marginTop: 3 } }, item.kind + ' · ' + item.text)
+                })),
+          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px' } },
+            h('div', { style: { ...faint, fontSize: 10, display: 'flex', justifyContent: 'space-between' } }, '最近章节', (data.history && data.history.total) || 0),
+            (data.history && data.history.chapters ? data.history.chapters : []).slice(0, 3).map(function (item, index) {
+              return h('div', { key: index, style: { ...faint, fontSize: 10.5, marginTop: 3, display: 'flex', justifyContent: 'space-between' } },
+                h('span', null, '第 ' + item.chapter + ' 章 · ' + (item.state || '?')),
+                h('span', null, item.chars ? item.chars + ' 字' : ''))
+            })),
           h('div', { style: row },
             h('span', { style: small }, '开关'),
             h('span', { style: { color: data.driving ? c.success : c.faint } }, data.driving ? '本会话：开' : '本会话：关（/novel on）'),
@@ -616,22 +728,25 @@ window.__ModuleLoader__.load({
           action.message
             ? h('div', { style: { fontSize: 11.5, color: action.phase === 'error' ? c.error : c.sub } }, action.message)
             : null,
-          h('div', { style: { display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' } },
-            [['overview', '总览'], ['decisions', '拍板'], ['memory', '记忆'], ['style', '文风'], ['canon', '设定'], ['conflicts', '冲突']].map(function ([key, label]) {
-              return h('button', {
-                key: key,
-                type: 'button',
-                onClick: function () { openTab(key) },
-                style: {
-                  appearance: 'none',
-                  border: '1px solid ' + (tab === key ? c.brand : c.border),
-                  background: tab === key ? c.layer : 'transparent',
-                  color: tab === key ? c.text : c.sub,
-                  borderRadius: 999, padding: '2px 10px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
-                },
-              }, label)
-            })),
-          tab === 'overview' ? null : renderTab(),
+          details
+            ? h('div', null,
+                h('div', { style: { display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' } },
+                  [['overview', '总览'], ['decisions', '拍板'], ['memory', '记忆'], ['style', '文风'], ['canon', '设定'], ['conflicts', '冲突']].map(function ([key, label]) {
+                    return h('button', {
+                      key: key,
+                      type: 'button',
+                      onClick: function () { openTab(key) },
+                      style: {
+                        appearance: 'none',
+                        border: '1px solid ' + (tab === key ? c.brand : c.border),
+                        background: tab === key ? c.layer : 'transparent',
+                        color: tab === key ? c.text : c.sub,
+                        borderRadius: 999, padding: '2px 10px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
+                      },
+                    }, label)
+                  })),
+                tab === 'overview' ? null : renderTab())
+            : null,
           h('div', { style: row },
             h('span', { style: small }, '会话'),
             h('span', null, data.session ? `第 ${data.session.chapter} 章 · ${data.session.state}` : '无活动会话'),
