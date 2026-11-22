@@ -6,6 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { startChapter, writeChapter, readDraft, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal, chapterHistory } from '../lib/engine/chapter.js'
 import { writeProjectSettings } from '../lib/engine/settings.js'
+import { loadSession, saveSession } from '../lib/engine/session-store.js'
 import { worldContractFile } from '../lib/engine/canon.js'
 import { writeJsonAtomic } from '../lib/storage/atomic-json.js'
 
@@ -632,6 +633,61 @@ test('readDraft/saveDraft：完整 8000 字、expectedVersion/hash CAS、并发�
   const conflictCount = [a, b].filter((item) => item.code === 'draft-conflict').length
   assert.equal(okCount, 1)
   assert.equal(conflictCount, 1)
+})
+
+test('finish 事务不把合法 JSON 正文重新序列化', async () => {
+  const root = workspace()
+  const { session } = await startChapter({ root, book: '书', chapter: 33 })
+  const text = '"hello"'
+  await writeChapter({ root, sessionId: session.id, text })
+  const finished = await finishChapter({
+    root, sessionId: session.id,
+    extraction: { segments: [{ quote: text }], memory: { cards: [{ gist: text, quote: text, salience: 2 }] } },
+  })
+  assert.equal(finished.ok, true)
+  assert.equal(readFileSync(finished.chapterFile, 'utf8'), text)
+})
+
+test('decision 重试：beat 已落账但会话保存失败时按提案 id 找回，不重复写', async () => {
+  const root = workspace()
+  const planned = await planChapter({
+    root, book: '书', chapter: 32,
+    proposals: [{ id: 'p-retry', title: '谁去', options: [{ label: '夜行', impact: '紧张' }] }],
+  })
+  await decideProposal({ root, sessionId: planned.session.id, proposalId: 'p-retry', action: 'adopt', option: '夜行' })
+  const session = await loadSession(root, planned.session.id)
+  const proposal = session.plan.proposals.find((item) => item.id === 'p-retry')
+  proposal.status = 'pending'
+  session.pendingDecisionIds = ['p-retry']
+  await saveSession(root, session)
+
+  const again = await decideProposal({ root, sessionId: planned.session.id, proposalId: 'p-retry', action: 'adopt', option: '夜行' })
+  assert.equal(again.ok, true)
+  assert.equal(again.recovered, true)
+  const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
+  assert.equal(beat.decisions.filter((item) => item.proposalId === 'p-retry').length, 1)
+})
+
+test('finish 与 write 共用会话锁：不会把已保存的新稿回退成旧稿', async () => {
+  const root = workspace()
+  const { session } = await startChapter({ root, book: '书', chapter: 31 })
+  const oldText = '旧稿：陈凡把令牌放在桌上。'
+  await writeChapter({ root, sessionId: session.id, text: oldText })
+  const quote = '陈凡把令牌放在桌上。'
+  const finishing = finishChapter({
+    root, sessionId: session.id,
+    extraction: { segments: [{ quote }], memory: { cards: [{ gist: quote, quote, salience: 3 }] } },
+  })
+  const writing = writeChapter({ root, sessionId: session.id, text: '新稿：陈凡把令牌收进怀里。' })
+  const [finishResult, writeResult] = await Promise.allSettled([finishing, writing])
+  assert.equal(finishResult.status, 'fulfilled')
+  assert.equal(finishResult.value.ok, true)
+  const body = readFileSync(finishResult.value.chapterFile, 'utf8')
+  if (writeResult.status === 'fulfilled') {
+    assert.match(body, /新稿/, '写入成功时正文必须是新稿')
+  } else {
+    assert.match(body, /旧稿/, '写入被完成态拒绝时正文保持旧稿')
+  }
 })
 
 test('作者拍板不能被 write 绕过：有 pending 提案时 finish 拒绝', async () => {

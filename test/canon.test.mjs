@@ -75,6 +75,62 @@ test('canon：快照给任务卡 pending/ready 状态', async () => {
   assert.equal(ready.canon.worldRules, 1)
 })
 
+test('canon：无效条目不能确认，也不会让装配崩溃', async () => {
+  const { root, file } = workspace()
+  const imported = await importCanon({ root, book: '书', file, confirmMode: true })
+  const updated = await updateWorldContract({
+    root, book: '书', sourceId: imported.sourceId,
+    patch: { worldRules: ['   '], facts: [null], characters: [{}] },
+  })
+  assert.equal(updated.ok, true)
+  const confirmed = await confirmWorldContract({ root, book: '书', sourceId: imported.sourceId })
+  assert.equal(confirmed.ok, false)
+  assert.equal(confirmed.code, 'canon-empty')
+  assert.equal(isCanonReady(updated.contract), false)
+})
+
+test('canon：expectedRevision 防覆盖；并发编辑只有一个成功', async () => {
+  const { root, file } = workspace()
+  const imported = await importCanon({ root, book: '书', file, confirmMode: true })
+  const startRevision = imported.contract?.revision ?? 1
+  const first = await updateWorldContract({
+    root, book: '书', sourceId: imported.sourceId, expectedRevision: startRevision,
+    patch: { characters: [{ name: '陈凡' }] },
+  })
+  assert.equal(first.ok, true)
+  const stale = await updateWorldContract({
+    root, book: '书', sourceId: imported.sourceId, expectedRevision: startRevision,
+    patch: { characters: [{ name: '唐昊' }] },
+  })
+  assert.equal(stale.ok, false)
+  assert.equal(stale.code, 'canon-conflict')
+
+  const [a, b] = await Promise.all([
+    updateWorldContract({ root, book: '书', sourceId: imported.sourceId, expectedRevision: first.contract.revision, patch: { worldRules: ['规则 A'] } }),
+    updateWorldContract({ root, book: '书', sourceId: imported.sourceId, expectedRevision: first.contract.revision, patch: { worldRules: ['规则 B'] } }),
+  ])
+  assert.equal([a, b].filter((item) => item.ok).length, 1)
+  assert.equal([a, b].filter((item) => item.code === 'canon-conflict').length, 1)
+})
+
+test('canon：已确认后模型 propose 不能悄悄取消确认；作者编辑可以', async () => {
+  const { root, file } = workspace()
+  const imported = await importCanon({ root, book: '书', file, confirmMode: true })
+  await updateWorldContract({ root, book: '书', sourceId: imported.sourceId, patch: { characters: [{ name: '陈凡' }] } })
+  await confirmWorldContract({ root, book: '书', sourceId: imported.sourceId })
+  const model = await updateWorldContract({ root, book: '书', sourceId: imported.sourceId, patch: { characters: [{ name: '唐昊' }] } })
+  assert.equal(model.ok, false)
+  assert.equal(model.code, 'canon-confirmed')
+  const actor = { kind: 'author', trusted: true, source: 'panel' }
+  const author = await executeAuthorCommand({
+    root, operationId: 'op-canon-reopen-1', command: 'canon.update',
+    targetRef: { book: '书', sourceId: imported.sourceId },
+    payload: { patch: { characters: [{ name: '唐昊' }] } }, actor,
+  })
+  assert.equal(author.ok, true)
+  assert.equal(author.contract.status, 'pending-review')
+})
+
 test('作者命令：canon.confirm 走 operation，且必须绑定当前 canon', async () => {
   const { root, file } = workspace()
   const imported = await importCanon({ root, book: '书', file, confirmMode: true })

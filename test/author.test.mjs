@@ -113,6 +113,17 @@ test('作者命令：mode.set 带 expectedRevision', async () => {
   assert.equal(stale.code, 'revision-conflict')
 })
 
+test('作者命令：同 operationId 并发不同输入只成功一个', async () => {
+  const root = workspace()
+  const base = { root, operationId: 'op-race', command: 'mode.set', targetRef: { book: '书' }, actor: AUTHOR }
+  const [a, b] = await Promise.all([
+    executeAuthorCommand({ ...base, payload: { mode: 'fanfic' } }),
+    executeAuthorCommand({ ...base, payload: { mode: 'original' } }),
+  ])
+  assert.equal([a, b].filter((item) => item.ok).length, 1)
+  assert.equal([a, b].filter((item) => item.code === 'operation-conflict').length, 1)
+})
+
 test('作者命令：未知命令与非法 operationId 被拒', async () => {
   const root = workspace()
   const unknown = await executeAuthorCommand({ root, operationId: 'op-x', command: 'nope', actor: AUTHOR })

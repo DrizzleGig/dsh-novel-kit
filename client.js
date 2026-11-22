@@ -346,6 +346,9 @@ window.__ModuleLoader__.load({
                       onClick: function () {
                         setCanonEdit({
                           open: true,
+                          book: book || (state.data && state.data.book) || '',
+                          sourceId: value.sourceId,
+                          revision: value.contractRevision ?? 0,
                           facts: (value.facts || []).map((fact) => `${fact.entity ?? fact.subjectName ?? '?'}${fact.key ? '·' + fact.key : ''}：${fact.value ?? fact.object ?? ''}`).join('\n'),
                           characters: (value.characters || []).map((person) => `${person.name ?? ''}${person.role ? '：' + person.role : ''}`).join('\n'),
                           rules: (value.worldRules || []).map((rule) => (typeof rule === 'string' ? rule : rule?.text ?? '')).join('\n'),
@@ -405,6 +408,8 @@ window.__ModuleLoader__.load({
           const diag = await Promise.resolve(remote.getDiagnostics(sessionId)).then(unwrap).catch(() => null)
           if (requestRef.current !== requestId) return
           setSearchHits(null)
+          setTabData({})
+          setCanonEdit(null)
           setState({ phase: 'ready', data, diag, error: null })
         } catch (error) {
           if (requestRef.current !== requestId) return
@@ -496,8 +501,9 @@ window.__ModuleLoader__.load({
 
       const runSaveCanon = React.useCallback(async function (canonValue) {
         if (!remote || !canonValue || !canonValue.sourceId || !canonEdit) return
-        const activeBook = book || (state.data && state.data.book) || null
-        if (!activeBook) { setAction({ phase: 'error', message: '先选一本书' }); return }
+        const activeBook = canonEdit.book || book || (state.data && state.data.book) || null
+        const targetSource = canonEdit.sourceId || canonValue.sourceId
+        if (!activeBook || !targetSource) { setAction({ phase: 'error', message: '先选一本书' }); return }
         const lines = (text) => String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
         const facts = lines(canonEdit.facts).map((line) => {
           const [left, ...rest] = line.split(/[：:]/)
@@ -514,7 +520,8 @@ window.__ModuleLoader__.load({
         try {
           const result = await Promise.resolve(remote.updateCanon(sessionId, {
             book: activeBook,
-            sourceId: canonValue.sourceId,
+            sourceId: targetSource,
+            expectedRevision: canonEdit.revision ?? null,
             patch: { facts, characters, worldRules, forbidden },
           })).then(unwrap)
           if (!result || result.ok === false) {
@@ -535,7 +542,10 @@ window.__ModuleLoader__.load({
         if (!activeBook) { setAction({ phase: 'error', message: '先选一本书' }); return }
         setAction({ phase: 'busy', message: '' })
         try {
-          const result = await Promise.resolve(remote.confirmCanon(sessionId, { book: activeBook, sourceId: canonValue.sourceId })).then(unwrap)
+          const result = await Promise.resolve(remote.confirmCanon(sessionId, {
+            book: activeBook, sourceId: canonValue.sourceId,
+            expectedRevision: canonValue.contractRevision ?? null,
+          })).then(unwrap)
           if (!result || result.ok === false) {
             setAction({ phase: 'error', message: result?.message || result?.code || '确认失败' })
             return
@@ -791,6 +801,7 @@ window.__ModuleLoader__.load({
       const [materialData, setMaterialData] = React.useState(null)
 
       const requestRef = React.useRef(0)
+      const editVersionRef = React.useRef(0)
       const load = React.useCallback(async function (nextBook) {
         if (!remote) {
           setState({ phase: 'error', data: null, error: '工作台读接口未就绪：请更新并重载 DSH。' })
@@ -817,11 +828,13 @@ window.__ModuleLoader__.load({
         try {
           const result = await Promise.resolve(remote.getDraft(sessionId, { chapterSessionId: session.id })).then(unwrap)
           if (result && result.draft) {
+            editVersionRef.current = 0
             setDraftState({
               text: result.draft.text ?? '', version: result.draft.version ?? 0, hash: result.draft.hash ?? null,
               chars: result.draft.chars ?? 0, loaded: true, dirty: false,
             })
           } else {
+            editVersionRef.current = 0
             setDraftState({ text: '', version: 0, hash: null, chars: 0, loaded: true, dirty: false })
           }
         } catch (error) {
@@ -838,6 +851,7 @@ window.__ModuleLoader__.load({
       const saveDraft = React.useCallback(async function () {
         if (!remote || !data || !data.session || typeof remote.saveDraft !== 'function') return
         if (!draftState.dirty) { setSaveState({ phase: 'idle', message: '没有未保存的修改' }); return }
+        const submittedSeq = editVersionRef.current
         setSaveState({ phase: 'saving', message: '' })
         try {
           const result = await Promise.resolve(remote.saveDraft(sessionId, {
@@ -848,19 +862,19 @@ window.__ModuleLoader__.load({
           })).then(unwrap)
           if (!result || result.ok === false) {
             const message = result?.message || result?.code || '保存失败'
-            setSaveState({ phase: 'error', message })
-            if (result && result.code === 'draft-conflict') await loadDraft(data.session)
+            setSaveState({ phase: 'error', message: result && result.code === 'draft-conflict' ? '远端草稿已更新；本地未保存，先复制或点「重新载入」。' : message })
             return
           }
+          const stillDirty = editVersionRef.current !== submittedSeq
           setDraftState((prev) => ({
             ...prev,
             version: result.draft?.version ?? prev.version,
             hash: result.draft?.hash ?? prev.hash,
             chars: result.draft?.chars ?? prev.chars,
-            dirty: false,
+            dirty: stillDirty,
             loaded: true,
           }))
-          setSaveState({ phase: 'saved', message: '已保存 v' + (result.draft?.version ?? '?') })
+          setSaveState({ phase: 'saved', message: stillDirty ? '已保存提交版本；之后的新输入还没保存。' : '已保存 v' + (result.draft?.version ?? '?') })
           await load()
         } catch (error) {
           setSaveState({ phase: 'error', message: String(error?.message ?? error) })
@@ -1038,12 +1052,17 @@ window.__ModuleLoader__.load({
               h('span', { style: { marginLeft: 'auto', color: saveState.phase === 'error' ? c.error : c.sub, fontSize: 11 } }, saveState.message),
               h('button', {
                 type: 'button',
-                disabled: !draftState.dirty || saveState.phase === 'saving',
+                onClick: function () { if (session) loadDraft(session) },
+                style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '3px 8px', fontSize: 11, cursor: session ? 'pointer' : 'default', fontFamily: 'inherit' },
+              }, '重新载入'),
+              h('button', {
+                type: 'button',
+                disabled: !draftState.dirty || !session || saveState.phase === 'saving',
                 onClick: function () { saveDraft() },
                 style: {
-                  appearance: 'none', border: '1px solid ' + (draftState.dirty ? c.brand : c.border),
-                  background: draftState.dirty ? c.layer : 'transparent', color: draftState.dirty ? c.text : c.faint,
-                  borderRadius: 6, padding: '3px 10px', fontSize: 11.5, cursor: draftState.dirty ? 'pointer' : 'default', fontFamily: 'inherit',
+                  appearance: 'none', border: '1px solid ' + (draftState.dirty && session ? c.brand : c.border),
+                  background: draftState.dirty && session ? c.layer : 'transparent', color: draftState.dirty && session ? c.text : c.faint,
+                  borderRadius: 6, padding: '3px 10px', fontSize: 11.5, cursor: draftState.dirty && session ? 'pointer' : 'default', fontFamily: 'inherit',
                 },
               }, saveState.phase === 'saving' ? '保存中…' : '保存草稿（Ctrl S）')),
             typeof remote.getDraft === 'function'
@@ -1051,7 +1070,7 @@ window.__ModuleLoader__.load({
                   value: draftState.loaded ? draftState.text : (draft && draft.text ? draft.text : ''),
                   placeholder: '在这里写本章正文；保存后旧检查作废。',
                   spellCheck: false,
-                  onChange: function (event) { setDraftState((prev) => ({ ...prev, text: event.target.value, dirty: true, loaded: true })) },
+                  onChange: function (event) { editVersionRef.current += 1; setDraftState((prev) => ({ ...prev, text: event.target.value, dirty: true, loaded: true })) },
                   onKeyDown: function (event) {
                     if ((event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === 's') {
                       event.preventDefault()
