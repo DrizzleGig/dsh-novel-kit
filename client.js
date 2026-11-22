@@ -760,6 +760,17 @@ window.__ModuleLoader__.load({
       }
 
       function renderTask() {
+        if (state.error) {
+          return h('div', { className: 'nk-panel' },
+            h('div', { className: 'nk-head' },
+              h('div', { className: 'nk-seal' }, '小'),
+              h('div', { className: 'grow', style: { minWidth: 0 } }, h('div', { className: 'nk-title' }, '小说'), h('div', { className: 'nk-book' }, '读取失败'))),
+            h('div', { className: 'nk-empty' },
+              h('div', { style: { color: c.error, fontSize: 12, lineHeight: 1.6 } }, state.error),
+              h('div', { style: { display: 'flex', gap: 6 } },
+                h('button', { className: 'nk-btn primary', onClick: function () { load() } }, '重试'),
+                h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置'))))
+        }
         if (state.phase === 'loading' && !data) {
           return h('div', { className: 'nk-panel' }, h('div', { className: 'nk-meta' }, '加载小说工作区…'))
         }
@@ -1158,6 +1169,15 @@ window.__ModuleLoader__.load({
       React.useEffect(function () {
         if (sessionKey) loadDraft(data.session)
       }, [sessionKey, loadDraft])
+
+      React.useEffect(function () {
+        setStoryData(null)
+        setFadeData(null)
+        setMaterialData(null)
+        setBeatEditing(null)
+        setBeatMessage('')
+        setWorkOrder('')
+      }, [data && data.book])
 
       const saveDraft = React.useCallback(async function () {
         if (!remote || !data || !data.session || typeof remote.saveDraft !== 'function') return
@@ -1736,10 +1756,13 @@ window.__ModuleLoader__.load({
         type: 'button',
         title: '打开小说七域工作台',
         onClick: function () {
-          // 宿主没有暴露 openView；从主视图 tab 直接切换，失败时退回右栏。
-          const tab = Array.from(document.querySelectorAll('[role="tab"],button,a'))
+          // 宿主没有暴露 openView；先找主视图 tab，再退回按钮文本，最后退回右栏。
+          const tab = Array.from(document.querySelectorAll('[role="tab"]'))
             .find((node) => String(node.textContent || '').trim() === '小说工作台')
           if (tab) { tab.click(); return }
+          const button = Array.from(document.querySelectorAll('header button, nav button'))
+            .find((node) => String(node.textContent || '').trim() === '小说工作台')
+          if (button) { button.click(); return }
           if (props.open) props.open()
         },
         style: {

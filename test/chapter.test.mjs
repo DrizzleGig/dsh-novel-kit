@@ -711,6 +711,11 @@ test('reviseDecision：追加改选与重写工单，旧决策保留，重复调
   assert.equal(beatAfter.decisions[beatAfter.decisions.length - 1].supersedes, old.id)
   const again = await reviseDecision({ root, book: '书', decisionId: old.id, newOption: '山路' })
   assert.equal(again.idempotent, true)
+  const third = await reviseDecision({ root, book: '书', decisionId: old.id, newOption: '水路' })
+  assert.equal(third.ok, true)
+  assert.notEqual(third.decision.id, revised.decision.id)
+  const beatThird = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
+  assert.equal(beatThird.decisions.filter((item) => item.supersedes === old.id).length, 2)
 })
 
 test('finish 与 write 共用会话锁：不会把已保存的新稿回退成旧稿', async () => {
