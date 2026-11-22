@@ -36,6 +36,7 @@ window.__ModuleLoader__.load({
         { method: 'getPlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getOperations', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'previewContext', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'resumeChapter', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'reviseDecision', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'savePlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
@@ -158,6 +159,9 @@ window.__ModuleLoader__.load({
         : Number(lastChapter) + 1
       if (!session) {
         return { kind: 'start', chapter, title: '开始一章', detail: '点下方按钮装配四段依据；也可以先在聊天里计划。' }
+      }
+      if (session.state === 'blocked' || session.state === 'committing') {
+        return { kind: 'resume', chapter, title: session.state === 'blocked' ? '先恢复被阻塞的会话' : '上一笔提交还没走完', detail: '先核对事务状态，再继续；不要重复收尾。' }
       }
       if (pending > 0) {
         return { kind: 'decide', chapter, title: '先拍板 ' + pending + ' 个提案', detail: '作者确认后模型才能继续收尾；去「故事 → 拍板」处理。' }
@@ -723,6 +727,20 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, load])
 
+      const runResumeChapter = React.useCallback(async function () {
+        const active = state.data && state.data.session
+        if (!remote || !active) { setAction({ phase: 'error', message: '没有可恢复的章节会话' }); return }
+        setAction({ phase: 'busy', message: '正在恢复…' })
+        try {
+          const result = await Promise.resolve(remote.resumeChapter(sessionId, { chapterSessionId: active.id })).then(unwrap)
+          if (!result || result.ok === false) { setAction({ phase: 'error', message: result?.message || result?.code || '恢复失败' }); return }
+          setAction({ phase: 'done', message: '会话已恢复。' })
+          await load()
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, state.data, load])
+
       const openStudio = React.useCallback(function () {
         setMode('studio')
         try { layout?.openRightbar?.(false, true) } catch { /* 不是所有布局都支持全屏 */ }
@@ -744,6 +762,8 @@ window.__ModuleLoader__.load({
       const panelPrimary = !panelBook
         ? { label: '先选择一本书', action: null, disabled: true }        : panelNext.kind === 'decide'
           ? { label: '去拍板（' + panelPending + '）', action: function () { setSettingsOpen(true); setDetails(true); openTab('decisions') }, disabled: false }
+          : panelNext.kind === 'resume'
+            ? { label: '恢复本章', action: function () { runResumeChapter() }, disabled: false }
           : panelNext.kind === 'start'
             ? { label: startPhase === 'starting' ? '正在装配…' : '开第 ' + nextChapter + ' 章', action: function () { runStartChapter(panelBook, nextChapter) }, disabled: startPhase === 'starting' }
             : panelNext.kind === 'blockers'
@@ -1338,6 +1358,8 @@ window.__ModuleLoader__.load({
         ? { label: '先选择一本书', action: null, disabled: true }
         : nextAction.kind === 'decide'
           ? { label: '去故事里拍板', action: function () { setSection('beat') }, disabled: false }
+          : nextAction.kind === 'resume'
+            ? { label: '恢复本章', action: function () { if (remote && session) Promise.resolve(remote.resumeChapter(sessionId, { chapterSessionId: session.id })).then(unwrap).then(function (result) { if (result && result.ok) load() }) }, disabled: false }
           : nextAction.kind === 'start'
             ? { label: startPhase === 'starting' ? '正在装配…' : '开第 ' + workbenchNextChapter + ' 章', action: function () { startChapterFromDesk(data.book, workbenchNextChapter) }, disabled: startPhase === 'starting' }
             : nextAction.kind === 'blockers'
