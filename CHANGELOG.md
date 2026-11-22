@@ -1,4 +1,16 @@
-# Changelog
+﻿# Changelog
+
+## 0.2.0-dev.0 — 2026-11-22
+
+开发版第一刀（未发布）：
+
+- **三层开关**：profile 级总开关 `master`（默认关，持久化到 `$DSH_HOME/profiles/<name>/novel-kit/prefs.json`）；项目级 `mode: original | fanfic`；会话级 `/novel on|off`。`/novel master on|off`、`/novel mode original|fanfic <book>`。
+- **双导入口**：`importStyle`（学文笔，产出 provisional `StyleProfile`）与 `importCanon`（写同人，绑定 canon）；共用 `SourceDocument`，完整 SHA-256 去重，原文只存一份。原创模式先拒绝 canon，作者确认后才切同人并绑定。
+- **按模式装配**：`assembleContext({ mode })`；原创模式即使误传 fanfic 项目也不装配世界段；同人模式绑定 canon 后使用 kit 契约；无 canon 契约时 `start` 返回 `canon-required` / `canon-not-ready`。
+- **硬预算**：四段 `clip` 按预算截断（不再 2 倍），返回 `truncated`；文风段优先用 kit `StyleProfile`，≤600 字。
+- **文风决策**：`planChapter` 返回 `styleHint`；提案选项可带 `styleFit/styleWhy`，插件做轻量规则标注；`novel_plan` 只允许 propose，模型不能再 adopt/reject。
+- **P0 修复**：remote 写操作检查 master、`decide`/`memoryAction` 严格枚举、接管记录持久化且无记录不默认恢复全部五件、快照绑定统一走 `resolveBinding`、native 工具输出补四段上下文。
+- 测试 **139/139**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
 
 ## 0.1.14 — 2026-11-22
 
@@ -237,3 +249,5 @@ S0 只读层：只装 kit 也能读懂已有五本账，且绝不改文件。
 - npm 名字与 GitHub 仓库占位：只注册包名、声明 bundle 入口，不挂工具、面板或命令。
 - 目的：市场 PR 要求仓库满 1 天；先建仓，`0.1.0` 发布后即可提 PR。
 - 方案见 `docs/小说插件系列-dsh-novel-kit-整合包设计方案-2026-11-21.md`。
+
+

@@ -5,6 +5,13 @@ import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from
 import os from 'node:os'
 import path from 'node:path'
 import { startChapter, writeChapter, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal, chapterHistory } from '../lib/engine/chapter.js'
+import { writeProjectSettings } from '../lib/engine/settings.js'
+import { worldContractFile } from '../lib/engine/canon.js'
+import { writeJsonAtomic } from '../lib/storage/atomic-json.js'
+
+async function fanficMode(root, book = '书') {
+  await writeProjectSettings(root, book, { mode: 'fanfic' })
+}
 
 function workspace({ withFade = true } = {}) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'kit-chapter-'))
@@ -182,6 +189,7 @@ test('start：四本账齐备时四段上下文都可用（beat/fanfic/fade/voic
     exports: { schemaVersion: 1, revision: 7, forbidden: [], addresses: [{ from: 'A', to: 'B', form: 'B哥', fromChapter: 'ch001' }] },
   }, null, 2))
 
+  await fanficMode(root)
   const started = await startChapter({ root, book: '书', chapter: 13, requiredCapabilities: ['beat', 'fade', 'voice', 'fanfic'] })
   assert.equal(started.ok, true)
   const available = Object.fromEntries(started.context.segments.map((segment) => [segment.component, segment.available]))
@@ -201,6 +209,7 @@ test('finish：fanfic 禁忌词命中时 verify-failed，不落账', async () =>
     exports: { schemaVersion: 1, revision: 7, forbidden: ['手机'], addresses: [] },
   }, null, 2))
 
+  await fanficMode(root)
   const { session } = await startChapter({ root, book: '书', chapter: 13 })
   const badDraft = '陈凡掏出手机看了眼时间。'
   await writeChapter({ root, sessionId: session.id, text: badDraft })
@@ -276,6 +285,7 @@ test('finish：正文连续 20 字与原著证据相同 → verify-failed（copy
     { id: 'f1', evidence: [{ chapter: 'ch001', quote }] },
   ], null, 2))
 
+  await fanficMode(root)
   const { session } = await startChapter({ root, book: '书', chapter: 13 })
   const copied = '那一夜，' + quote.slice(0, 22) + '。'
   await writeChapter({ root, sessionId: session.id, text: copied })
@@ -365,6 +375,7 @@ test('非 strict：同样的稿子会被同人检查拦住', async () => {
     exports: { schemaVersion: 1, revision: 7, forbidden: ['手机'], addresses: [] },
   }, null, 2))
 
+  await fanficMode(root)
   const { session } = await startChapter({ root, book: '书', chapter: 13 })
   await writeChapter({ root, sessionId: session.id, text: '陈凡掏出手机看了一眼时间。' })
   const done = await finishChapter({ root, sessionId: session.id, extraction: { segments: [{ quote: '陈凡掏出手机' }] } })
@@ -462,6 +473,179 @@ test('损坏的 beat 账本报 ledger-corrupt，而不是「缺少能力」', as
     () => startChapter({ root, book: '书', chapter: 13 }),
     /ledger-corrupt/,
   )
+})
+
+test('planChapter：文风档案给决策提示与候选标注，但不替作者选', async () => {
+  const root = workspace()
+  const profileId = 'sty_aaaaaaaaaaaaaaaa'
+  const styleDir = path.join(root, '.dsh-novel-kit', 'styles')
+  mkdirSync(styleDir, { recursive: true })
+  writeFileSync(path.join(styleDir, `${profileId}.json`), JSON.stringify({
+    schemaVersion: 1,
+    id: profileId,
+    name: '克制样本',
+    version: 1,
+    status: 'provisional',
+    sourceRef: { kind: 'style', sourceId: 'a'.repeat(64), sha256: 'a'.repeat(64) },
+    identity: { summary: '冷叙述', keywords: [], avoid: ['手机'] },
+    bands: {},
+    rules: [{ id: 'r1', text: '关键事实延迟揭示' }],
+    anchors: [],
+    decisionPolicy: { restraint: 'high', revealPace: 'slow' },
+    revision: 1,
+  }, null, 2))
+  await writeProjectSettings(root, '书', { activeStyleProfileIds: [profileId] })
+
+  const planned = await planChapter({
+    root, book: '书', chapter: 14, intent: '重逢',
+    proposals: [{
+      id: 'p1', title: '要不要现在说破',
+      options: [
+        { label: '直接说破', impact: '公开秘密' },
+        { label: '沉默，留白', impact: '旁敲侧击' },
+      ],
+    }],
+  })
+  assert.equal(planned.ok, true)
+  assert.match(planned.styleHint, /克制=high/)
+  const options = planned.session.plan.proposals[0].options
+  assert.equal(options[0].styleFit, 'low')
+  assert.match(options[0].styleWhy, /揭示太快/)
+  assert.equal(options[1].styleFit, 'high')
+  assert.match(options[1].styleWhy, /克制/)
+})
+
+test('startChapter：kit 文风档案进入文风段，且仍受 600 字预算', async () => {  const root = workspace()
+  const profileId = 'sty_bbbbbbbbbbbbbbbb'
+  const styleDir = path.join(root, '.dsh-novel-kit', 'styles')
+  mkdirSync(styleDir, { recursive: true })
+  writeFileSync(path.join(styleDir, `${profileId}.json`), JSON.stringify({
+    schemaVersion: 1,
+    id: profileId,
+    name: '样本',
+    version: 1,
+    status: 'provisional',
+    sourceRef: { kind: 'style', sourceId: 'b'.repeat(64), sha256: 'b'.repeat(64) },
+    identity: { summary: '冷叙述，少解释。', keywords: [], avoid: [] },
+    bands: { sentenceMean: { band: [14, 22], n: 10 } },
+    rules: [{ id: 'r1', text: '关键事实延迟揭示' }],
+    anchors: [],
+    decisionPolicy: { revealPace: 'slow' },
+    revision: 1,
+  }, null, 2))
+  await writeProjectSettings(root, '书', { activeStyleProfileIds: [profileId] })
+
+  const started = await startChapter({ root, book: '书', chapter: 15 })
+  assert.equal(started.ok, true)
+  const voice = started.context.segments.find((segment) => segment.component === 'voice')
+  assert.equal(voice.source, 'kit-style')
+  assert.equal(voice.available, true)
+  assert.match(voice.markdown, /关键事实延迟揭示/)
+  assert.ok(voice.chars <= 600)
+})
+
+test('同人模式：kit canon 契约进入世界段；无契约拒绝开写', async () => {
+  const root = workspace()
+  const sourceId = 'c'.repeat(64)
+  await writeProjectSettings(root, '书', { mode: 'fanfic', activeCanonSourceId: sourceId })
+
+  const blocked = await startChapter({ root, book: '书', chapter: 16 })
+  assert.equal(blocked.ok, false)
+  assert.equal(blocked.code, 'canon-not-ready')
+
+  await writeJsonAtomic(worldContractFile(root, '书', sourceId), {
+    schemaVersion: 1,
+    book: '书',
+    sourceId,
+    title: '原著',
+    status: 'confirmed',
+    facts: [{ id: 'f1', entity: '唐昊', key: '身份', value: '封号斗罗' }],
+    characters: [{ name: '唐昊', role: '父亲' }, { name: '陈凡', aliases: ['小凡'] }],
+    relationships: [],
+    addresses: [{ from: '唐昊', to: '陈凡', form: '小凡', fromChapter: 'ch001' }],
+    secrets: [{ id: 's1', what: '唐昊的真实身份', publicAtChapter: 20 }],
+    worldRules: ['封港后不能点灯'],
+    timeline: [],
+    forbidden: ['手机'],
+    revision: 1,
+  }, { ensureDir: true })
+
+  const started = await startChapter({ root, book: '书', chapter: 16 })
+  assert.equal(started.ok, true)
+  const fan = started.context.segments.find((segment) => segment.component === 'fanfic')
+  assert.equal(fan.available, true)
+  assert.match(fan.markdown, /世界规则/)
+  assert.match(fan.markdown, /封港后不能点灯/)
+  assert.match(fan.markdown, /唐昊/)
+  assert.match(fan.markdown, /封号斗罗/)
+  assert.match(fan.markdown, /小凡/)
+})
+
+test('同人模式：空 legacy 项目目录不算 canon 就绪', async () => {
+  const root = workspace()
+  mkdirSync(path.join(root, '.dsh-novel-fanfic', 'empty'), { recursive: true })
+  await writeProjectSettings(root, '书', { mode: 'fanfic' })
+  const started = await startChapter({ root, book: '书', chapter: 18 })
+  assert.equal(started.ok, false)
+  assert.equal(started.code, 'canon-required')
+})
+
+test('原创模式：旧同人证据不参与 finish 检查', async () => {
+  const root = workspace()
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(path.join(ficDir, 'canon'), { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', title: '原著', sourceId: 'src_1', revision: 7, schemaVersion: 1,
+    exports: { schemaVersion: 1, revision: 7, forbidden: ['手机'], addresses: [] },
+  }, null, 2))
+  const quote = '他偷去了唐门内门的秘籍之后，跳崖明志，重生于此界。'
+  writeFileSync(path.join(ficDir, 'canon', 'facts.json'), JSON.stringify([{ id: 'f1', evidence: [{ chapter: 'ch001', quote }] }], null, 2))
+
+  const { session } = await startChapter({ root, book: '书', chapter: 19 })
+  await writeChapter({ root, sessionId: session.id, text: '陈凡推门进来。屋里没有别人，手机也不在。' })
+  const done = await finishChapter({ root, sessionId: session.id, extraction: { segments: [{ quote: '陈凡推门进来' }] } })
+  assert.equal(done.ok, true, '原创模式不因旧同人禁忌/复制/名字被拦')
+})
+
+test('作者拍板不能被 write 绕过：有 pending 提案时 finish 拒绝', async () => {
+  const root = workspace()
+  const planned = await planChapter({
+    root, book: '书', chapter: 17,
+    proposals: [{ id: 'p1', title: '谁去', options: [{ label: '夜行', impact: '紧张' }] }],
+  })
+  const sessionId = planned.session.id
+  await writeChapter({ root, sessionId, text: '陈凡推门进来，屋里没有别人。' })
+  const blocked = await finishChapter({ root, sessionId, extraction: { segments: [{ quote: '陈凡推门进来' }] } })
+  assert.equal(blocked.ok, false)
+  assert.equal(blocked.code, 'awaiting_author')
+  assert.equal(blocked.session.state, 'awaiting_author')
+
+  await decideProposal({ root, sessionId, proposalId: 'p1', action: 'adopt', option: '夜行' })
+  await startChapter({ root, book: '书', chapter: 17 })
+  const done = await finishChapter({ root, sessionId, extraction: { segments: [{ quote: '陈凡推门进来' }] } })
+  assert.equal(done.ok, true)
+  assert.equal(done.session.state, 'completed')
+})
+
+test('resume：同人切回原创后不再返回旧 canon 上下文', async () => {
+  const root = workspace()
+  const ficDir = path.join(root, '.dsh-novel-fanfic', 'douluo')
+  mkdirSync(ficDir, { recursive: true })
+  writeFileSync(path.join(ficDir, 'project.json'), JSON.stringify({
+    id: 'douluo', title: '原著', sourceId: 'src_1', revision: 7, schemaVersion: 1,
+    exports: { schemaVersion: 1, revision: 7, forbidden: [], addresses: [{ from: 'A', to: 'B', form: 'B哥', fromChapter: 'ch001' }] },
+  }, null, 2))
+  await fanficMode(root)
+  const started = await startChapter({ root, book: '书', chapter: 20 })
+  assert.equal(started.ok, true)
+  assert.equal(started.session.mode, 'fanfic')
+
+  await writeProjectSettings(root, '书', { mode: 'original' })
+  const resumed = await resumeChapter({ root, sessionId: started.session.id })
+  assert.equal(resumed.ok, true)
+  assert.equal(resumed.session.mode, 'original')
+  const fan = resumed.session.context.segments.find((segment) => segment.component === 'fanfic')
+  assert.equal(fan.available, false)
 })
 
 test('chapterHistory：两章收尾后按章号倒序列出，带字数与状态', async () => {

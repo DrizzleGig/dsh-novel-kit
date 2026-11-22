@@ -5,7 +5,7 @@
 import { cp, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { planChapter, startChapter, writeChapter, finishChapter, queryChapter } from '../lib/engine/chapter.js'
+import { planChapter, decideProposal, startChapter, writeChapter, finishChapter, queryChapter } from '../lib/engine/chapter.js'
 import { collectSnapshot } from '../lib/host/snapshot.js'
 
 const source = process.argv[2] ?? 'D:\\斗罗大陆'
@@ -33,6 +33,8 @@ check('读真实 beat 账本', true, 'chapters=' + (Array.isArray(beatRaw.chapte
 
 const planned = await planChapter({ root, book, chapter, intent: '真实数据验收章', proposals: [{ id: 'p1', title: '验收拍板', options: [{ label: '照写', impact: '无' }] }] })
 check('plan 成功', planned.ok !== false, 'session=' + planned.session?.id)
+const adopted = await decideProposal({ root, sessionId: planned.session.id, proposalId: 'p1', action: 'adopt', option: '照写' })
+check('作者 adopt 后才继续', adopted.written === true, 'decision=' + (adopted.decision?.id ?? '-'))
 
 const started = await startChapter({ root, book, chapter, requiredCapabilities: ['beat', 'fade'] })
 if (!started.ok) console.log('start 失败：' + started.code + ' ' + (started.message ?? ''))

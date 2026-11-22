@@ -12,6 +12,7 @@ import { collectSnapshot } from '../lib/host/snapshot.js'
 import { updateMemoryCard } from '../lib/engine/memory.js'
 import { importSource } from '../lib/engine/import.js'
 import { collectConflicts } from '../lib/engine/conflicts.js'
+import { writeProjectSettings } from '../lib/engine/settings.js'
 
 const results = []
 const check = (name, ok, detail = '') => {
@@ -55,6 +56,7 @@ function workspace() {
 
 const root = workspace()
 const book = '书'
+await writeProjectSettings(root, book, { mode: 'fanfic' })
 
 // 1) 计划与拍板
 const planned = await planChapter({

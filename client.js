@@ -40,6 +40,13 @@ window.__ModuleLoader__.load({
         { method: 'listSourceFiles', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'takeover', parameters: [param('sessionId', sessionIdSchema)] },
         { method: 'restore', parameters: [param('sessionId', sessionIdSchema)] },
+        { method: 'getSettings', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'setMaster', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'setMode', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'importStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'importCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'listSources', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'listStyleProfiles', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
       ].map(({ method, parameters }) => ({
         id: 'dsh-novel-kit#novelKitPanel/' + method,
         namespace: 'novelKitPanel',
@@ -80,6 +87,7 @@ window.__ModuleLoader__.load({
       const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
       const [pendingTakeover, setPendingTakeover] = React.useState(false)
+      const [pendingCanon, setPendingCanon] = React.useState(false)
       const [action, setAction] = React.useState({ phase: 'idle', message: '' })
       const [tab, setTab] = React.useState('overview')
       const [tabData, setTabData] = React.useState({})
@@ -107,7 +115,7 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, book, state.data])
 
-      const runDecide = React.useCallback(async function (proposalId, option) {
+      const runDecide = React.useCallback(async function (proposalId, option, action = 'adopt') {
         const chapterSessionId = state.data && state.data.session ? state.data.session.id : null
         if (!chapterSessionId) {
           setAction({ phase: 'error', message: '没有活动章节会话，无法写拍板账' })
@@ -116,31 +124,19 @@ window.__ModuleLoader__.load({
         setPendingDecision(null)
         setAction({ phase: 'busy', message: '' })
         try {
-          const result = await Promise.resolve(remote.decide(sessionId, { chapterSessionId, proposalId, action: 'adopt', option })).then(unwrap)
-          setAction({ phase: 'done', message: result.written ? '已写进拍板账' : (result.idempotent ? '这条已经拍过了' : '未写入') })
+          const result = await Promise.resolve(remote.decide(sessionId, { chapterSessionId, proposalId, action, option })).then(unwrap)
+          setAction({
+            phase: 'done',
+            message: action === 'reject'
+              ? (result.idempotent ? '这条已经处理过' : '已拒绝这个提案')
+              : (result.written ? '已记录选择（设定生效以对应账本为准）' : (result.idempotent ? '这条已经拍过了' : '未写入')),
+          })
           setTabData((prev) => { const next = { ...prev }; delete next.decisions; return next })
           await openTab('decisions')
         } catch (error) {
           setAction({ phase: 'error', message: String(error?.message ?? error) })
         }
       }, [remote, sessionId, state.data, openTab])
-
-      const runImport = React.useCallback(async function () {
-        const target = importPath.trim()
-        const activeBook = book || (state.data && state.data.book) || null
-        const project = (state.data && state.data.workspace && state.data.workspace.fanfic && state.data.workspace.fanfic[0]) || activeBook
-        if (!target) { setAction({ phase: 'error', message: '先填原著 txt 的绝对路径' }); return }
-        if (!project) { setAction({ phase: 'error', message: '没有同人项目' }); return }
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(remote.importSource(sessionId, { project, file: target })).then(unwrap)
-          setAction({ phase: 'done', message: result.idempotent ? '这本书已经导入过（' + result.sourceId + '）' : '已导入 ' + result.chapters + ' 章（' + result.sourceId + '）' })
-          setTabData((prev) => { const next = { ...prev }; delete next.canon; return next })
-          await openTab('canon')
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, book, state.data, importPath, openTab])
 
       const runSearch = React.useCallback(async function () {
         const term = query.trim()
@@ -189,7 +185,9 @@ window.__ModuleLoader__.load({
             h('div', { style: faint }, '第 ' + value.chapter + ' 章 · 已拍板 ' + value.committed.length + ' · 待拍板 ' + value.pendingCount + ' · 未回收义务 ' + value.openObligations),
             value.intent ? h('div', { style: small }, '意图：' + value.intent) : null,
             value.proposals.length
-              ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '待拍板'),
+              ? h('div', { style: { marginTop: 4 } },
+                  value.styleHint ? h('div', { style: { ...faint, marginBottom: 3 } }, value.styleHint) : null,
+                  h('div', { style: faint }, '待拍板'),
                   value.proposals.map((item) => h('div', { key: item.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
                     h('div', { style: small }, item.title || item.id),
                     item.options.length
@@ -197,20 +195,26 @@ window.__ModuleLoader__.load({
                           item.options.map((option, index) => h('button', {
                             key: index,
                             type: 'button',
-                            onClick: function () { setPendingDecision({ proposalId: item.id, option: option.label }) },
+                            onClick: function () { setPendingDecision({ proposalId: item.id, option: option.label, action: 'adopt' }) },
                             style: {
                               appearance: 'none', border: '1px solid ' + (pendingDecision && pendingDecision.proposalId === item.id && pendingDecision.option === option.label ? c.brand : c.border),
                               background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
                             },
                           }, option.label)))
                       : null,
-                    item.options.map((option, index) => h('div', { key: 'i' + index, style: { color: c.faint, fontSize: 11 } }, '· ' + option.label + (option.impact ? '：' + option.impact : ''))),
+                    item.options.map((option, index) => h('div', { key: 'i' + index, style: { color: c.faint, fontSize: 11 } },
+                      '· ' + option.label + (option.impact ? '：' + option.impact : '') + (option.styleFit ? ' · 文风 ' + option.styleFit + (option.styleWhy ? '（' + option.styleWhy + '）' : '') : ''))),
+                    h('button', {
+                      type: 'button',
+                      onClick: function () { setPendingDecision({ proposalId: item.id, option: '', action: 'reject' }) },
+                      style: { appearance: 'none', border: 'none', background: 'transparent', color: c.faint, padding: 0, marginTop: 2, fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' },
+                    }, '拒绝这个提案'),
                     pendingDecision && pendingDecision.proposalId === item.id
                       ? h('div', { style: { display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' } },
-                          h('span', { style: { color: c.faint, fontSize: 11 } }, '确认把「' + pendingDecision.option + '」写进拍板账？'),
+                          h('span', { style: { color: c.faint, fontSize: 11 } }, pendingDecision.action === 'reject' ? '确认拒绝这个提案？' : '确认记录「' + pendingDecision.option + '」？'),
                           h('button', {
                             type: 'button',
-                            onClick: function () { runDecide(item.id, pendingDecision.option) },
+                            onClick: function () { runDecide(item.id, pendingDecision.option, pendingDecision.action) },
                             style: { appearance: 'none', border: '1px solid ' + c.brand, background: 'transparent', color: c.text, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
                           }, '确认'),
                           h('button', {
@@ -291,6 +295,17 @@ window.__ModuleLoader__.load({
                     item.avoid && item.avoid.length ? h('div', { style: { color: c.faint, fontSize: 11 } }, '避免：' + item.avoid.join('、')) : null,
                   )))
               : null,
+            value.kitProfiles && value.kitProfiles.length
+              ? h('div', { style: { marginTop: 8 } },
+                  h('div', { style: faint }, '导入的文风档案（kit）'),
+                  value.kitProfiles.map((item) => h('div', { key: item.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
+                    h('div', { style: small }, (item.name || item.id) + ' · ' + item.status),
+                    h('div', { style: { color: c.faint, fontSize: 11 } },
+                      Object.entries(item.bands || {}).map(([key, spec]) => {
+                        const band = Array.isArray(spec) ? spec : spec && Array.isArray(spec.band) ? spec.band : null
+                        return band ? key + ' ' + band[0] + '–' + band[1] : null
+                      }).filter(Boolean).join('；') || '（无 bands）'))))
+              : null,
             h('div', { style: { ...faint, marginTop: 6 } }, `${value.works.length} 部 · ${value.chapters} 章 · ${value.chars} 字`),
             value.works.map((work) => h('div', { key: work.workId, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
               h('div', { style: small }, work.title || work.workId),
@@ -299,19 +314,7 @@ window.__ModuleLoader__.load({
         }
         if (!value.available) return h('div', { style: faint }, '没有同人项目')
         return h('div', null,
-          h('div', { style: { display: 'flex', gap: 6, marginBottom: 4 } },
-            h('input', {
-              value: importPath,
-              placeholder: '原著 txt 的绝对路径（UTF-8）',
-              onChange: function (event) { setImportPath(event.target.value) },
-              style: { flex: 1, minWidth: 0, fontSize: 11, padding: '2px 6px', borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text, fontFamily: 'inherit' },
-            }),
-            h('button', {
-              type: 'button',
-              onClick: function () { runImport() },
-              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
-            }, '导入'),
-          ),
+          h('div', { style: faint }, '同人原著请用上方「写同人」导入；这里展示已绑定的契约。'),
           h('div', { style: faint }, `${value.title || value.id} · 原著 ${value.sourceId || '-'} · rev ${value.revision}`),
           value.forbidden.length
             ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '禁忌'), value.forbidden.map((text, index) => h('div', { key: index, style: small }, '- ' + text)))
@@ -359,9 +362,15 @@ window.__ModuleLoader__.load({
         setAction({ phase: 'busy', message: '' })
         try {
           const result = await Promise.resolve(takeover ? remote.takeover(sessionId) : remote.restore(sessionId)).then(unwrap)
-          const failed = (result?.results ?? []).filter((item) => !item.ok)
+          const results = Array.isArray(result?.results) ? result.results : []
+          const failed = results.filter((item) => !item.ok)
+          if (result?.ok === false && results.length === 0) {
+            setAction({ phase: 'error', message: result.message || result.code || '操作失败' })
+            await load()
+            return
+          }
           setAction({
-            phase: 'done',
+            phase: failed.length ? 'error' : 'done',
             message: failed.length
               ? '部分失败：' + failed.map((item) => item.name + '（' + (item.application ?? '?') + '）').join('、')
               : (takeover ? '已停用旧五件，由 kit 接管' : '已恢复旧五件'),
@@ -371,6 +380,64 @@ window.__ModuleLoader__.load({
           setAction({ phase: 'error', message: String(error?.message ?? error) })
         }
       }, [remote, sessionId, load])
+
+      const runMaster = React.useCallback(async function () {
+        if (!remote) return
+        const next = !(state.data && state.data.master)
+        setAction({ phase: 'busy', message: '' })
+        try {
+          await Promise.resolve(remote.setMaster(sessionId, { master: next })).then(unwrap)
+          setAction({ phase: 'done', message: next ? '小说能力总开关已开；本会话仍要 /novel on。' : '小说能力总开关已关：所有会话的 novel_* 工具都会消失。' })
+          await load()
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, state.data, load])
+
+      const runMode = React.useCallback(async function (mode) {
+        if (!remote) return
+        const activeBook = book || (state.data && state.data.book) || null
+        if (!activeBook) { setAction({ phase: 'error', message: '先选一本书，再切项目模式' }); return }
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = await Promise.resolve(remote.setMode(sessionId, { book: activeBook, mode })).then(unwrap)
+          const next = result?.settings?.mode ?? mode
+          setAction({ phase: 'done', message: next === 'fanfic' ? '已切到同人模式；还需要绑定同人原著才能开写。' : '已切回原创模式；同人数据保留但不再注入。' })
+          await load()
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, book, state.data, load])
+
+      const runImportKind = React.useCallback(async function (kind, confirmed = false) {
+        if (!remote) return
+        const target = importPath.trim()
+        const activeBook = book || (state.data && state.data.book) || null
+        if (!target) { setAction({ phase: 'error', message: '先填作品 txt 的绝对路径' }); return }
+        if (!activeBook) { setAction({ phase: 'error', message: '先选一本书' }); return }
+        if (kind === 'canon' && !confirmed) {
+          setPendingCanon(true)
+          return
+        }
+        setPendingCanon(false)
+        setAction({ phase: 'busy', message: '' })
+        try {
+          const result = kind === 'style'
+            ? await Promise.resolve(remote.importStyle(sessionId, { book: activeBook, file: target })).then(unwrap)
+            : await Promise.resolve(remote.importCanon(sessionId, { book: activeBook, file: target, confirmMode: true })).then(unwrap)
+          if (kind === 'style') {
+            setAction({ phase: 'done', message: '已生成文风档案：' + (result.profileId ?? '') + '（provisional）' })
+            setTabData((prev) => { const next = { ...prev }; delete next.style; return next })
+            await openTab('style')
+          } else {
+            setAction({ phase: 'done', message: '原著已绑定；世界契约待抽取，同人开写会被拦住。' })
+            setTabData((prev) => { const next = { ...prev }; delete next.canon; return next })
+            await openTab('canon')
+          }
+        } catch (error) {
+          setAction({ phase: 'error', message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, book, state.data, importPath, openTab])
 
       React.useEffect(function () { load() }, [load])
 
@@ -405,6 +472,49 @@ window.__ModuleLoader__.load({
         state.error ? h('div', { style: { color: c.error, fontSize: 12 } }, state.error) : null,
 
         data ? h('div', null,
+          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px', display: 'flex', flexDirection: 'column', gap: 7 } },
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+              h('span', { style: small }, '总开关'),
+              h('span', { style: { color: data.master ? c.success : c.faint, fontSize: 11.5 } }, data.master ? '开' : '关'),
+              h('button', {
+                type: 'button',
+                onClick: function () { runMaster() },
+                style: { marginLeft: 'auto', appearance: 'none', border: '1px solid ' + (data.master ? c.border : c.brand), background: 'transparent', color: data.master ? c.sub : c.text, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
+              }, data.master ? '关闭' : '启用')),
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+              h('span', { style: small }, '项目模式'),
+              ['original', 'fanfic'].map(function (mode) {
+                const active = ((data.settings && data.settings.mode) || 'original') === mode
+                return h('button', {
+                  key: mode,
+                  type: 'button',
+                  onClick: function () { runMode(mode) },
+                  style: {
+                    appearance: 'none', border: '1px solid ' + (active ? c.brand : c.border), background: active ? c.layer : 'transparent',
+                    color: active ? c.text : c.sub, borderRadius: 999, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+                  },
+                }, mode === 'fanfic' ? '同人' : '原创')
+              }),
+              !(data.settings && data.settings.activeCanonSourceId)
+                ? h('span', { style: { ...faint, marginLeft: 'auto', fontSize: 10 } }, (data.settings && data.settings.mode) === 'fanfic' ? '待绑定原著' : '')
+                : null),
+          ),
+          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px', display: 'flex', flexDirection: 'column', gap: 6 } },
+            h('div', { style: faint }, '导入作品：两个入口'),
+            h('input', {
+              value: importPath,
+              placeholder: '作品 txt 的绝对路径（UTF-8）',
+              onChange: function (event) { setImportPath(event.target.value) },
+              style: { width: '100%', boxSizing: 'border-box', fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text, fontFamily: 'inherit' },
+            }),
+            pendingCanon
+              ? h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
+                  h('span', { style: { color: c.faint, fontSize: 10.5 } }, '这会切到同人模式并绑定世界观；确认？'),
+                  h('button', { type: 'button', onClick: function () { runImportKind('canon', true) }, style: { appearance: 'none', border: '1px solid ' + c.brand, background: 'transparent', color: c.text, borderRadius: 6, padding: '1px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '确认导入'),
+                  h('button', { type: 'button', onClick: function () { setPendingCanon(false) }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '取消'))
+              : h('div', { style: { display: 'flex', gap: 6 } },
+                  h('button', { type: 'button', onClick: function () { runImportKind('style') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '学文笔'),
+                  h('button', { type: 'button', onClick: function () { runImportKind('canon') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '写同人'))),
           h('div', { style: row },
             h('span', { style: small }, '开关'),
             h('span', { style: { color: data.driving ? c.success : c.faint } }, data.driving ? '本会话：开' : '本会话：关（/novel on）'),
