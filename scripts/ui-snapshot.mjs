@@ -300,8 +300,9 @@ const remote = new Proxy({}, {
     if (typeof real[prop] !== 'function') { missing.push(prop); return undefined }
     return async (...args) => {
       try {
-        // 真实宿主会按绑定/当前书解析 book；快照里没有会话上下文，这里补上默认书。
-        if (prop === 'getSnapshot' || prop === 'getPlan' || prop === 'getStyle' || prop === 'getCanon' || prop === 'getMemory' || prop === 'getDecisions') {
+        // 真实宿主会按绑定/当前书解析 book；快照默认补上默认书。
+        // NK_AUTOBOOK=1 时不补，用来验证客户端自己的「自动选书」是否真的生效。
+        if (process.env.NK_AUTOBOOK !== '1' && (prop === 'getSnapshot' || prop === 'getPlan' || prop === 'getStyle' || prop === 'getCanon' || prop === 'getMemory' || prop === 'getDecisions')) {
           const request = { ...(args[1] || {}) }
           if (!request.book) request.book = BOOK
           args[1] = request

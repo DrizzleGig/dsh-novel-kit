@@ -1738,6 +1738,25 @@ window.__ModuleLoader__.load({
       ]
 
       const pageView = section === 'chapter' ? h('div', { style: { display: 'flex', gap: 0, flex: 1, minHeight: 0 } },
+          h('div', { style: { width: 200, flexShrink: 0, borderRight: '1px solid ' + c.border, padding: '14px 10px', overflowY: 'auto' } },
+            h('div', { className: 'nk-card-title', style: { padding: '0 4px 8px' } }, '章节'),
+            ((data && data.history && Array.isArray(data.history.chapters)) ? data.history.chapters : []).length
+              ? ((data && data.history && Array.isArray(data.history.chapters)) ? data.history.chapters : []).map(function (item) {
+                  const active = session && Number(item.chapter) === Number(session.chapter)
+                  return h('button', {
+                    key: item.chapter, type: 'button',
+                    className: 'nk-rowbtn' + (active ? ' active' : ''),
+                    style: { borderRadius: 8, borderBottom: 0, padding: '8px 10px' },
+                    onClick: function () { startChapterFromDesk(data && data.book, Number(item.chapter)) },
+                  },
+                  h('span', { className: 'nk-rowbtn-title' }, '第 ' + item.chapter + ' 章'),
+                  h('span', { className: 'nk-meta' }, item.chars ? item.chars + ' 字' : ''))
+                })
+              : h('div', { className: 'nk-tiny', style: { padding: '4px' } }, '还没有章节。'),
+            h('button', {
+              type: 'button', className: 'nk-btn', style: { width: '100%', marginTop: 8 },
+              onClick: function () { setSection('desk') },
+            }, '回书桌开新章')),
           h('div', { style: { flex: 1, minWidth: 0, padding: '10px 14px', display: 'flex', flexDirection: 'column', minHeight: 0 } },
             pageHead('正文', '这一章的完整草稿；保存后先前的检查结果作废，检查通过再收尾。'),
             h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 } },
