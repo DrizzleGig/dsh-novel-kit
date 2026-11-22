@@ -1104,6 +1104,8 @@ window.__ModuleLoader__.load({
 
       function deskView() {
         const chapters = (data && data.history && Array.isArray(data.history.chapters)) ? data.history.chapters : []
+        const recentChapters = chapters.slice(-8)
+        const maxChapterChars = recentChapters.reduce(function (max, item) { return Math.max(max, Number(item.chars) || 0) }, 1)
         const contexts = (data && data.contexts) || []
         const ledgers = (data && data.ledgers) || {}
         const operations = (data && data.operations && Array.isArray(data.operations.items)) ? data.operations.items : []
@@ -1220,7 +1222,22 @@ window.__ModuleLoader__.load({
                     h('div', { className: 'nk-kv' },
                       h('span', { className: 'nk-kv-key' }, 'warning'),
                       h('span', { className: 'nk-kv-val', style: { color: session.verification.warnings ? c.warning : c.sub } }, String(session.verification.warnings))))
-                : null))
+                : null,
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '章节字数'),
+                  h('span', { className: 'nk-meta' }, chapters.length ? '最近 ' + Math.min(8, chapters.length) + ' 章' : '还没有章节')),
+                chapters.length === 0
+                  ? h('div', { className: 'nk-tiny' }, '写完并收尾后，这里按章显示字数。')
+                  : h('div', { style: { display: 'flex', alignItems: 'flex-end', gap: 5, height: 64, marginTop: 4 } }, recentChapters.map(function (item, index) {
+                      const value = Number(item.chars) || 0
+                      const height = Math.max(4, Math.round(value / maxChapterChars * 56))
+                      return h('div', {
+                        key: index,
+                        title: '第 ' + item.chapter + ' 章 · ' + fmtNum(value) + ' 字',
+                        style: { width: 18, flexShrink: 0, height: height, borderRadius: 3, background: value ? 'color-mix(in srgb, var(--nk-accent) 62%, transparent)' : 'var(--nk-line-soft)' },
+                      })
+                    })))))
         )
       }
 
@@ -1364,7 +1381,18 @@ window.__ModuleLoader__.load({
                         h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter || 0).padStart(2, '0') + (item.dueChapter ? ' → 第 ' + item.dueChapter + ' 章' : '')),
                         h('span', { className: 'nk-kv-val' }, item.text || ''))
                     })
-                  : inlineEmpty('没有挂着的线索。')))))
+                  : inlineEmpty('没有挂着的线索。')),
+              h('section', { className: 'nk-card flush' },
+                h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
+                  h('div', { className: 'nk-card-title' }, '全书拍板'),
+                  h('span', { className: 'nk-meta' }, (((view && view.timeline) || []).length) + ' 条')),
+                ((view && view.timeline) || []).length
+                  ? ((view && view.timeline) || []).slice(0, 8).map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv', style: { padding: '8px 14px' } },
+                        h('span', { className: 'nk-kv-key', style: { flexShrink: 0 } }, 'CH.' + String(item.chapter || 0).padStart(2, '0')),
+                        h('span', { className: 'nk-kv-val', style: { maxWidth: '62%' } }, item.title || item.option || ''))
+                    })
+                  : inlineEmpty('还没有跨章记录。')))))
       }
 
       // ── 记忆页：卡库 / 检索 / 人物 / 线索 / 卡片详情 ───────────────────────
@@ -1380,6 +1408,15 @@ window.__ModuleLoader__.load({
         for (const card of cards) chapterMap.set(card.chapter, (chapterMap.get(card.chapter) || 0) + 1)
         const chapterCounts = Array.from(chapterMap.entries()).sort(function (a, b) { return a[0] - b[0] }).map(function (entry) { return { chapter: entry[0], count: entry[1] } })
         const maxChapterCount = chapterCounts.reduce(function (max, item) { return Math.max(max, item.count) }, 1)
+        const layerMap = new Map()
+        for (const card of cards) layerMap.set(card.layer || 'L2', (layerMap.get(card.layer || 'L2') || 0) + 1)
+        const layerMax = Array.from(layerMap.values()).reduce(function (max, value) { return Math.max(max, value) }, 1)
+        const layerRows = Array.from(layerMap.entries()).sort().map(function (entry) {
+          return h('div', { key: entry[0], className: 'nk-band' },
+            h('span', null, entry[0]),
+            h('div', { className: 'nk-band-track' }, h('div', { className: 'nk-band-fill', style: { left: 0, width: Math.max(4, Math.round(entry[1] / layerMax * 100)) + '%' } })),
+            h('span', { className: 'nk-band-val' }, String(entry[1])))
+        })
 
         const cardRow = function (item) {
           const active = item.id === memoryOpen
@@ -1470,6 +1507,13 @@ window.__ModuleLoader__.load({
                         h('span', { className: 'nk-band-val' }, String(item.count)))
                     })
                   : inlineEmpty('还没有卡片分布。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '记忆分层'),
+                  h('span', { className: 'nk-meta' }, 'L0 最硬')),
+                layerRows.length
+                  ? layerRows
+                  : inlineEmpty('还没有卡片。')),
               h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '人物')),
                 entities.length
@@ -1766,6 +1810,13 @@ window.__ModuleLoader__.load({
              kv('状态', canon.canonReady ? '已确认' : (canon.contractStatus || '待抽取'))]
           : [inlineEmpty('还没有绑定原著；去「同人」页导入。')]
 
+        const issues = (data && Array.isArray(data.issues)) ? data.issues : []
+        const issueRows = issues.length
+          ? issues.slice(0, 8).map(function (issue, index) {
+              return kv((issue.component || '?') + ' · ' + (issue.code || 'issue'), issue.message || '', c.warning)
+            })
+          : [inlineEmpty('账本读得完，没有诊断问题。')]
+
         const left = [
           workSettingsCard(),
           block('来源库', sources.length + ' 份', sourceRows),
@@ -1775,6 +1826,7 @@ window.__ModuleLoader__.load({
         const right = [
           block('文风档案', profiles.length + ' 份', profileRows),
           block('同人 canon', canon.available ? (canon.canonReady ? '已确认' : (canon.contractStatus || '待抽取')) : '未绑定', canonRows),
+          block('诊断', issues.length ? issues.length + ' 个问题' : '正常', issueRows),
         ]
 
         return h('div', { className: 'nk-wb-body' },

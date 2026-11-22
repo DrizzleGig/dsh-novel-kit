@@ -25,6 +25,10 @@
 - **证据回查**：新增 remote 方法 `getSourceExcerpt`（`sourceId + 章号` → 原文切片，支持 offset/length、区分 kit `sources/` 与旧同人项目 `source/` 两套布局、缺章返回 `source-not-found`）。同人页每条带章号的事实都有「看原文」，点开在右栏显示原文那一段。
 - **契约同步**：两个新方法同时注册进 `DESCRIPTORS` 与客户端 `TYPERT_REMOTE`；`client.test.mjs` 的 descriptor 对位检查覆盖到它们。
 - **新增测试**：`test/inbox.test.mjs`（五类事项、阻断范围、原创模式不误报、冲突不可重试、limit 不改变 total）、`test/excerpt.test.mjs`（两套原文布局、offset、越界、缺章、参数校验）；测试 **182/182**。
+- **决策页加「全书拍板」**：`decisionsView` 新增 `timeline`（跨章已拍板，按章倒序，最多 30 条），决策页右栏显示这本书一路拍了什么，不受当前章过滤。
+- **书桌加「章节字数」**：最近 8 章的字数柱状图（无字数的章显示浅色空柱），一眼看出更新节奏。
+- **记忆页加「记忆分层」**：按 L0/L1/L2 统计卡片数并出条形图，和「按章分布」一起回答「这条记忆有多硬、从哪来」。
+- **资料页加「诊断」**：把快照里的 `issues`（账本读不出来之类的真问题）列出来，没有问题时明确写「正常」，不再让读盘错误静默消失。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。
