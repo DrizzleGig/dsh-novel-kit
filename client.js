@@ -63,6 +63,9 @@ window.__ModuleLoader__.load({
         { method: 'confirmCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getInbox', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getSourceExcerpt', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getCanonQueue', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'reviewCanonChange', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'applyCanonChanges', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
       ].map(({ method, parameters }) => ({
         id: 'dsh-novel-kit#novelKitPanel/' + method,
         namespace: 'novelKitPanel',
@@ -413,6 +416,9 @@ window.__ModuleLoader__.load({
       const [addressFilter, setAddressFilter] = React.useState('')
       // 证据回查：点「看原文」读回来的那一段
       const [excerpt, setExcerpt] = React.useState(null)
+      // canon 审阅队列
+      const [canonQueue, setCanonQueue] = React.useState(null)
+      const [canonQueueBusy, setCanonQueueBusy] = React.useState(false)
       const [memoryQuery, setMemoryQuery] = React.useState('')
       const [memoryHits, setMemoryHits] = React.useState(null)
       const [planData, setPlanData] = React.useState(null)
@@ -705,8 +711,64 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, load])
 
-      /** 证据回查：按 canon 的 sourceId + 章号读回原文那一段。 */
-      const loadExcerpt = React.useCallback(async function (chapter) {
+      const canonSourceId = (materialData && materialData.canon && materialData.canon.sourceId) ? materialData.canon.sourceId : ''
+
+      const loadCanonQueue = React.useCallback(async function () {
+        if (!remote || typeof remote.getCanonQueue !== 'function' || !data || !data.book) return
+        try {
+          const queue = await Promise.resolve(remote.getCanonQueue(sessionId, { book: data.book, sourceId: canonSourceId || undefined })).then(unwrap)
+          setCanonQueue(queue)
+        } catch (error) {
+          setCanonQueue({ available: false, message: String(error?.message ?? error) })
+        }
+      }, [remote, sessionId, data && data.book, canonSourceId])
+
+      React.useEffect(function () {
+        if (section !== 'fanfic' || !data || !data.book) return
+        loadCanonQueue()
+      }, [section, data && data.book, canonSourceId])
+
+      const reviewCanonChangeNow = React.useCallback(async function (changeId, action) {
+        if (!remote || typeof remote.reviewCanonChange !== 'function' || !data || !data.book) return
+        setCanonQueueBusy(true)
+        try {
+          const result = await Promise.resolve(remote.reviewCanonChange(sessionId, {
+            book: data.book, sourceId: canonSourceId, changeId, action,
+            expectedRevision: canonQueue ? canonQueue.revision : null,
+          })).then(unwrap)
+          if (result && result.ok === false) { setCanonMessage(result.message || result.code || '审阅失败'); return }
+          setCanonMessage(action === 'accepted' ? '已接受这条；点「应用」后才会生效。' : '已拒绝这条；它不会进入上下文。')
+          await loadCanonQueue()
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        } finally {
+          setCanonQueueBusy(false)
+        }
+      }, [remote, sessionId, data, canonSourceId, canonQueue, loadCanonQueue])
+
+      const applyCanonChangesNow = React.useCallback(async function () {
+        if (!remote || typeof remote.applyCanonChanges !== 'function' || !data || !data.book) return
+        const ids = canonQueue && Array.isArray(canonQueue.accepted) ? canonQueue.accepted.map((item) => item.changeId) : []
+        if (!ids.length) return
+        setCanonQueueBusy(true)
+        try {
+          const result = await Promise.resolve(remote.applyCanonChanges(sessionId, {
+            book: data.book, sourceId: canonSourceId, changeIds: ids,
+            expectedRevision: canonQueue ? canonQueue.revision : null,
+          })).then(unwrap)
+          if (result && result.ok === false) { setCanonMessage(result.message || result.code || '应用失败'); return }
+          setCanonMessage('已应用 ' + ids.length + ' 条；生效版本 v' + (result.contractRevision ?? '?'))
+          await loadCanonQueue()
+          setMaterialData(null)
+          await load()
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        } finally {
+          setCanonQueueBusy(false)
+        }
+      }, [remote, sessionId, data, canonSourceId, canonQueue, loadCanonQueue, load])
+
+      /** 证据回查：按 canon 的 sourceId + 章号读回原文那一段。 */      const loadExcerpt = React.useCallback(async function (chapter) {
         const canon = materialData && materialData.canon ? materialData.canon : null
         const sourceId = canon && canon.sourceId ? canon.sourceId : ''
         if (!sourceId) { setCanonMessage('这份 canon 没记录 sourceId，读不到原文。'); return }
@@ -1697,6 +1759,16 @@ window.__ModuleLoader__.load({
         const worldRules = Array.isArray(canon.worldRules) ? canon.worldRules : []
         const forbidden = Array.isArray(canon.forbidden) ? canon.forbidden : []
         const findings = session && session.verification && Array.isArray(session.verification.findings) ? session.verification.findings : []
+        const describeChange = function (change) {
+          const pick = function (value) {
+            if (!value) return null
+            if (typeof value === 'string') return value
+            return String(value.text || value.value || value.name || value.what || value.form || JSON.stringify(value)).slice(0, 40)
+          }
+          const before = pick(change.before)
+          const after = pick(change.after)
+          return (change.collection || '?') + ' · ' + (before === null ? '新增' : before) + ' → ' + (after === null ? '删除' : after)
+        }
         const secrets = Array.isArray(canon.secrets) ? canon.secrets : []
         const addresses = Array.isArray(canon.addresses) ? canon.addresses : []
         const addressTerm = addressFilter.trim().toLowerCase()
@@ -1718,6 +1790,43 @@ window.__ModuleLoader__.load({
           canonMessage ? h('div', { className: 'nk-tiny', style: { margin: '10px 0' } }, canonMessage) : null,
           h('div', { className: 'nk-wb-grid' },
             h('div', { className: 'nk-wb-col' },
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '待审阅队列'),
+                  h('span', { className: 'nk-meta' }, canonQueue && canonQueue.available
+                    ? '生效 v' + canonQueue.contractRevision + ' · 待审 ' + (canonQueue.pending || []).length + ' · 已接受待应用 ' + (canonQueue.accepted || []).length
+                    : '未就绪')),
+                !canonQueue || !canonQueue.available
+                  ? inlineEmpty((canonQueue && canonQueue.message) || '读不到审阅队列。')
+                  : h('div', null,
+                      (canonQueue.pending || []).length === 0
+                        ? inlineEmpty('没有待审的候选。模型提出版本变更后会先落到这里。')
+                        : (canonQueue.pending || []).slice(0, 8).map(function (change) {
+                            return h('div', { key: change.changeId, className: 'nk-kv', style: { alignItems: 'center', gap: 8 } },
+                              h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } }, describeChange(change)),
+                              h('button', {
+                                type: 'button', className: 'nk-btn primary', disabled: canonQueueBusy,
+                                onClick: function () { reviewCanonChangeNow(change.changeId, 'accepted') },
+                              }, '接受'),
+                              h('button', {
+                                type: 'button', className: 'nk-btn', disabled: canonQueueBusy,
+                                onClick: function () { reviewCanonChangeNow(change.changeId, 'rejected') },
+                              }, '拒绝'))
+                          }),
+                      (canonQueue.accepted || []).length
+                        ? h('div', { style: { marginTop: 10, paddingTop: 10, borderTop: '1px solid ' + c.border } },
+                            h('div', { className: 'nk-tiny', style: { marginBottom: 6 } }, '已接受、等应用（应用后才会进上下文）'),
+                            (canonQueue.accepted || []).map(function (change) {
+                              return h('div', { key: change.changeId, className: 'nk-tiny', style: { lineHeight: 1.7 } }, '· ' + describeChange(change))
+                            }),
+                            h('button', {
+                              type: 'button', className: 'nk-btn primary', style: { marginTop: 8 }, disabled: canonQueueBusy,
+                              onClick: function () { applyCanonChangesNow() },
+                            }, canonQueueBusy ? '应用中…' : '应用 ' + (canonQueue.accepted || []).length + ' 条已接受'))
+                        : null,
+                      (canonQueue.rejected || []).length
+                        ? h('div', { className: 'nk-tiny', style: { marginTop: 8 } }, '已拒绝 ' + (canonQueue.rejected || []).length + ' 条（不会进入上下文）')
+                        : null)),
               h('section', { className: 'nk-card flush' },
                 h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
                   h('div', { className: 'nk-card-title' }, '原著事实'),

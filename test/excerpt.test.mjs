@@ -81,6 +81,20 @@ test('getSourceExcerpt：缺章时给源代码级错误，而不是空字符串'
   assert.match(result.message, /找不到这一章的原文/)
 })
 
+test('getSourceExcerpt：含 emoji 时按码点切，不切坏字符', async () => {
+  const root = await tempRoot()
+  const dir = path.join(root, '.dsh-novel-kit', 'sources', SOURCE_ID, 'chapters')
+  await mkdir(dir, { recursive: true })
+  const text = '😀😀😀开头' + '正文'.repeat(30)
+  await writeFile(path.join(dir, 'ch004.txt'), text, 'utf8')
+
+  const remote = makeRemote(root)
+  const result = await remote.getSourceExcerpt(SESSION, { sourceId: SOURCE_ID, chapter: 4, offset: 3, length: 200 })
+  assert.equal(result.chars, Array.from(text).length, 'chars 按码点计数')
+  assert.ok(result.text.startsWith('开头'), 'offset=3 正好跳过三个 emoji，不落在代理对中间')
+  assert.equal(Array.from(result.text).length, result.length)
+})
+
 test('getSourceExcerpt：参数校验', async () => {
   const root = await tempRoot()
   const remote = makeRemote(root)

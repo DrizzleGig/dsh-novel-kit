@@ -33,6 +33,12 @@
 - **风格页「本书已绑定档案」**：用 `snapshot.settings.activeStyleProfileIds` 连到档案，显示名称/状态/版本；明确标注「绑定 ≠ 已确认 ≠ 本章已采用，旧书库不在列」，档案读不到时保留该行并写「档案暂不可读」。
 - **记忆页「可恢复的记忆」**：列出本次载入范围内 `status === 'forgotten'` 的卡，可一键恢复；卡上写明「只统计本次载入范围，不代表全书遗忘率」。
 - **资料页「依据版本对照」**：本章装配时的四段 revision vs 当前账本 revision，写「版本号相同 / 资料有更新 / 当前无此账本」；明确「版本不同只说明资料改过，不等于本章失效」，不做越过边界的判定。
+- **canon 审阅队列（schema 2）**：`lib/engine/canon.js` 升到 schemaVersion 2——`revision`（整份文件）与 `contractRevision`（已生效）分离，新增只覆盖生效内容的 `contentHash`，`pendingChanges[]` 保留拒绝与已应用记录，`appliedOperations[]` 存幂等回执。旧契约**读时升级**，不写盘也能被新代码消费。
+- **三个队列动作**：`proposeCanonChanges`（新增候选，只动 revision）/ `reviewCanonChange`（接受、拒绝）/ `applyCanonChanges`（显式 changeIds、整批原子、生效版本 +1）。接受要求基线仍是最新生效版本（`canon-base-stale`）；条目被外部改过则 `canon-entry-drift` 整批不写；同 operationId 同输入重试返回上次回执。
+- **作者命令**：新增 `canon.review` / `canon.apply`，与 `canon.update` / `canon.confirm` 同一套 operation 日志与 master 校验，模型工具调不到。
+- **remote**：新增 `getCanonQueue` / `reviewCanonChange` / `applyCanonChanges`，同步 `DESCRIPTORS` 与客户端契约。
+- **同人页「待审阅队列」**：显示「生效 v4 · 待审 2 · 已接受待应用 1」，逐条接受/拒绝，已接受的可一键应用，并明确「已接受未应用 / 已拒绝都不进上下文」。
+- **测试**：新增 `test/canon-queue.test.mjs`（提案不动生效版本、拒绝不改内容、应用才 +1、漂移整批不写、丢回执幂等、基线过期、schema1 读时升级、同批重复条目），`test/excerpt.test.mjs` 增 emoji 码点用例；测试 **191/191**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。

@@ -300,7 +300,53 @@ const remote = new Proxy({}, {
     if (typeof real[prop] !== 'function') { missing.push(prop); return undefined }
     return async (...args) => {
       try {
-        // NK_INBOX_DEMO=1：真实账本没有待办时，用一份样例看收件箱长什么样。
+        // NK_CANON_DEMO=1：真实工作区没有 canon 时，给同人页一份样例，方便看审阅队列。
+        if (process.env.NK_CANON_DEMO === '1') {
+          const demoSource = 'c'.repeat(64)
+          if (prop === 'getCanon') {
+            return {
+              ok: true,
+              value: {
+                available: true, id: BOOK, title: '原著', sourceId: demoSource, revision: 7,
+                canonReady: false, contractStatus: 'pending-review',
+                addresses: [
+                  { from: '裴照', to: '沈砚', form: '沈大人', publicForm: '沈大人', privateForm: '阿砚', fromChapter: '12' },
+                  { from: '沈砚', to: '裴照', form: '裴照', publicForm: '裴校尉', privateForm: '阿照', fromChapter: '9' },
+                ],
+                forbidden: ['直接写出穿越者身份', '让三老提前知道本体武魂'],
+                characters: [{ name: '沈砚', aliases: ['阿砚'], role: '巡夜人' }, { name: '裴照', aliases: [], role: '校尉' }],
+                facts: [
+                  { subject: '沈砚', key: '身份', value: '巡夜人', quote: '他把铜牌收进袖子里，没让人看见。', chapter: 12, confirmed: true },
+                  { subject: '裴照', key: '称呼', value: '沈大人', quote: '“沈大人，这边请。”', chapter: 12, confirmed: true },
+                ],
+                worldRules: ['夜里不能点灯', '武魂不能在白日显形'],
+                secrets: [{ id: 's1', what: '沈砚是穿越者', publicAtChapter: null, knownBy: [] }],
+                timeline: [],
+              },
+            }
+          }
+          if (prop === 'getCanonQueue') {
+            return {
+              ok: true,
+              value: {
+                available: true, book: BOOK, sourceId: demoSource, title: '原著', status: 'pending-review', canonReady: false,
+                revision: 21, contractRevision: 4, contentHash: 'demo',
+                pending: [
+                  { changeId: 'chg_a1', collection: 'facts', operation: 'update', changeHash: 'a1', decision: 'pending', before: { subject: '裴照', value: '沈大人' }, after: { subject: '裴照', value: '阿砚' }, evidenceRefs: [] },
+                  { changeId: 'chg_a2', collection: 'addresses', operation: 'add', changeHash: 'a2', decision: 'pending', before: null, after: { from: '陈璧', to: '沈砚', form: '沈教习' }, evidenceRefs: [] },
+                ],
+                accepted: [
+                  { changeId: 'chg_a3', collection: 'worldRules', operation: 'add', changeHash: 'a3', decision: 'accepted', appliedRevision: null, before: null, after: { text: '白日不得鸣钟' }, evidenceRefs: [] },
+                ],
+                rejected: [{ changeId: 'chg_a4', collection: 'forbidden', operation: 'add', changeHash: 'a4', decision: 'rejected', before: null, after: { text: '不要写感情线' } }],
+                applied: [],
+              },
+            }
+          }
+          if (prop === 'getSourceExcerpt') {
+            return { ok: true, value: { ok: true, sourceId: demoSource, chapter: 12, chapterId: 'ch012', layout: 'kit', chars: 1200, offset: 0, length: 120, text: '“沈大人，这边请。”裴照侧身让开路，廊下的灯影一晃，照见他袖口的铜扣。', truncated: true } }
+          }
+        }
         if (prop === 'getInbox' && process.env.NK_INBOX_DEMO === '1') {
           return {
             ok: true,
@@ -360,8 +406,10 @@ for (const { config, Component } of registered) {
   if (config.name !== 'conversation.view') continue
   // 每一页各出一张：改哪页就能立刻看见哪页，不用来回点。
   for (const [key, label] of PAGES) {
-    // 样例收件箱单独出图，不覆盖真实账本的截图。
-    const file = (key === 'desk' && process.env.NK_INBOX_DEMO === '1') ? 'wb-inbox-demo' : 'wb-' + key
+    // 样例收件箱 / canon 队列各出一份单独文件，不覆盖真实账本的截图。
+    let file = 'wb-' + key
+    if (key === 'desk' && process.env.NK_INBOX_DEMO === '1') file = 'wb-inbox-demo'
+    if (key === 'fanfic' && process.env.NK_CANON_DEMO === '1') file = 'wb-canon-demo'
     targets.push({
       file,
       label,
