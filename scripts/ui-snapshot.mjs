@@ -190,18 +190,10 @@ function serialize(node) {
   return '<' + type + attrs.join('') + '>' + serialize(children) + '</' + type + '>'
 }
 
-// ── 从 client.js 里抠出真实样式表 ───────────────────────────────────────────
-function extractCss(source) {
-  const pull = (name) => {
-    const start = source.indexOf('const ' + name + ' = `')
-    if (start < 0) return ''
-    const from = start + ('const ' + name + ' = `').length
-    const end = source.indexOf('\n    `', from)
-    if (end < 0) throw new Error(name + ' 没有闭合')
-    return source.slice(from, end)
-  }
-  const css = pull('NK_SKIN')
-  if (!css) throw new Error('client.js 里找不到 NK_SKIN')
+// ── 样式：直接读源文件（client-src/styles.css），不再从 client.js 里抠 ──────────
+async function extractCss() {
+  const css = await readFile(path.join(repo, 'client-src', 'styles.css'), 'utf8')
+  if (!css.trim()) throw new Error('client-src/styles.css 是空的')
   return css
 }
 
@@ -258,7 +250,7 @@ function page({ title, css, body, width, height, mode }) {
 
 // ── 主流程 ────────────────────────────────────────────────────────────────
 const source = await readFile(path.join(repo, 'client.js'), 'utf8')
-const UI_CSS = extractCss(source)
+const UI_CSS = await extractCss()
 const mini = createReact()
 
 globalThis.window = { __ModuleLoader__: { load(definition) { globalThis.__plugin = definition } } }

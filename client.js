@@ -104,7 +104,11 @@ window.__ModuleLoader__.load({
     // 整套 token、字阶、间距、卡片与工作台布局都在这里；右栏时代那份兼容 CSS
     // 已在 0.4.0 删除，只把仍被使用的控件基础规则并了进来。
     // 所有颜色从宿主 alias token 用 color-mix 派生，同一份样式在暗色/亮色下都成立。
+    // ── 样式 ────────────────────────────────────────────────────────────────
+    // 源文件是 client-src/styles.css；这里的内容由 `npm run build:client` 内联，
+    // 不要手改标记之间；改样式请改源文件再构建（check 会验证两者一致）。
     const NK_SKIN = `
+/* NK:STYLE:BEGIN —— 由 scripts/build-client.mjs 维护 */
       .nk-panel, .nk-wb {
         --nk-line: color-mix(in srgb, var(--dsw-alias-label-primary) 14%, transparent);
         --nk-line-soft: color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent);
@@ -338,6 +342,7 @@ window.__ModuleLoader__.load({
         border-radius: 0 var(--nk-r-sm) var(--nk-r-sm) 0; font-family: var(--nk-serif); font-size: 12.5px; line-height: 1.75; color: var(--nk-ink-2); }
       .nk-chipline { display: flex; flex-wrap: wrap; gap: 6px; }
       .nk-detail { display: flex; flex-direction: column; gap: 10px; }
+/* NK:STYLE:END */
     `
 
     function unwrap(rpc) {

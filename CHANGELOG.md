@@ -65,6 +65,9 @@
 - **正文页检查列表**：编辑器下方列出本章检查（blocker/warning 徽章 + 消息 + 定位按钮），点「定位」把正文选区挪到那一段；空态不占位。
 - **不再双重检查**：kit 生效 canon 时不再叠加旧 fanfic 账本的复制/人名检查（两套同时判会把同一句报两次）。
 - **测试**：定位三条用例（下标与长度、带换行正文的下标映射、全文级为 null）；测试 **207/207**。
+- **客户端拆分第一步：样式出源 + 构建入口**：`NK_SKIN` 移到 `client-src/styles.css`，`client.js` 里只留标记块；新增 `scripts/build-client.mjs`（`npm run build:client`）负责内联写回，`--check` 模式校验产物与源文件一致，并检查三条产物不变量：唯一 `__ModuleLoader__.load` 入口、`id: 'dsh-novel-kit'`、**不出现运行时相对 `require('./…')`**（宿主只提供 React）。`npm run check` 现在先跑这一步。
+- **截图脚本改用样式源文件**：`ui-snapshot` 不再从 `client.js` 里正则抠 CSS，直接读 `client-src/styles.css`，拆分后取到的就是实际注入的样式。
+- 测试 **210/210**（新增 `test/build.test.mjs`：样式一致、产物不变量、源文件不含模板残留）。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。
