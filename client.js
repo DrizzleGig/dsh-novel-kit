@@ -61,6 +61,8 @@ window.__ModuleLoader__.load({
         { method: 'saveDraft', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'updateCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'confirmCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getInbox', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getSourceExcerpt', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
       ].map(({ method, parameters }) => ({
         id: 'dsh-novel-kit#novelKitPanel/' + method,
         namespace: 'novelKitPanel',
@@ -407,6 +409,8 @@ window.__ModuleLoader__.load({
       const [styleBrief, setStyleBrief] = React.useState(null)
       const [canonBusy, setCanonBusy] = React.useState(false)
       const [canonMessage, setCanonMessage] = React.useState('')
+      // 证据回查：点「看原文」读回来的那一段
+      const [excerpt, setExcerpt] = React.useState(null)
       const [memoryQuery, setMemoryQuery] = React.useState('')
       const [memoryHits, setMemoryHits] = React.useState(null)
       const [planData, setPlanData] = React.useState(null)
@@ -425,6 +429,7 @@ window.__ModuleLoader__.load({
       const [importMessage, setImportMessage] = React.useState('')
       const [workSettings, setWorkSettings] = React.useState(null)
       const [sourcesData, setSourcesData] = React.useState(null)
+      const [inboxData, setInboxData] = React.useState(null)
       const [newBookName, setNewBookName] = React.useState('')
       const [workBusy, setWorkBusy] = React.useState(false)
       const [workMessage, setWorkMessage] = React.useState('')
@@ -546,6 +551,16 @@ window.__ModuleLoader__.load({
         }
         return function () { cancelled = true }
       }, [section, remote, sessionId])
+
+      // 统一收件箱：Host 聚合，客户端不再自己拼「待办」。
+      React.useEffect(function () {
+        if (!remote || !data || !data.book || typeof remote.getInbox !== 'function') return undefined
+        let cancelled = false
+        Promise.resolve(remote.getInbox(sessionId, { book: data.book })).then(unwrap).then(function (inbox) {
+          if (!cancelled) setInboxData(inbox)
+        }).catch(function () { if (!cancelled) setInboxData(null) })
+        return function () { cancelled = true }
+      }, [remote, sessionId, data && data.book, data && data.session && data.session.revision, section])
 
       const saveDraft = React.useCallback(async function () {
         if (!remote || !data || !data.session || typeof remote.saveDraft !== 'function') return
@@ -688,8 +703,23 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, load])
 
-      const confirmCanonNow = React.useCallback(async function (canon) {
-        if (!remote || !data || !data.book || !canon) return
+      /** 证据回查：按 canon 的 sourceId + 章号读回原文那一段。 */
+      const loadExcerpt = React.useCallback(async function (chapter) {
+        const canon = materialData && materialData.canon ? materialData.canon : null
+        const sourceId = canon && canon.sourceId ? canon.sourceId : ''
+        if (!sourceId) { setCanonMessage('这份 canon 没记录 sourceId，读不到原文。'); return }
+        if (!remote || typeof remote.getSourceExcerpt !== 'function') { setCanonMessage('宿主还没有原文回查接口，先重载 DSH。'); return }
+        try {
+          const result = await Promise.resolve(remote.getSourceExcerpt(sessionId, { sourceId, chapter, length: 900 })).then(unwrap)
+          if (result && result.ok === false) { setCanonMessage(result.message || '读不到这一章'); return }
+          setExcerpt({ chapter, text: result.text || '', layout: result.layout || '', truncated: result.truncated === true })
+          setCanonMessage('')
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, materialData])
+
+      const confirmCanonNow = React.useCallback(async function (canon) {        if (!remote || !data || !data.book || !canon) return
         setCanonBusy(true)
         setCanonMessage('正在确认 canon…')
         try {
@@ -1079,29 +1109,34 @@ window.__ModuleLoader__.load({
         const operations = (data && data.operations && Array.isArray(data.operations.items)) ? data.operations.items : []
         const canonPending = !!(data && data.canon && data.settings && data.settings.mode === 'fanfic' && !data.canon.ready)
         const failedOps = operations.filter((item) => item.status === 'failed')
-        const inboxCount = pendingIds.length + conflictTotal + (canonPending ? 1 : 0) + failedOps.length
 
         const stat = (label, value, tone) => h('div', { className: 'nk-stat' },
           h('div', { className: 'nk-stat-label' }, label),
           h('div', { className: 'nk-stat-value' + (tone ? ' ' + tone : '') }, value))
 
+        const inboxItems = (inboxData && Array.isArray(inboxData.items)) ? inboxData.items : []
+        const inboxCount = inboxData && typeof inboxData.total === 'number'
+          ? inboxData.total
+          : pendingIds.length + conflictTotal + (canonPending ? 1 : 0) + failedOps.length
+        const kindLabel = { decision: '拍板', canon: 'canon', conflict: '冲突', check: '检查', operation: '操作' }
+
         const inbox = inboxCount === 0
           ? h('div', { className: 'nk-tiny', style: { padding: '2px 0 2px' } }, '没有待拍板、冲突或失败操作。')
-          : h('div', null,
-              pendingIds.slice(0, 6).map((id) => h('div', { key: id, className: 'nk-kv' },
-                h('span', { className: 'nk-kv-key' }, '拍板 · ' + id),
-                h('span', { className: 'nk-kv-val', style: { color: c.warning } }, '待作者确认'))),
-              canonPending
-                ? h('div', { className: 'nk-kv' },
-                    h('span', { className: 'nk-kv-key' }, 'canon · 同人原著待确认'),
-                    h('span', { className: 'nk-kv-val', style: { color: c.warning } }, data.canon.contractStatus || 'pending'))
-                : null,
-              failedOps.slice(0, 3).map((operation) => h('div', { key: operation.operationId, className: 'nk-kv' },
-                h('span', { className: 'nk-kv-key' }, '失败 · ' + (operation.command || operation.operationId)),
-                h('span', { className: 'nk-kv-val', style: { color: c.error } }, operation.error?.message || '操作失败'))),
-              (data && data.conflicts && data.conflicts.items ? data.conflicts.items : []).slice(0, 4).map((item, index) => h('div', { key: 'c' + index, className: 'nk-kv' },
-                h('span', { className: 'nk-kv-key' }, '冲突 · ' + (item.entity || '?') + ' · ' + (item.key || '?')),
-                h('span', { className: 'nk-kv-val' }, '只报告，不裁决'))))
+          : h('div', null, inboxItems.slice(0, 8).map(function (item) {
+              const tone = item.severity === 'blocker' ? c.error : c.warning
+              return h('button', {
+                key: item.id,
+                type: 'button',
+                className: 'nk-rowbtn',
+                style: { padding: '9px 0', borderBottom: '1px solid ' + c.border },
+                onClick: function () { setSection(item.target && item.target.page ? item.target.page : 'desk') },
+              },
+              h('span', { className: 'nk-badge' + (item.severity === 'blocker' ? ' accent' : ' warn') }, kindLabel[item.kind] || item.kind),
+              h('span', { className: 'nk-rowbtn-title', style: { whiteSpace: 'normal' } }, item.title || ''),
+              item.blockScope === 'start' || item.blockScope === 'finish'
+                ? h('span', { className: 'nk-badge', style: { color: tone } }, item.blockScope === 'start' ? '拦开章' : '拦收尾')
+                : null)
+            }))
 
         return h('div', { className: 'nk-wb-body' },
           pageHead('书桌', '当前作品、下一笔与本章待办。'),
@@ -1129,7 +1164,7 @@ window.__ModuleLoader__.load({
                 stat('当前章', session ? '第 ' + session.chapter + ' 章' : '—'),
                 stat('状态', session ? stateLabel(session.state) : '—', session && session.state === 'completed' ? 'accent' : ''),
                 stat('字数', session && session.draft ? String(session.draft.chars ?? '—') : '—'),
-                stat('待处理', String(pendingIds.length + conflictTotal), pendingIds.length + conflictTotal > 0 ? 'warn' : '')),
+                stat('待处理', String(inboxCount), inboxCount > 0 ? 'warn' : '')),
 
               h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' },
@@ -1601,7 +1636,13 @@ window.__ModuleLoader__.load({
                       return h('div', { key: index, className: 'nk-rowbtn', style: { cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: 4 } },
                         h('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
                           h('span', { className: 'nk-badge' }, fact.chapter ? 'CH.' + String(fact.chapter).padStart(2, '0') : '原著'),
-                          h('span', { className: 'nk-rowbtn-title', style: { whiteSpace: 'normal' } }, (fact.subject || '') + ' · ' + (fact.key || '') + '：' + (fact.value || ''))),
+                          h('span', { className: 'nk-rowbtn-title', style: { whiteSpace: 'normal' } }, (fact.subject || '') + ' · ' + (fact.key || '') + '：' + (fact.value || '')),
+                          fact.chapter
+                            ? h('button', {
+                                type: 'button', className: 'nk-btn', style: { flexShrink: 0 },
+                                onClick: function () { loadExcerpt(fact.chapter) },
+                              }, '看原文')
+                            : null),
                         fact.quote ? h('div', { className: 'nk-quote', style: { margin: '2px 0 0' } }, fact.quote) : null)
                     })
                   : inlineEmpty('还没有事实。')),
@@ -1645,7 +1686,15 @@ window.__ModuleLoader__.load({
                         h('span', { className: 'nk-kv-key' }, item.severity || 'info'),
                         h('span', { className: 'nk-kv-val' }, item.message || ''))
                     })
-                  : inlineEmpty('本章还没有检查结果；写完正文再收尾会跑一遍。')))))
+                  : inlineEmpty('本章还没有检查结果；写完正文再收尾会跑一遍。')),
+              excerpt
+                ? h('section', { className: 'nk-card' },
+                    h('div', { className: 'nk-card-head' },
+                      h('div', { className: 'nk-card-title' }, '原文 · 第 ' + excerpt.chapter + ' 章'),
+                      h('button', { type: 'button', className: 'nk-btn', style: { marginLeft: 'auto' }, onClick: function () { setExcerpt(null) } }, '收起')),
+                    h('div', { className: 'nk-quote', style: { maxHeight: 260, overflowY: 'auto', whiteSpace: 'pre-wrap' } }, excerpt.text || '（这一章读回来是空的）'),
+                    excerpt.truncated ? h('div', { className: 'nk-tiny', style: { marginTop: 6 } }, '只显示前 900 字。') : null)
+                : null)))
       }
 
       function dataView() {

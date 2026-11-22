@@ -21,6 +21,10 @@
 - **决策页加线索**：`decisionsView` 现在返回结构与文本都完整的 `obligations`（含章号与到期章），决策页右栏显示未回收线索。
 - **记忆页加分布**：按章卡片数条形图，和人物词条一起构成「这条记忆从哪来、谁在里面」的一眼视图。
 - **代码瘦身**：删掉右栏时代的整份 `UI_CSS`（-6 KB）、未使用的 `flowView` 与 `sectionLabel/sectionButton` 块，`client.js` 177 KB → 132 KB；仍被使用的控件基础规则并入 `NK_SKIN`，快照逐页比对无视觉回归。
+- **统一收件箱（Host 聚合）**：新增 `lib/host/inbox.js` 与 remote 方法 `getInbox`：把待拍板、canon 未确认、设定冲突、本章阻断检查、失败操作合成一组 `{id, kind, severity, blockScope, target, actions}`，按严重度稳定排序，并给出 `blocked.start` / `blocked.finish`。书桌收件箱改为读它（kind 徽章 + 「拦开章 / 拦收尾」标记，点一条直接跳对应页），「待处理」指标也改用它的总数。
+- **证据回查**：新增 remote 方法 `getSourceExcerpt`（`sourceId + 章号` → 原文切片，支持 offset/length、区分 kit `sources/` 与旧同人项目 `source/` 两套布局、缺章返回 `source-not-found`）。同人页每条带章号的事实都有「看原文」，点开在右栏显示原文那一段。
+- **契约同步**：两个新方法同时注册进 `DESCRIPTORS` 与客户端 `TYPERT_REMOTE`；`client.test.mjs` 的 descriptor 对位检查覆盖到它们。
+- **新增测试**：`test/inbox.test.mjs`（五类事项、阻断范围、原创模式不误报、冲突不可重试、limit 不改变 total）、`test/excerpt.test.mjs`（两套原文布局、offset、越界、缺章、参数校验）；测试 **182/182**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。

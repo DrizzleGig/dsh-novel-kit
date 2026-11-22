@@ -300,6 +300,20 @@ const remote = new Proxy({}, {
     if (typeof real[prop] !== 'function') { missing.push(prop); return undefined }
     return async (...args) => {
       try {
+        // NK_INBOX_DEMO=1：真实账本没有待办时，用一份样例看收件箱长什么样。
+        if (prop === 'getInbox' && process.env.NK_INBOX_DEMO === '1') {
+          return {
+            ok: true,
+            value: {
+              book: BOOK, total: 3, blocked: { start: true, finish: true },
+              items: [
+                { id: 'decision:p1', kind: 'decision', severity: 'blocker', blockScope: 'finish', title: '沈砚要不要现在叫出那个名字', summary: '叫出 / 继续装作不知道', target: { page: 'beat' }, actions: ['adopt', 'reject'], chapter: 12 },
+                { id: 'canon:contract', kind: 'canon', severity: 'blocker', blockScope: 'start', title: '同人原著还没确认', summary: '当前状态：pending-review', target: { page: 'fanfic' }, actions: ['confirm'], chapter: null },
+                { id: 'conflict:称呼:沈砚对裴照', kind: 'conflict', severity: 'warning', blockScope: 'none', title: '设定冲突：称呼 · 沈砚对裴照', summary: '本作「阿砚」 vs 原著「沈大人」', target: { page: 'fanfic' }, actions: ['compare'], chapter: null },
+              ],
+            },
+          }
+        }
         // 真实宿主会按绑定/当前书解析 book；快照默认补上默认书。
         // NK_AUTOBOOK=1 时不补，用来验证客户端自己的「自动选书」是否真的生效。
         if (process.env.NK_AUTOBOOK !== '1' && (prop === 'getSnapshot' || prop === 'getPlan' || prop === 'getStyle' || prop === 'getCanon' || prop === 'getMemory' || prop === 'getDecisions')) {

@@ -31,6 +31,12 @@
 
 - `npm run ui:snapshot` 产出 `wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`（每页一张，改哪页看哪页）。
 
+### 收件箱与证据回查（0.4.0 后半）
+
+- **`getInbox`**：Host 聚合待拍板 / canon / 冲突 / 阻断检查 / 失败操作，带 `severity`、`blockScope`（拦开章 / 拦收尾）、`target.page`；书桌按它渲染，点一条跳页。
+- **`getSourceExcerpt`**：按 `sourceId + 章号` 读回原文切片（offset/length），兼容 kit `sources/` 与旧同人 `source/` 两套布局；同人页事实可「看原文」。
+- 测试：`inbox.test.mjs` + `excerpt.test.mjs`，共 **182/182**。
+
 ## 0.3.0 这一刀交付了什么
 
 ### 界面：从「调试列表」做到「任务卡 + 工作台」
