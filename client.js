@@ -623,7 +623,7 @@ window.__ModuleLoader__.load({
       const panelSession = data && data.session ? data.session : null
       const panelPending = panelSession && Array.isArray(panelSession.pendingDecisionIds) ? panelSession.pendingDecisionIds.length : 0
       const panelNext = !panelSession
-        ? { title: '还没有活动章节', detail: '先选书，或在聊天里开一章。' }
+        ? { title: '开始一章', detail: '点下方按钮装配四段依据；也可以先在聊天里计划。' }
         : panelPending > 0
           ? { title: '先拍板 ' + panelPending + ' 个提案', detail: '作者确认后模型才能继续收尾。' }
           : panelSession.state === 'completed'
@@ -642,12 +642,12 @@ window.__ModuleLoader__.load({
       const panelPrimary = !panelBook
         ? { label: '先选择一本书', action: null, disabled: true }
         : panelPending > 0
-          ? { label: '去拍板（' + panelPending + '）', action: function () { setDetails(true); openTab('decisions') }, disabled: false }
+          ? { label: '去拍板（' + panelPending + '）', action: function () { setSettingsOpen(true); setDetails(true); openTab('decisions') }, disabled: false }
           : (!panelSession || panelSession.state === 'completed')
             ? { label: startPhase === 'starting' ? '正在装配…' : '开第 ' + nextChapter + ' 章', action: function () { runStartChapter(panelBook, nextChapter) }, disabled: startPhase === 'starting' }
             : panelSession.verification && panelSession.verification.blockers > 0
-              ? { label: '去章节修 blocker', action: function () { setDetails(true); openTab('overview') }, disabled: false }
-              : { label: '继续写第 ' + panelSession.chapter + ' 章', action: function () { setDetails(true); openTab('overview') }, disabled: false }
+              ? { label: '查看检查详情', action: function () { setDetails(true); setSettingsOpen(true); openTab('overview') }, disabled: false }
+              : { label: '查看本章详情', action: function () { setDetails(true); setSettingsOpen(true); openTab('overview') }, disabled: false }
       const panelInbox = []
       if (panelSession) {
         for (const id of (panelSession.pendingDecisionIds || [])) panelInbox.push({ kind: '拍板', text: String(id) })
