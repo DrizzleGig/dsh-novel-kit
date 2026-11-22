@@ -42,6 +42,7 @@
 - **同人事实**：`canonView` 输出 facts/worldRules/引文；同人页事实列表带原文和章号。
 - **风格详情**：档案可展开看规则/避免词/区间/决策倾向；列表接口带 `ruleTexts`。
 - **canon 确认**：同人页显示 contract 状态/rev，可直接确认；走 `canon.confirm` 并刷新。
+- **记忆检索**：记忆页可按人物/物品/秘密搜索，命中可点开卡片。
 - **五插件审计**：新增 [FIVE-PLUGIN-PARITY.md](FIVE-PLUGIN-PARITY.md)，逐项对照五件 UI 与能力，列出 kit 缺口。
 
 ### 第二刀：作者命令、完整草稿、收尾事务

@@ -1125,6 +1125,8 @@ window.__ModuleLoader__.load({
       const [styleOpen, setStyleOpen] = React.useState(null)
       const [canonBusy, setCanonBusy] = React.useState(false)
       const [canonMessage, setCanonMessage] = React.useState('')
+      const [memoryQuery, setMemoryQuery] = React.useState('')
+      const [memoryHits, setMemoryHits] = React.useState(null)
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
@@ -1184,6 +1186,8 @@ window.__ModuleLoader__.load({
         setMemoryOpen(null)
         setStyleOpen(null)
         setCanonMessage('')
+        setMemoryQuery('')
+        setMemoryHits(null)
       }, [data && data.book])
 
       const saveDraft = React.useCallback(async function () {
@@ -1329,6 +1333,18 @@ window.__ModuleLoader__.load({
           setCanonBusy(false)
         }
       }, [remote, sessionId, data])
+
+      const searchMemoryNow = React.useCallback(async function () {
+        if (!remote || !data || !data.book) return
+        const query = memoryQuery.trim()
+        if (!query) { setMemoryHits(null); return }
+        try {
+          const hits = await Promise.resolve(remote.searchMemory(sessionId, { book: data.book, query, limit: 30 })).then(unwrap)
+          setMemoryHits(hits && Array.isArray(hits.hits) ? hits.hits : [])
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data, memoryQuery])
 
       const actOnMemory = React.useCallback(async function (card, action) {        if (!remote || !data || !data.book || !card) return
         try {
@@ -1546,6 +1562,22 @@ window.__ModuleLoader__.load({
               h('span', { style: faint }, 'rev ' + (fadeData.revision ?? '-') + (fadeData.drift ? ' · drift' : ''))),
             h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 12 } },
               stat('卡片', fadeData.total || cards.length), stat('未回收线索', threads.length), stat('人物', entities.length), stat('已褪', cards.filter((card) => card.status === 'forgotten').length)),
+            h('div', { style: { display: 'flex', gap: 6, marginTop: 12 } },
+              h('input', {
+                value: memoryQuery,
+                placeholder: '搜记忆：人物、物品、秘密…',
+                onChange: function (event) { setMemoryQuery(event.target.value) },
+                onKeyDown: function (event) { if (event.key === 'Enter') searchMemoryNow() },
+                style: { flex: 1, border: '1px solid ' + c.border, borderRadius: 8, background: c.layer, color: c.text, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit' },
+              }),
+              h('button', { className: 'nk-btn', onClick: searchMemoryNow }, '搜索')),
+            memoryHits !== null ? h('div', { style: { marginTop: 8 } },
+              h('div', { style: { ...faint, fontSize: 10.5, marginBottom: 4 } }, '命中 ' + memoryHits.length + ' 张'),
+              memoryHits.length === 0 ? h('div', { style: faint }, '没有匹配的记忆。') : memoryHits.slice(0, 6).map((hit) => h('div', {
+                key: hit.id,
+                onClick: function () { setMemoryOpen(hit.id) },
+                style: { padding: '6px 8px', border: '1px solid ' + c.border, borderRadius: 8, marginBottom: 4, cursor: 'pointer', background: c.layer },
+              }, h('div', { style: { fontSize: 11.5 } }, '第 ' + hit.chapter + ' 章 · ' + (hit.gist || hit.quote || hit.id))))) : null,
             h('div', { style: { ...faint, margin: '16px 0 6px' } }, '记忆卡'),
             cards.length === 0 ? h('div', { style: faint }, '还没有记忆卡；收尾一章后生成。') : cards.slice(0, 24).map((card) => {
               const open = memoryOpen === card.id
