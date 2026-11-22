@@ -368,6 +368,19 @@ const remote = new Proxy({}, {
           args[1] = request
         }
         const value = await real[prop].apply(real, args)
+        // NK_FINDINGS_DEMO=1：给正文页一份带定位的检查结果，方便看「定位」按钮。
+        if (prop === 'getSnapshot' && process.env.NK_FINDINGS_DEMO === '1' && value && value.session) {
+          value.session.verification = {
+            ...(value.session.verification || {}),
+            blockers: 1,
+            warnings: 2,
+            findings: [
+              { code: 'forbidden', severity: 'blocker', message: '出现禁忌：手机', quote: '手机', coordinate: 'utf16', at: 3, length: 2 },
+              { code: 'long-sentence', severity: 'warning', message: '句子 96 字，超过 80', quote: '他把……', coordinate: 'utf16', at: 12, length: 96 },
+              { code: 'voice-band', severity: 'warning', message: '句长均值 41 超出档案区间 [18, 32]', coordinate: 'utf16', at: null, length: null },
+            ],
+          }
+        }
         return { ok: true, value }
       } catch (error) {
         return { ok: false, error: { code: 'host-error', message: String(error?.message ?? error) } }

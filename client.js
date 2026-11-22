@@ -443,6 +443,8 @@ window.__ModuleLoader__.load({
       const [workMessage, setWorkMessage] = React.useState('')
 
       const requestRef = React.useRef(0)
+      // 正文编辑器的 DOM 句柄：检查项定位要把选区挪到那一句。
+      const draftRef = React.useRef(null)
       const editVersionRef = React.useRef(0)
       const bookRef = React.useRef(null)
       const load = React.useCallback(async function (nextBook) {
@@ -1292,6 +1294,21 @@ window.__ModuleLoader__.load({
         return number.toLocaleString('zh-CN')
       }
 
+      /** 把检查项定位到正文：选中那一段，并把光标移到句首。 */
+      function locateFinding(finding) {
+        const node = draftRef.current
+        if (!node || typeof node.setSelectionRange !== 'function') return
+        const at = Number(finding && finding.at)
+        if (!Number.isFinite(at) || at < 0) return
+        const length = Math.max(0, Number(finding.length) || 0)
+        try {
+          node.focus()
+          node.setSelectionRange(at, at + length)
+        } catch {
+          // 只读态/旧宿主：不抛错，保持原样
+        }
+      }
+
       function pageStat(label, value, tone) {
         return h('div', { className: 'nk-stat' },
           h('div', { className: 'nk-stat-label' }, label),
@@ -2076,6 +2093,7 @@ window.__ModuleLoader__.load({
               }, saveState.phase === 'saving' ? '保存中…' : '保存草稿（Ctrl S）')),
             typeof remote.getDraft === 'function'
               ? h('textarea', {
+                  ref: draftRef,
                   value: draftState.loaded ? draftState.text : (draft && draft.text ? draft.text : ''),
                   placeholder: '在这里写本章正文；保存后旧检查作废。',
                   spellCheck: false,
@@ -2098,6 +2116,30 @@ window.__ModuleLoader__.load({
                     color: draft ? c.text : c.faint, fontFamily: 'inherit',
                   },
                 }, draft && draft.text ? draft.text : '（当前 DSH/插件版本没有完整草稿读写；升级后工作台可编辑。）'),
+            (function () {
+              const findings = (session && session.verification && Array.isArray(session.verification.findings)) ? session.verification.findings : []
+              if (!findings.length) return null
+              return h('div', { style: { marginTop: 8, maxHeight: 168, overflowY: 'auto' } },
+                h('div', { style: { ...faint, fontSize: 10.5, marginBottom: 4 } }, '本章检查 · ' + findings.length + ' 条'),
+                findings.slice(0, 12).map(function (item, index) {
+                  const locate = typeof item.at === 'number' && item.at >= 0
+                  return h('div', {
+                    key: index,
+                    style: { display: 'flex', alignItems: 'baseline', gap: 8, padding: '3px 0', borderBottom: '1px dashed ' + c.border },
+                  },
+                  h('span', {
+                    className: 'nk-badge' + (item.severity === 'blocker' ? ' accent' : ' warn'),
+                    style: { flexShrink: 0 },
+                  }, item.severity === 'blocker' ? 'blocker' : 'warning'),
+                  h('span', { style: { flex: 1, minWidth: 0, fontSize: 11.5, color: c.sub, lineHeight: 1.6 } }, item.message || ''),
+                  locate
+                    ? h('button', {
+                        type: 'button', className: 'nk-btn', style: { flexShrink: 0 },
+                        onClick: function () { locateFinding(item) },
+                      }, '定位')
+                    : h('span', { style: { ...faint, fontSize: 10 } }, '全文级'))
+                }))
+            })(),
           ),
           h('div', { style: { width: 260, flexShrink: 0, borderLeft: '1px solid ' + c.border, padding: '10px 12px', overflowY: 'auto' } },
             h('div', { style: { ...faint, marginBottom: 4 } }, '写作依据'),

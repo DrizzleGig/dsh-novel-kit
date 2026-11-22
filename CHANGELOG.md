@@ -61,6 +61,10 @@
 - **模型提案改单条**：`novel_canon propose` 参数从 `contract: {整份}` 改为 `change: {collection, operation, entryId?, after?, evidenceRefs?}`，并可带 `expected_revision` / `base_contract_revision` / `base_content_hash`；旧整份参数明确返回 `canon-queue-required`，不再静默 diff 兼容。
 - **提案基线校验**：`proposeCanonChanges` 新增 `baseContractRevision` / `baseContentHash` 校验（不符返回 `canon-base-stale`），并拒绝不成立的条目（`canon-invalid-change`）。
 - **测试重写**：`canon.test.mjs` 改为「旧入口零写 + 候选队列是唯一入口 + 评审应用闭环后自动确认」；`tools.test.mjs` 覆盖单条 change 与旧参数报错。测试 **204/204**。
+- **检查项可以定位到句子**：`checks.js` 的所有 findings 统一带 `coordinate: 'utf16'` + `at` + `length`；复制检查改为「去空白 + 下标映射」回原文，带换行的正文也能定位到正确那句；文风区间这类全文级检查显式给 `at: null`，界面显示「全文级」而不是假装能跳。
+- **正文页检查列表**：编辑器下方列出本章检查（blocker/warning 徽章 + 消息 + 定位按钮），点「定位」把正文选区挪到那一段；空态不占位。
+- **不再双重检查**：kit 生效 canon 时不再叠加旧 fanfic 账本的复制/人名检查（两套同时判会把同一句报两次）。
+- **测试**：定位三条用例（下标与长度、带换行正文的下标映射、全文级为 null）；测试 **207/207**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。
