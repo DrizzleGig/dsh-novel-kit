@@ -117,9 +117,10 @@ window.__ModuleLoader__.load({
     }
 
     function Panel(props) {
-      const { sessionId, remote } = props
+      const { sessionId, remote, layout } = props
       const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
+      const [mode, setMode] = React.useState('task')
       const [pendingTakeover, setPendingTakeover] = React.useState(false)
       const [pendingCanon, setPendingCanon] = React.useState(false)
       const [details, setDetails] = React.useState(false)
@@ -599,8 +600,7 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, book, state.data, openTab])
 
-      const runConfirmStyle = React.useCallback(async function (profile) {
-        if (!remote || !profile || !profile.id) return
+      const runConfirmStyle = React.useCallback(async function (profile) {        if (!remote || !profile || !profile.id) return
         setAction({ phase: 'busy', message: '' })
         try {
           const result = await Promise.resolve(remote.confirmStyle(sessionId, {
@@ -664,6 +664,11 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, load])
 
+      const openStudio = React.useCallback(function () {
+        setMode('studio')
+        try { layout?.openRightbar?.(false, true) } catch { /* 不是所有布局都支持全屏 */ }
+      }, [layout])
+
       React.useEffect(function () { load() }, [load])
 
       const data = state.data
@@ -678,8 +683,7 @@ window.__ModuleLoader__.load({
       const panelBook = book || (data && data.book) || books[0] || ''
       const nextChapter = panelNext.chapter
       const panelPrimary = !panelBook
-        ? { label: '先选择一本书', action: null, disabled: true }
-        : panelNext.kind === 'decide'
+        ? { label: '先选择一本书', action: null, disabled: true }        : panelNext.kind === 'decide'
           ? { label: '去拍板（' + panelPending + '）', action: function () { setSettingsOpen(true); setDetails(true); openTab('decisions') }, disabled: false }
           : panelNext.kind === 'start'
             ? { label: startPhase === 'starting' ? '正在装配…' : '开第 ' + nextChapter + ' 章', action: function () { runStartChapter(panelBook, nextChapter) }, disabled: startPhase === 'starting' }
@@ -697,6 +701,10 @@ window.__ModuleLoader__.load({
         panelInbox.push({ kind: 'canon', text: '同人原著待确认（' + (data.canon.status || '?') + '）' })
       }
 
+      if (mode === 'studio') {
+        return h(Workbench, { sessionId, remote, embedded: true, onClose: function () { setMode('task') } })
+      }
+
       return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 16px 28px', color: c.text, background: c.base, height: '100%', overflowY: 'auto', fontSize: 13 } },
         h('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
           h('div', { style: { width: 32, height: 32, flexShrink: 0, borderRadius: 10, background: c.brand, color: c.onBrand, display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 700, letterSpacing: '-.04em' } }, '小'),
@@ -704,6 +712,11 @@ window.__ModuleLoader__.load({
             h('div', { style: { fontSize: 15, fontWeight: 700, letterSpacing: '-.01em' } }, '小说'),
             h('div', { style: { ...faint, marginTop: 1 } }, panelBook || '还没有选择作品')),
           h('div', { style: { display: 'flex', gap: 6 } },
+            h('button', {
+              type: 'button',
+              onClick: openStudio,
+              style: { appearance: 'none', border: 'none', background: c.brand, color: c.onBrand, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+            }, '工作台'),
             h('button', {
               type: 'button',
               title: '导入作品与项目设置',
@@ -939,7 +952,7 @@ window.__ModuleLoader__.load({
 
     // ── 小说工作台（conversation.view）：书桌/章节/故事/资料四入口 ──────────────
     function Workbench(props) {
-      const { sessionId, remote } = props
+      const { sessionId, remote, embedded = false, onClose = null } = props
       const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
       const [draftState, setDraftState] = React.useState({ text: '', version: 0, hash: null, chars: 0, loaded: false, dirty: false })
@@ -1386,7 +1399,10 @@ window.__ModuleLoader__.load({
               type: 'button',
               onClick: function () { load() },
               style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-            }, state.phase === 'refreshing' ? '…' : '刷新')),
+            }, state.phase === 'refreshing' ? '…' : '刷新'),
+            embedded && onClose
+              ? h('button', { type: 'button', onClick: onClose, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' } }, '返回任务卡')
+              : null),
         ),
         state.error ? h('div', { style: { color: c.error, padding: '8px 18px' } }, state.error) : null,
         h('div', { style: { display: 'flex', gap: 6, padding: '8px 18px', borderBottom: '1px solid ' + c.border, background: c.layer } },
@@ -1524,7 +1540,7 @@ window.__ModuleLoader__.load({
         ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
           name: 'sidebar.right.pane.tab',
           key: TAB_ID,
-          inject: (sessionId) => ({ sessionId, remote: panelRemote }),
+          inject: (sessionId) => ({ sessionId, remote: panelRemote, layout: ctx.get('layout') }),
         }, Panel)))
 
         // 小说工作台：会话级主视图（conversation.view），四入口 + 可编辑正文 + 依据/账本。
