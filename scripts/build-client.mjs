@@ -21,11 +21,14 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const repo = path.resolve(here, '..')
 const clientFile = path.join(repo, 'client.js')
 const styleFile = path.join(repo, 'client-src', 'styles.css')
+const uiKitFile = path.join(repo, 'client-src', 'ui-kit.js')
 
 const BEGIN = '/* NK:STYLE:BEGIN —— 由 scripts/build-client.mjs 维护 */'
 const END = '/* NK:STYLE:END */'
 const REMOTE_BEGIN = '/* NK:REMOTE:BEGIN —— 由 scripts/build-client.mjs 维护 */'
 const REMOTE_END = '/* NK:REMOTE:END */'
+const UIKIT_BEGIN = '/* NK:UIKIT:BEGIN —— 由 scripts/build-client.mjs 维护 */'
+const UIKIT_END = '/* NK:UIKIT:END */'
 
 function renderStyleBlock(css) {
   const body = css
@@ -44,6 +47,18 @@ function renderRemoteBlock(specs) {
   return `${REMOTE_BEGIN}\n    const REMOTE_METHOD_SPECS = [\n${rows},\n    ]\n${REMOTE_END}`
 }
 
+/** 纯展示工具：源码是 client-src/ui-kit.js，内联时去掉 export。 */
+function renderUiKitBlock(source) {
+  const body = source
+    .replace(/\r\n/g, '\n')
+    .replace(/^export\s+/gmu, '')
+    .trim()
+    .split('\n')
+    .map((line) => (line ? '    ' + line : ''))
+    .join('\n')
+  return `${UIKIT_BEGIN}\n${body}\n${UIKIT_END}`
+}
+
 /** 在 source 里找到标记块，返回当前内容与「替换后写回」的函数。 */
 function locateBlock(source, beginMarker, endMarker, label) {
   const beginAt = source.indexOf(beginMarker)
@@ -60,8 +75,10 @@ function locateBlock(source, beginMarker, endMarker, label) {
 export async function buildClient({ check = false } = {}) {
   const source = await readFile(clientFile, 'utf8')
   const css = await readFile(styleFile, 'utf8')
+  const uiKit = await readFile(uiKitFile, 'utf8')
   const nextStyle = renderStyleBlock(css)
   const nextRemote = renderRemoteBlock(REMOTE_METHOD_SPECS)
+  const nextUiKit = renderUiKitBlock(uiKit)
 
   // 产物不变量：唯一入口、单份 React、没有运行时相对 require。
   const problems = []
@@ -72,16 +89,23 @@ export async function buildClient({ check = false } = {}) {
 
   const style = locateBlock(source, BEGIN, END, '样式块')
   const remote = locateBlock(source, REMOTE_BEGIN, REMOTE_END, 'remote 契约块')
-  const needsBuild = style.current !== nextStyle || remote.current !== nextRemote
+  const uiBlock = locateBlock(source, UIKIT_BEGIN, UIKIT_END, 'ui-kit 块')
+  const needsBuild = style.current !== nextStyle || remote.current !== nextRemote || uiBlock.current !== nextUiKit
   const methods = REMOTE_METHOD_SPECS.length
 
   if (check) return { ok: !needsBuild, needsBuild, methods }
   if (!needsBuild) return { ok: true, changed: false, methods }
 
-  // 先换样式，再按「换过之后的文件」重新定位 remote 块，避免两处偏移互相干扰。
-  const withStyle = style.apply(nextStyle)
-  const remoteAfter = locateBlock(withStyle, REMOTE_BEGIN, REMOTE_END, 'remote 契约块')
-  await writeFile(clientFile, remoteAfter.apply(nextRemote), 'utf8')
+  // 逐块替换，每块都按「替换之后的文件」重新定位，避免偏移互相干扰。
+  let rebuilt = source
+  for (const [beginMarker, endMarker, next, label] of [
+    [UIKIT_BEGIN, UIKIT_END, nextUiKit, 'ui-kit 块'],
+    [BEGIN, END, nextStyle, '样式块'],
+    [REMOTE_BEGIN, REMOTE_END, nextRemote, 'remote 契约块'],
+  ]) {
+    rebuilt = locateBlock(rebuilt, beginMarker, endMarker, label).apply(next)
+  }
+  await writeFile(clientFile, rebuilt, 'utf8')
   return { ok: true, changed: true, methods }
 }
 

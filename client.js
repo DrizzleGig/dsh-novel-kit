@@ -89,6 +89,43 @@ window.__ModuleLoader__.load({
       }),
     }
 
+    // 纯展示工具：源码是 client-src/ui-kit.js，由构建脚本内联（NK:UIKIT 块）。
+    /* NK:UIKIT:BEGIN —— 由 scripts/build-client.mjs 维护 */
+    // 纯展示工具：不读账本、不调 remote、不改状态，只把数据变成元素。
+    //
+    // 这个文件既被测试直接 import，也会被 scripts/build-client.mjs 内联进 client.js
+    // 的 NK:UIKIT 块（内联时去掉 export）。新增函数请保持「只依赖入参」。
+    function createUiKit({ h, c } = {}) {
+      function fmtNum(value) {
+        const number = Number(value)
+        if (!Number.isFinite(number)) return String(value ?? '—')
+        return number.toLocaleString('zh-CN')
+      }
+
+      function pageStat(label, value, tone) {
+        return h('div', { className: 'nk-stat' },
+          h('div', { className: 'nk-stat-label' }, label),
+          h('div', { className: 'nk-stat-value' + (tone ? ' ' + tone : '') }, typeof value === 'number' ? fmtNum(value) : String(value)))
+      }
+
+      function inlineEmpty(text) {
+        return h('div', { className: 'nk-tiny', style: { padding: '12px 2px' } }, text)
+      }
+
+      function badge(text, tone) {
+        return h('span', { className: 'nk-badge' + (tone ? ' ' + tone : '') }, text)
+      }
+
+      /** 一段「主文案 + 附注」的紧凑行；没有附注时只出主文案。 */
+      function metaLine(text, hint) {
+        return h('div', { className: 'nk-tiny', style: { lineHeight: 1.7 } },
+          String(text ?? ''),
+          hint ? h('span', { style: { marginLeft: 8, color: c.faint } }, String(hint)) : null)
+      }
+
+      return { fmtNum, pageStat, inlineEmpty, badge, metaLine }
+    }
+/* NK:UIKIT:END */
     const c = {
       text: 'var(--dsw-alias-label-primary)',
       sub: 'var(--dsw-alias-label-secondary)',
@@ -104,6 +141,9 @@ window.__ModuleLoader__.load({
       success: 'var(--dsw-alias-state-success-primary)',
     }
 
+    // 纯展示工具实例：fmtNum / pageStat / inlineEmpty / badge / metaLine
+    const ui = createUiKit({ h, c })
+    const { fmtNum, pageStat, inlineEmpty } = ui
     const row = { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, padding: '5px 0', borderBottom: '1px solid ' + c.border }
     const faint = { color: c.faint, fontSize: 11 }
     const small = { color: c.sub, fontSize: 12, lineHeight: 1.5 }
@@ -1366,12 +1406,6 @@ window.__ModuleLoader__.load({
         )
       }
 
-      function fmtNum(value) {
-        const number = Number(value)
-        if (!Number.isFinite(number)) return String(value ?? '—')
-        return number.toLocaleString('zh-CN')
-      }
-
       /** 把检查项定位到正文：选中那一段，并把光标移到句首。 */
       function locateFinding(finding) {
         const node = draftRef.current
@@ -1385,16 +1419,6 @@ window.__ModuleLoader__.load({
         } catch {
           // 只读态/旧宿主：不抛错，保持原样
         }
-      }
-
-      function pageStat(label, value, tone) {
-        return h('div', { className: 'nk-stat' },
-          h('div', { className: 'nk-stat-label' }, label),
-          h('div', { className: 'nk-stat-value' + (tone ? ' ' + tone : '') }, typeof value === 'number' ? fmtNum(value) : String(value)))
-      }
-
-      function inlineEmpty(text) {
-        return h('div', { className: 'nk-tiny', style: { padding: '12px 2px' } }, text)
       }
 
       // ── 决策页：待拍板 / 已拍板 / 详情与改选 / 意图与文风倾向 ─────────────

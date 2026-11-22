@@ -21,6 +21,15 @@ test('构建：产物仍是单一 ModuleLoader 入口，且没有运行时相对
   assert.equal(/require\((['"])\.\//u.test(source), false, "不要出现 require('./…')：宿主只提供 React")
   assert.ok(source.includes('NK:STYLE:BEGIN'), '样式块要保留标记，构建脚本靠它定位')
   assert.ok(source.includes('NK:STYLE:END'))
+  assert.ok(source.includes('NK:UIKIT:BEGIN'), 'ui-kit 块要保留标记')
+  assert.ok(source.includes('NK:REMOTE:BEGIN'), 'remote 契约块要保留标记')
+  assert.ok(source.includes('createUiKit({ h, c })'), 'ui-kit 必须真的被实例化，否则内联了也没用')
+})
+
+test('构建：ui-kit 源文件与内联块一致', async () => {
+  const kit = await readFile(path.join(repo, 'client-src', 'ui-kit.js'), 'utf8')
+  assert.ok(kit.includes('export function createUiKit'), '源文件要保持可 import 的形态')
+  assert.equal(/\bimport\s/u.test(kit), false, 'ui-kit 不允许有依赖，内联后才能在工厂作用域里跑')
 })
 
 test('构建：样式源文件非空且不含模板残留', async () => {

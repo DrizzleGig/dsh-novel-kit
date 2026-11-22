@@ -71,7 +71,8 @@
 - **契约同源生成**：`lib/host/remote-contract.js` 导出 `REMOTE_METHOD_SPECS`（`[方法名, 是否带 request]`），构建脚本把它内联进 `client.js` 的 `NK:REMOTE` 块，客户端 `descriptors` 由这张表生成——40 个方法不再有两份手抄。`--check` 同时校验样式块与契约块，`npm run check` 一次跑完。
 - **契约一致性测试改口径**：`client.test.mjs` 从「找 `method: 'xxx'` 字面量」改为「逐行核对 Host 方法表都在产物里」，防止有人手改生成块。测试 **210/210**。
 - **草稿边界（防丢稿 / 防串稿）**：切换作品时若有未保存正文，不再静默清空——先停住并给出「保存并切换 / 丢弃并切换 / 取消」；`saveDraft` 加互斥口（按钮与 Ctrl+S 共用），保存回包要校验**书 + 章节会话 + 编辑序号**，期间切过书就不把回包写进当前编辑器；`loadDraft` 记录目标归属，晚到的响应直接丢弃，不会把 A 章草稿写进 B 章。
-- 测试 **210/210**。
+- **拆分第二步：纯展示工具出源**：`fmtNum / pageStat / inlineEmpty / badge / metaLine` 移到 `client-src/ui-kit.js`（`createUiKit({ h, c })`），构建脚本内联进 `NK:UIKIT` 块。这个文件**可以被测试直接 import**（`test/ui-kit.test.mjs` 用假的 `h` 断言结构与类名），同时保持产物仍是单文件、不引入运行时模块。
+- 测试 **216/216**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。
