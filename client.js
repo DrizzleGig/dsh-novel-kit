@@ -356,6 +356,28 @@ window.__ModuleLoader__.load({
       .nk-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 5px; font-size: 10.5px;
         color: var(--nk-ink-2); background: var(--nk-surface-2); border: 1px solid var(--nk-line-soft); }
       .nk-wb :focus-visible, .nk-panel :focus-visible { outline: 2px solid var(--nk-accent-line); outline-offset: 1px; border-radius: var(--nk-r-sm); }
+
+      /* ── 页面区块：提案 / 选项 / 记忆卡 / 台账行 ── */
+      .nk-proposal { padding: 12px 0; border-bottom: 1px solid var(--nk-line-soft); }
+      .nk-proposal:last-child { border-bottom: 0; }
+      .nk-proposal-title { font-size: 13.5px; font-weight: 600; line-height: 1.5; }
+      .nk-option { margin-top: 8px; padding: 9px 10px; border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r-sm); background: var(--nk-surface); }
+      .nk-option-label { font-size: 12.5px; font-weight: 600; }
+      .nk-option-foot { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+      .nk-rowbtn { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; appearance: none; background: transparent;
+        border: 0; border-bottom: 1px solid var(--nk-line-soft); color: var(--nk-ink); padding: 9px 12px; font-family: inherit; font-size: 12.5px; cursor: pointer; }
+      .nk-rowbtn:last-child { border-bottom: 0; }
+      .nk-rowbtn:hover { background: var(--nk-surface-2); }
+      .nk-rowbtn.active { background: var(--nk-accent-soft); }
+      .nk-rowbtn-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .nk-badge { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; font-size: 10px;
+        background: var(--nk-surface-2); color: var(--nk-ink-3); border: 1px solid var(--nk-line-soft); }
+      .nk-badge.accent { background: var(--nk-accent-soft); color: var(--nk-accent); border-color: var(--nk-accent-line); }
+      .nk-badge.warn { color: var(--dsw-alias-state-warning-primary, #a87322); }
+      .nk-quote { margin-top: 8px; padding: 9px 11px; border-left: 2px solid var(--nk-accent-line); background: var(--nk-surface);
+        border-radius: 0 var(--nk-r-sm) var(--nk-r-sm) 0; font-family: var(--nk-serif); font-size: 12.5px; line-height: 1.75; color: var(--nk-ink-2); }
+      .nk-chipline { display: flex; flex-wrap: wrap; gap: 6px; }
+      .nk-detail { display: flex; flex-direction: column; gap: 10px; }
     `
 
     function unwrap(rpc) {
@@ -425,6 +447,7 @@ window.__ModuleLoader__.load({
       const [beatMessage, setBeatMessage] = React.useState('')
       const [workOrder, setWorkOrder] = React.useState('')
       const [memoryOpen, setMemoryOpen] = React.useState(null)
+      const [openDecisionId, setOpenDecisionId] = React.useState(null)
       const [styleOpen, setStyleOpen] = React.useState(null)
       const [styleBrief, setStyleBrief] = React.useState(null)
       const [canonBusy, setCanonBusy] = React.useState(false)
@@ -483,6 +506,19 @@ window.__ModuleLoader__.load({
       }, [remote, sessionId, book])
 
       React.useEffect(function () { load() }, [load])
+
+      // 自动选书：快照没指定书时，用工作区里发现的第一本书再取一次。
+      // 没有这一步，快照的 book/session 全是 null，七个页面会永远停在「加载…」。
+      React.useEffect(function () {
+        if (book) return
+        const found = (state.data && state.data.workspace && Array.isArray(state.data.workspace.beat) && state.data.workspace.beat.length)
+          ? state.data.workspace.beat[0]
+          : null
+        if (!found) return
+        bookRef.current = found
+        setBook(found)
+        load(found)
+      }, [book, state.data, load])
 
       const loadDraft = React.useCallback(async function (session) {
         if (!remote || !session || !session.id || typeof remote.getDraft !== 'function') return
@@ -675,6 +711,21 @@ window.__ModuleLoader__.load({
         const decisions = await Promise.resolve(remote.getDecisions(sessionId, { book: data.book, chapter: session ? session.chapter : null })).then(unwrap).catch(() => null)
         if (decisions) setStoryData((prev) => ({ ...(prev || {}), decisions }))
       }, [remote, sessionId, data, session])
+
+      const confirmStyleNow = React.useCallback(async function (profile) {
+        if (!remote || !profile) return
+        try {
+          const result = await Promise.resolve(remote.confirmStyle(sessionId, {
+            profileId: profile.id, expectedRevision: profile.revision ?? null,
+          })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '确认文风失败'); return }
+          setBeatMessage('文风档案已确认：' + (profile.name || profile.id))
+          setMaterialData(null)
+          await load()
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, load])
 
       const confirmCanonNow = React.useCallback(async function (canon) {
         if (!remote || !data || !data.book || !canon) return
@@ -1190,270 +1241,424 @@ window.__ModuleLoader__.load({
         )
       }
 
-      function beatView() {
-        if (!storyData) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '加载故事数据…'))
-        const decisions = storyData.decisions || {}
-        const memory = storyData.memory || {}
-        const committed = decisions.committed || []
-        const proposals = decisions.proposals || []
-        const chapters = data && data.history && data.history.chapters ? data.history.chapters : []
-        const query = beatQuery.trim().toLowerCase()
-        const match = (text) => !query || String(text || '').toLowerCase().includes(query)
-        const filteredCommitted = committed.filter((item) => match(item.title) || match(item.change))
-        const filteredProposals = proposals.filter((item) => match(item.title) || (item.options || []).some((option) => match(option.label)))
-        const tab = (key, label, count) => h('button', {
-          key,
-          type: 'button',
-          onClick: function () { setBeatTab(key) },
-          style: { appearance: 'none', border: '1px solid ' + (beatTab === key ? c.brand : c.border), background: beatTab === key ? c.layer : 'transparent', color: beatTab === key ? c.text : c.sub, borderRadius: 999, padding: '3px 10px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-        }, label + (count !== undefined ? ' ' + count : ''))
+      function fmtNum(value) {
+        const number = Number(value)
+        if (!Number.isFinite(number)) return String(value ?? '—')
+        return number.toLocaleString('zh-CN')
+      }
 
-        const decisionCard = function (item) {
-          const editing = beatEditing === item.id
-          const editor = editing
-            ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 5, marginTop: 7 } },
-                h('input', { value: beatOption, placeholder: '新方向，例如：绕山路', onChange: function (event) { setBeatOption(event.target.value) }, style: { border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } }),
-                h('input', { value: beatNote, placeholder: '改选理由（可选）', onChange: function (event) { setBeatNote(event.target.value) }, style: { border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } }),
-                h('div', { style: { display: 'flex', gap: 5 } },
-                  h('button', { className: 'nk-btn primary', onClick: function () { submitRevise(item) } }, '生成重写工单'),
-                  h('button', { className: 'nk-btn', onClick: function () { setBeatEditing(null) } }, '取消')))
-            : h('button', { className: 'nk-btn', onClick: function () { setBeatEditing(item.id); setBeatOption(item.option || ''); setBeatNote('') } }, '改选')
-          return h('div', { key: item.id, style: { padding: '10px 12px', border: '1px solid ' + c.border, borderRadius: 10, background: c.layer, marginBottom: 6 } },
-            h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
-              h('span', { style: { fontSize: 10, color: c.brand, fontWeight: 700 } }, 'CH ' + (item.chapter ?? '?')),
-              h('span', { style: { fontSize: 13, fontWeight: 600 } }, item.title),
-              item.kind === '改选' ? h('span', { style: { fontSize: 9.5, color: c.warning } }, '改选') : null,
-              h('span', { style: { marginLeft: 'auto', ...faint, fontSize: 10 } }, item.option || '')),
-            h('div', { style: { color: c.sub, fontSize: 12, marginTop: 3, lineHeight: 1.55 } }, item.change),
-            item.status !== 'reverted' ? editor : null)
-        }
+      function pageStat(label, value, tone) {
+        return h('div', { className: 'nk-stat' },
+          h('div', { className: 'nk-stat-label' }, label),
+          h('div', { className: 'nk-stat-value' + (tone ? ' ' + tone : '') }, typeof value === 'number' ? fmtNum(value) : String(value)))
+      }
 
-        const proposalCard = function (item) {
-          return h('div', { key: item.id, style: { padding: '10px 12px', border: '1px solid ' + c.warning, borderRadius: 10, background: c.layer, marginBottom: 6 } },
-            h('div', { style: { fontSize: 13, fontWeight: 600 } }, item.title),
-            (item.options || []).map(function (option, index) {
-              return h('div', { key: index, style: { display: 'flex', gap: 8, alignItems: 'baseline', marginTop: 5 } },
-                h('button', { className: 'nk-btn', onClick: function () { decideFromBeat(item, 'adopt', option.label) } }, option.label),
-                h('span', { style: { color: c.faint, fontSize: 10.5 } }, (option.styleFit ? '文风 ' + option.styleFit + ' · ' : '') + (option.styleWhy || option.impact || '')))
+      function inlineEmpty(text) {
+        return h('div', { className: 'nk-tiny', style: { padding: '12px 2px' } }, text)
+      }
+
+      // ── 决策页：待拍板 / 已拍板 / 详情与改选 / 意图与文风倾向 ─────────────
+      function decisionsPage() {
+        const view = storyData && storyData.decisions ? storyData.decisions : null
+        const committed = view && Array.isArray(view.committed) ? view.committed : []
+        const pending = view && Array.isArray(view.proposals) ? view.proposals : []
+        const selected = committed.filter(function (item) { return item.id === openDecisionId })[0] || null
+        const beatRev = data && data.ledgers && data.ledgers.beat ? data.ledgers.beat.revision : '—'
+
+        const proposalView = function (item) {
+          return h('div', { key: item.id, className: 'nk-proposal' },
+            h('div', { className: 'nk-proposal-title' }, item.title || '未命名提案'),
+            (item.options || []).map(function (option) {
+              return h('div', { key: option.label, className: 'nk-option' },
+                h('div', { className: 'nk-option-label' }, option.label),
+                option.impact ? h('div', { className: 'nk-tiny', style: { marginTop: 3 } }, option.impact) : null,
+                option.styleWhy ? h('div', { className: 'nk-tiny', style: { marginTop: 2 } }, '文风：' + option.styleWhy) : null,
+                h('div', { className: 'nk-option-foot' },
+                  option.styleFit !== null && option.styleFit !== undefined
+                    ? h('span', { className: 'nk-badge accent' }, '贴合 ' + option.styleFit)
+                    : null,
+                  h('button', {
+                    type: 'button', className: 'nk-btn primary', style: { marginLeft: 'auto' },
+                    onClick: function () { decideFromBeat(item, 'adopt', option.label) },
+                  }, '选它')))
             }),
-            h('button', { className: 'nk-btn', onClick: function () { decideFromBeat(item, 'reject') } }, '拒绝'))
+            h('button', {
+              type: 'button', className: 'nk-btn', style: { marginTop: 8 },
+              onClick: function () { decideFromBeat(item, 'reject') },
+            }, '整条拒绝'))
         }
 
-        const map = h('div', null,
-          h('input', {
-            value: beatQuery,
-            placeholder: '搜决策、选项、变更…',
-            onChange: function (event) { setBeatQuery(event.target.value) },
-            style: { width: '100%', boxSizing: 'border-box', border: '1px solid ' + c.border, borderRadius: 9, background: c.layer, color: c.text, padding: '8px 10px', fontSize: 12, fontFamily: 'inherit', marginBottom: 10 },
-          }),
-          decisions.styleHint ? h('div', { style: { ...faint, marginBottom: 8 } }, decisions.styleHint) : null,
-          beatMessage ? h('div', { style: { fontSize: 11.5, color: beatMessage.includes('失败') || beatMessage.includes('错误') ? c.error : c.sub, marginBottom: 8 } }, beatMessage) : null,
-          workOrder ? h('div', { style: { padding: '10px 12px', border: '1px solid ' + c.brand, borderRadius: 10, background: c.layer, marginBottom: 10 } },
-            h('div', { style: { ...faint, marginBottom: 4 } }, '重写工单'),
-            h('pre', { style: { margin: 0, whiteSpace: 'pre-wrap', fontSize: 11.5, lineHeight: 1.6, color: c.sub, fontFamily: 'inherit' } }, workOrder)) : null,
-          h('div', { style: { ...faint, marginBottom: 5 } }, '已拍板'),
-          filteredCommitted.length === 0 ? h('div', { style: faint }, query ? '没有匹配的决策。' : '还没有已拍板决策。') : filteredCommitted.map(decisionCard),
-          h('div', { style: { ...faint, margin: '14px 0 5px' } }, '待拍板'),
-          filteredProposals.length === 0 ? h('div', { style: faint }, '没有待拍板提案。') : filteredProposals.map(proposalCard))
+        const committedRow = function (item) {
+          const active = item.id === openDecisionId
+          return h('button', {
+            key: item.id, type: 'button',
+            className: 'nk-rowbtn' + (active ? ' active' : ''),
+            onClick: function () { setOpenDecisionId(active ? null : item.id) },
+          },
+          h('span', { className: 'nk-badge' }, 'CH.' + String(item.chapter).padStart(2, '0')),
+          h('span', { className: 'nk-rowbtn-title' }, item.title || item.change || '未命名决策'),
+          item.workOrder ? h('span', { className: 'nk-badge warn' }, '有工单') : null,
+          h('span', { className: 'nk-meta' }, item.option || ''))
+        }
 
-        const timeline = h('div', null,
-          committed.length === 0 && chapters.length === 0 ? h('div', { style: faint }, '还没有时间线事件。') : h('div', null,
-            committed.slice(0, 30).map((item) => h('div', { key: 'd' + item.id, style: { display: 'flex', gap: 10, padding: '7px 0', borderBottom: '1px dashed ' + c.border } },
-              h('span', { style: { ...faint, width: 72, flexShrink: 0 } }, '第 ' + (item.chapter ?? '?') + ' 章'),
-              h('span', { style: { color: c.brand, fontSize: 10, width: 42, flexShrink: 0 } }, '拍板'),
-              h('span', { style: { fontSize: 12, color: c.sub } }, item.title + (item.change ? '：' + item.change : '')))),
-            chapters.slice(0, 20).map((item) => h('div', { key: 'h' + item.chapter, style: { display: 'flex', gap: 10, padding: '7px 0', borderBottom: '1px dashed ' + c.border } },
-              h('span', { style: { ...faint, width: 72, flexShrink: 0 } }, '第 ' + item.chapter + ' 章'),
-              h('span', { style: { color: c.success, fontSize: 10, width: 42, flexShrink: 0 } }, '完稿'),
-              h('span', { style: { fontSize: 12, color: c.sub } }, (item.state || '?') + (item.chars ? ' · ' + item.chars + ' 字' : ''))))))
-
-        const health = h('div', null,
-          h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 } },
-            h('div', { style: { border: '1px solid ' + c.border, borderRadius: 10, padding: 10 } }, h('div', { style: { ...faint, fontSize: 10 } }, '待拍板'), h('div', { style: { fontSize: 20, fontWeight: 700, color: proposals.length ? c.warning : c.text } }, String(proposals.length))),
-            h('div', { style: { border: '1px solid ' + c.border, borderRadius: 10, padding: 10 } }, h('div', { style: { ...faint, fontSize: 10 } }, '未回收线索'), h('div', { style: { fontSize: 20, fontWeight: 700 } }, String((memory.threads || []).length))),
-            h('div', { style: { border: '1px solid ' + c.border, borderRadius: 10, padding: 10 } }, h('div', { style: { ...faint, fontSize: 10 } }, '冲突'), h('div', { style: { fontSize: 20, fontWeight: 700, color: conflictTotal ? c.error : c.text } }, String(conflictTotal)))),
-          h('div', { style: { ...faint, margin: '12px 0 5px' } }, '本章检查'),
-          session && session.verification ? h('div', { style: { color: session.verification.blockers ? c.error : c.success, fontSize: 12 } }, 'blocker ' + session.verification.blockers + ' · warning ' + session.verification.warnings) : h('div', { style: faint }, '还没有检查记录。'),
-          h('div', { style: { ...faint, margin: '12px 0 5px' } }, '未回收线索'),
-          (memory.threads || []).length === 0 ? h('div', { style: faint }, '没有未回收线索。') : (memory.threads || []).slice(0, 12).map((thread) => h('div', { key: thread.id, style: { ...row, borderBottom: '1px dashed ' + c.border } },
-            h('span', { style: small }, thread.text), h('span', { style: { ...faint, fontSize: 10 } }, '第 ' + thread.chapter + ' 章'))))
-
-        return h('div', { className: 'nk-wb-body' },
-          pageHead('决策', '待拍板的提案、已拍板的历史，以及改选留下的重写工单。'),
-          h('div', { style: { maxWidth: 820 } },
-            h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
-              h('div', { style: { ...faint, fontSize: 10.5 } }, 'beat rev ' + (data && data.ledgers && data.ledgers.beat ? data.ledgers.beat.revision : '-'))),
-            h('div', { style: { display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' } },
-              tab('map', '拍板记录', committed.length + proposals.length), tab('timeline', '时间线', committed.length), tab('health', '体检')),
-            h('div', { style: { marginTop: 12 } }, beatTab === 'map' ? map : beatTab === 'timeline' ? timeline : health)))
-      }
-
-      function fadeView() {
-        if (!fadeData) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '加载记忆…'))
-        const cards = fadeData.cards || []
-        const threads = fadeData.threads || []
-        const entities = fadeData.entities || []
-        const lowFidelity = cards.filter((card) => card.fidelity !== null && card.fidelity < 0.33).length
-        const stat = (label, value) => h('div', { style: { border: '1px solid ' + c.border, borderRadius: 12, padding: '10px 12px', background: c.layer } },
-          h('div', { style: { ...faint, fontSize: 10.5 } }, label),
-          h('div', { style: { fontSize: 18, fontWeight: 700, marginTop: 2 } }, String(value)))
-        return h('div', { className: 'nk-wb-body' },
-          pageHead('记忆', '收尾时沉淀的事件卡；近章重点记，旧事逐步淡。'),
-          h('div', { style: { maxWidth: 780 } },
-            h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
-              h('div', { style: { ...faint, fontSize: 10.5 } }, 'rev ' + (fadeData.revision ?? '-') + (fadeData.drift ? ' · 记忆账本漂移，写作前先回查旧卡' : ''))),
-            fadeData.drift ? h('div', { style: { marginTop: 8, padding: '8px 10px', border: '1px solid ' + c.warning, borderRadius: 9, color: c.warning, fontSize: 11.5 } }, '记忆账本检测到漂移：下一章写作前先回查旧卡，或收尾时重新锚定原文。') : null,
-            h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 12 } },
-              stat('卡片', fadeData.total || cards.length), stat('未回收线索', threads.length), stat('人物', entities.length), stat('低保真', lowFidelity)),
-            h('div', { style: { display: 'flex', gap: 6, marginTop: 12 } },
+        const detail = selected
+          ? h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-card-head' },
+                h('div', { className: 'nk-card-title' }, '决策详情'),
+                h('span', { className: 'nk-meta' }, 'CH.' + String(selected.chapter).padStart(2, '0'))),
+              h('div', { className: 'nk-h3' }, selected.title || '未命名决策'),
+              selected.change ? h('div', { className: 'nk-quote' }, selected.change) : null,
+              h('div', { className: 'nk-kv' },
+                h('span', { className: 'nk-kv-key' }, '已选'),
+                h('span', { className: 'nk-kv-val' }, selected.option || '—')),
+              selected.supersedes
+                ? h('div', { className: 'nk-kv' },
+                    h('span', { className: 'nk-kv-key' }, '改选自'),
+                    h('span', { className: 'nk-kv-val' }, selected.supersedes))
+                : null,
+              selected.createdAt
+                ? h('div', { className: 'nk-kv' },
+                    h('span', { className: 'nk-kv-key' }, '拍板时间'),
+                    h('span', { className: 'nk-kv-val' }, String(selected.createdAt).slice(0, 16).replace('T', ' ')))
+                : null,
+              h('div', { className: 'nk-tiny', style: { margin: '6px 0 4px' } }, '改选：写一个新方向，旧决策保留，另生成重写工单'),
               h('input', {
-                value: memoryQuery,
-                placeholder: '搜记忆：人物、物品、秘密…',
-                onChange: function (event) { setMemoryQuery(event.target.value) },
-                onKeyDown: function (event) { if (event.key === 'Enter') searchMemoryNow() },
-                style: { flex: 1, border: '1px solid ' + c.border, borderRadius: 8, background: c.layer, color: c.text, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit' },
+                className: 'nk-input', value: beatOption, placeholder: '新方向，例如：改成正面场景',
+                onChange: function (event) { setBeatOption(event.target.value) },
               }),
-              h('button', { className: 'nk-btn', onClick: searchMemoryNow }, '搜索')),
-            memoryHits !== null ? h('div', { style: { marginTop: 8 } },
-              h('div', { style: { ...faint, fontSize: 10.5, marginBottom: 4 } }, '命中 ' + memoryHits.length + ' 张'),
-              memoryHits.length === 0 ? h('div', { style: faint }, '没有匹配的记忆。') : memoryHits.slice(0, 6).map((hit) => h('div', {
-                key: hit.id,
-                onClick: function () { setMemoryOpen(hit.id) },
-                style: { padding: '6px 8px', border: '1px solid ' + c.border, borderRadius: 8, marginBottom: 4, cursor: 'pointer', background: c.layer },
-              }, h('div', { style: { fontSize: 11.5 } }, '第 ' + hit.chapter + ' 章 · ' + (hit.gist || hit.quote || hit.id))))) : null,
-            h('div', { style: { ...faint, margin: '16px 0 6px' } }, '记忆卡'),
-            cards.length === 0 ? h('div', { style: faint }, '还没有记忆卡；收尾一章后生成。') : cards.slice(0, 24).map((card) => {
-              const open = memoryOpen === card.id
-              return h('div', {
-                key: card.id,
-                onClick: function () { setMemoryOpen(open ? null : card.id) },
-                style: { padding: '10px 12px', border: '1px solid ' + (open ? c.brand : c.border), borderRadius: 10, marginBottom: 6, background: c.layer, cursor: 'pointer' },
-              },
-              h('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
-                h('span', { style: { fontSize: 10, color: c.brand, fontWeight: 700 } }, card.layer || 'L2'),
-                h('span', { style: { fontSize: 10 } }, '第 ' + card.chapter + ' 章'),
-                card.fidelity !== null && card.fidelity < 0.33 ? h('span', { style: { fontSize: 9.5, color: c.warning } }, '已褪色') : null,
-                card.pinned ? h('span', { style: { fontSize: 9.5, color: c.success } }, '已钉住') : null,
-                h('span', { style: { marginLeft: 'auto', ...faint, fontSize: 10 } }, card.status || 'active')),
-              h('div', { style: { fontSize: 12.5, marginTop: 4, lineHeight: 1.6 } }, card.gist || '（无摘要）'),
-              card.emotion ? h('div', { style: { ...faint, marginTop: 2 } }, card.emotion) : null,
-              open ? h('div', { style: { marginTop: 7, paddingTop: 7, borderTop: '1px dashed ' + c.border } },
-                h('div', { style: { ...faint, fontSize: 10.5 } }, '三维 · ' + (card.familiarity !== null ? '熟 ' + Math.round(card.familiarity * 100) + '%' : '熟 —') + ' / ' + (card.accessibility !== null ? '可及 ' + Math.round(card.accessibility * 100) + '%' : '可及 —') + ' / ' + (card.fidelity !== null ? '保真 ' + Math.round(card.fidelity * 100) + '%' : '保真 —')),
-                card.quote ? h('div', { style: { marginTop: 6, paddingLeft: 9, borderLeft: '2px solid ' + c.brand, color: c.sub, fontSize: 11.5, lineHeight: 1.7, fontFamily: '"Songti SC", "Noto Serif SC", serif' } }, '“' + card.quote + '”') : null,
-                card.cause || card.effect ? h('div', { style: { ...faint, marginTop: 5, fontSize: 10.5 } }, (card.cause ? '因：' + card.cause : '') + (card.effect ? '　果：' + card.effect : '')) : null,
-                card.entityIds && card.entityIds.length ? h('div', { style: { ...faint, marginTop: 5, fontSize: 10.5 } }, '人物：' + card.entityIds.join('、')) : null,
-                h('div', { style: { ...faint, marginTop: 5, fontSize: 10.5 } }, '原句回查：收尾时已按引文锚定；正文与卡片同事务落账。')) : null,
-              h('div', { style: { display: 'flex', gap: 5, marginTop: 6 } },
-                card.status === 'forgotten'
-                  ? h('button', { className: 'nk-btn', onClick: function (event) { event.stopPropagation(); actOnMemory(card, 'restore') } }, '恢复')
-                  : h('button', { className: 'nk-btn', onClick: function (event) { event.stopPropagation(); actOnMemory(card, 'forget') } }, '遗忘'),
-                card.pinned ? null : h('button', { className: 'nk-btn', onClick: function (event) { event.stopPropagation(); actOnMemory(card, 'pin') } }, '钉住')))
-            })),
-            h('div', { style: { ...faint, margin: '14px 0 6px' } }, '未回收线索'),
-            threads.length === 0 ? h('div', { style: faint }, '没有未回收线索。') : threads.slice(0, 12).map((thread) => h('div', { key: thread.id, style: { ...row, borderBottom: '1px dashed ' + c.border } },
-              h('span', { style: small }, thread.text), h('span', { style: { ...faint, fontSize: 10 } }, '第 ' + thread.chapter + ' 章'))),
-            h('div', { style: { ...faint, margin: '14px 0 6px' } }, '常出现人物'),
-            entities.length === 0 ? h('div', { style: faint }, '还没有人物统计。') : h('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap' } },
-              entities.slice(0, 20).map((entity) => h('span', { key: entity.name, style: { border: '1px solid ' + c.border, borderRadius: 999, padding: '3px 8px', fontSize: 11 } }, entity.name + ' ×' + entity.mentions))))
-      }
+              h('input', {
+                className: 'nk-input', style: { marginTop: 6 }, value: beatNote, placeholder: '备注（可选）',
+                onChange: function (event) { setBeatNote(event.target.value) },
+              }),
+              h('button', {
+                type: 'button', className: 'nk-btn', style: { marginTop: 8 },
+                onClick: function () { submitRevise(selected) },
+              }, '生成重写工单'),
+              workOrder ? h('div', { className: 'nk-tiny', style: { marginTop: 8, wordBreak: 'break-all' } }, '工单：' + workOrder) : null)
+          : h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '决策详情')),
+              h('div', { className: 'nk-empty-state' },
+                h('div', { className: 'nk-glyph' }, '判'),
+                h('div', { className: 'nk-tiny' }, '点左边一条已拍板的决策，看它的选项、影响与改选。')))
 
-      function voiceView() {
-        if (!materialData) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '加载文风…'))
-        const style = materialData.style || {}
-        const profiles = style.kitProfiles || []
         return h('div', { className: 'nk-wb-body' },
-          pageHead('风格工作室', '导入一本你喜欢的作品，看它的句长、对话比例、用词与禁忌，再确认成写作档案。'),
-          importPanel('style'),
-          h('div', { style: { maxWidth: 780 } },
-            h('div', { style: { ...faint, margin: '16px 0 6px' } }, '文风档案'),
-            profiles.length === 0 ? h('div', { style: faint }, '还没有文风档案。导入一本作品后，这里会出现它的句子、节奏与用词分析。') : profiles.map((profile) => {
-              const open = styleOpen === profile.id
-              const ruleTexts = Array.isArray(profile.ruleTexts) ? profile.ruleTexts : []
-              return h('div', {
-                key: profile.id,
-                onClick: function () { setStyleOpen(open ? null : profile.id) },
-                style: { padding: 14, border: '1px solid ' + (open ? c.brand : c.border), borderRadius: 12, background: c.layer, marginBottom: 8, cursor: 'pointer' },
-              },
-              h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
-                h('div', { style: { fontSize: 15, fontWeight: 700 } }, profile.name || profile.id),
-                h('span', { style: { fontSize: 10, color: profile.status === 'confirmed' ? c.success : c.warning } }, profile.status === 'confirmed' ? '已确认' : '待确认'),
-                h('span', { style: { marginLeft: 'auto', ...faint, fontSize: 10 } }, 'v' + (profile.version ?? '?') + ' · rev ' + (profile.revision ?? 0))),
-              h('div', { style: { ...faint, marginTop: 6 } }, (profile.rules ?? 0) + ' 条规则 · ' + (profile.avoid || []).length + ' 个避免词'),
-              h('div', { style: { display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 } },
-                Object.entries(profile.bands || {}).slice(0, 6).map(([key, spec]) => {
-                  const band = Array.isArray(spec) ? spec : spec && Array.isArray(spec.band) ? spec.band : null
-                  return band ? h('span', { key, style: { border: '1px solid ' + c.border, borderRadius: 999, padding: '2px 7px', fontSize: 10 } }, key + ' ' + band[0] + '–' + band[1]) : null
-                })),
-              open ? h('div', { style: { marginTop: 9, paddingTop: 8, borderTop: '1px dashed ' + c.border } },
-                ruleTexts.length ? h('div', null,
-                  h('div', { style: { ...faint, fontSize: 10.5, marginBottom: 3 } }, '规则'),
-                  ruleTexts.slice(0, 8).map((text, index) => h('div', { key: index, style: { color: c.sub, fontSize: 11.5, lineHeight: 1.65 } }, '· ' + text))) : h('div', { style: faint }, '规则尚未编译；先确认档案。'),
-                (profile.avoid || []).length ? h('div', { style: { marginTop: 6 } },
-                  h('div', { style: { ...faint, fontSize: 10.5, marginBottom: 3 } }, '避免'),
-                  h('div', { style: { display: 'flex', gap: 4, flexWrap: 'wrap' } }, profile.avoid.slice(0, 12).map((word) => h('span', { key: word, style: { border: '1px solid ' + c.border, borderRadius: 999, padding: '2px 7px', fontSize: 10 } }, word)))) : null,
-                profile.decisionPolicy && Object.keys(profile.decisionPolicy).length ? h('div', { style: { ...faint, marginTop: 6, fontSize: 10.5 } }, '决策倾向：' + JSON.stringify(profile.decisionPolicy)) : null,
-                h('button', { className: 'nk-btn', style: { marginTop: 7 }, onClick: function (event) { event.stopPropagation(); loadStyleBrief(profile) } }, '生成写前简报'),
-                styleBrief && styleBrief.profileId === profile.id && styleBrief.brief && styleBrief.brief.available
-                  ? h('pre', { style: { marginTop: 6, whiteSpace: 'pre-wrap', color: c.sub, fontSize: 11.5, lineHeight: 1.65, fontFamily: '"Songti SC", "Noto Serif SC", serif', background: c.base, border: '1px solid ' + c.border, borderRadius: 8, padding: 8 } }, styleBrief.brief.markdown)
-                  : null) : null)
-            })),            h('div', { style: { ...faint, margin: '14px 0 6px' } }, '旧 voice 书库'),
-            (style.works || []).length ? (style.works || []).map((work) => h('div', { key: work.workId, style: { ...row, borderBottom: '1px dashed ' + c.border } },
-              h('span', { style: small }, work.title || work.workId), h('span', { style: { ...faint, fontSize: 10 } }, work.chapters + ' 章 · ' + work.chars + ' 字'))) : h('div', { style: faint }, '没有旧 voice 书库；kit 的档案在下方/上方。'))
+          pageHead('决策', '本章拍过什么、还欠什么；提案必须你点头才算数。',
+            h('button', { type: 'button', className: 'nk-btn', onClick: function () { reloadBeat() } }, '刷新')),
+          h('div', { className: 'nk-stats' },
+            pageStat('本章已拍板', committed.length),
+            pageStat('待你拍板', pending.length, pending.length ? 'warn' : ''),
+            pageStat('未回收线索', view ? view.openObligations : '—'),
+            pageStat('beat 版本', beatRev)),
+          beatMessage ? h('div', { className: 'nk-tiny', style: { margin: '10px 0' } }, beatMessage) : null,
+          h('div', { className: 'nk-split' },
+            h('div', { className: 'nk-split-list' },
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '待你拍板'),
+                  h('span', { className: 'nk-meta' }, pending.length + ' 条')),
+                pending.length ? pending.map(proposalView)
+                  : inlineEmpty('没有待拍板的提案。模型提出选项后会出现在这里，采纳或拒绝由你决定。')),
+              h('section', { className: 'nk-card flush' },
+                h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
+                  h('div', { className: 'nk-card-title' }, '本章已拍板'),
+                  h('span', { className: 'nk-meta' }, committed.length + ' 条')),
+                committed.length ? committed.map(committedRow) : inlineEmpty('本章还没有拍过板。'))),
+            h('div', { className: 'nk-wb-col nk-wb-aside' },
+              detail,
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '本章意图')),
+                h('div', { className: 'nk-body' }, (view && view.intent) || '还没有写本章意图；可以在书桌的「本章场景」里填。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '文风倾向')),
+                h('div', { className: 'nk-body' }, (view && view.styleHint) || '还没有文风提示；导入风格档案后这里会给出倾向。')))))
       }
 
-      function fanficView() {
-        if (!materialData) {
-          return h('div', { className: 'nk-wb-body' },
-            pageHead('同人', '导入原著，抽成事实、人物、规则与称呼；每条都要有原文证据。'),
-            h('div', { className: 'nk-skeleton', style: { height: 140 } }))
+      // ── 记忆页：卡库 / 检索 / 人物 / 线索 / 卡片详情 ───────────────────────
+      function memoryPage() {
+        const view = fadeData || null
+        const cards = view && Array.isArray(view.cards) ? view.cards : []
+        const entities = view && Array.isArray(view.entities) ? view.entities : []
+        const threads = view && Array.isArray(view.threads) ? view.threads : []
+        const opened = cards.filter(function (item) { return item.id === memoryOpen })[0] || null
+        const pinned = cards.filter(function (item) { return item.pinned }).length
+        const hits = Array.isArray(memoryHits) ? memoryHits : null
+
+        const cardRow = function (item) {
+          const active = item.id === memoryOpen
+          return h('button', {
+            key: item.id, type: 'button',
+            className: 'nk-rowbtn' + (active ? ' active' : ''),
+            onClick: function () { setMemoryOpen(active ? null : item.id) },
+          },
+          h('span', { className: 'nk-badge' + (item.layer === 'L0' ? ' accent' : '') }, item.layer || 'L2'),
+          h('span', { className: 'nk-rowbtn-title' }, item.gist || '（无摘要）'),
+          item.pinned ? h('span', { className: 'nk-badge warn' }, '钉住') : null,
+          h('span', { className: 'nk-meta' }, 'CH.' + String(item.chapter).padStart(2, '0') + ' · ' + (item.emotion || '—')))
         }
-        const canon = materialData.canon || {}
+
+        const detail = opened
+          ? h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-card-head' },
+                h('div', { className: 'nk-card-title' }, '卡片详情'),
+                h('span', { className: 'nk-meta' }, 'CH.' + String(opened.chapter).padStart(2, '0') + ' · ' + (opened.domain || ''))),
+              h('div', { className: 'nk-h3' }, opened.gist || '（无摘要）'),
+              opened.quote ? h('div', { className: 'nk-quote' }, opened.quote) : null,
+              opened.cause ? h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '因'), h('span', { className: 'nk-kv-val' }, opened.cause)) : null,
+              opened.effect ? h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '果'), h('span', { className: 'nk-kv-val' }, opened.effect)) : null,
+              opened.fidelity !== null && opened.fidelity !== undefined
+                ? h('div', { className: 'nk-kv' },
+                    h('span', { className: 'nk-kv-key' }, '记住程度'),
+                    h('span', { className: 'nk-kv-val' }, Math.round(Number(opened.fidelity) * 100) + '% · 可及性 ' + Math.round(Number(opened.accessibility ?? 0) * 100) + '%'))
+                : null,
+              (opened.entityIds || []).length
+                ? h('div', { className: 'nk-chipline', style: { marginTop: 8 } },
+                    opened.entityIds.map(function (name) { return h('span', { key: name, className: 'nk-tag' }, name) }))
+                : null,
+              h('div', { className: 'nk-option-foot', style: { marginTop: 10 } },
+                h('button', { type: 'button', className: 'nk-btn', onClick: function () { actOnMemory(opened, opened.pinned ? 'unpin' : 'pin') } }, opened.pinned ? '取消钉住' : '钉住'),
+                h('button', { type: 'button', className: 'nk-btn', onClick: function () { actOnMemory(opened, opened.status === 'forgotten' ? 'restore' : 'forget') } }, opened.status === 'forgotten' ? '恢复' : '遗忘')))
+          : h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '卡片详情')),
+              h('div', { className: 'nk-empty-state' },
+                h('div', { className: 'nk-glyph' }, '忆'),
+                h('div', { className: 'nk-tiny' }, '点左边一张卡，看原文引文、因果与能记多久。')))
+
+        return h('div', { className: 'nk-wb-body' },
+          pageHead('记忆', '近章重点记、旧事逐步淡；收尾时沉淀的卡片在这里，可以钉住或让它褪色。'),
+          h('div', { className: 'nk-stats' },
+            pageStat('卡片', view ? view.total : '—'),
+            pageStat('已钉住', pinned),
+            pageStat('未回收线索', threads.length, threads.length ? 'warn' : ''),
+            pageStat('记忆漂移', view && view.drift ? '有' : '无', view && view.drift ? 'warn' : '')),
+          h('div', { className: 'nk-import-row', style: { margin: '12px 0' } },
+            h('input', {
+              className: 'nk-input', value: memoryQuery, placeholder: '按人物 / 物品 / 秘密搜记忆',
+              onChange: function (event) { setMemoryQuery(event.target.value) },
+              onKeyDown: function (event) { if (event.key === 'Enter') searchMemoryNow() },
+            }),
+            h('button', { type: 'button', className: 'nk-btn', onClick: function () { searchMemoryNow() } }, '搜记忆')),
+          hits
+            ? h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '检索命中'),
+                  h('span', { className: 'nk-meta' }, hits.length + ' 条')),
+                hits.length === 0
+                  ? inlineEmpty('没有命中。换个词，或清空检索看全部卡片。')
+                  : hits.slice(0, 12).map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter).padStart(2, '0') + ' · ' + (item.layer || 'L2')),
+                        h('span', { className: 'nk-kv-val', style: { maxWidth: '60%' } }, item.gist || ''))
+                    }))
+            : null,
+          h('div', { className: 'nk-split', style: { marginTop: hits ? 14 : 0 } },
+            h('div', { className: 'nk-split-list' },
+              h('section', { className: 'nk-card flush' },
+                h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
+                  h('div', { className: 'nk-card-title' }, '记忆卡'),
+                  h('span', { className: 'nk-meta' }, cards.length + ' 张')),
+                cards.length ? cards.slice(0, 40).map(cardRow)
+                  : inlineEmpty('这本书还没有记忆卡。每章收尾时会沉淀；先在「正文」页把第一章写完并收尾。'))),
+            h('div', { className: 'nk-wb-col nk-wb-aside' },
+              detail,
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '人物')),
+                entities.length
+                  ? h('div', { className: 'nk-chipline' }, entities.slice(0, 16).map(function (item) {
+                      return h('span', { key: item.name, className: 'nk-tag' }, item.name + ' · ' + item.mentions)
+                    }))
+                  : inlineEmpty('还没有人物出现。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '未回收线索')),
+                threads.length
+                  ? threads.slice(0, 8).map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter).padStart(2, '0')),
+                        h('span', { className: 'nk-kv-val' }, item.text || item.type || ''))
+                    })
+                  : inlineEmpty('没有挂着的线索。')))))
+      }
+
+      // ── 风格工作室：导入 / 档案（区间+规则+避免词）/ 简报 / 书库 ────────────
+      function stylePage() {
+        const style = materialData && materialData.style ? materialData.style : {}
+        const profiles = Array.isArray(style.kitProfiles) ? style.kitProfiles : []
+        const works = Array.isArray(style.works) ? style.works : []
+        const confirmed = profiles.filter(function (item) { return item.status === 'confirmed' }).length
+
+        const bandRows = function (profile) {
+          const bands = profile.bands && typeof profile.bands === 'object' ? profile.bands : {}
+          const keys = Object.keys(bands).slice(0, 6)
+          if (!keys.length) return inlineEmpty('还没有量出区间；确认档案后会重算。')
+          return h('div', null, keys.map(function (key) {
+            const spec = bands[key]
+            const band = Array.isArray(spec) ? spec : spec && Array.isArray(spec.band) ? spec.band : null
+            if (!band) return null
+            const lo = Number(band[0])
+            const hi = Number(band[1])
+            const left = Math.max(0, Math.min(100, lo))
+            const width = Math.max(2, Math.min(100 - left, hi - lo))
+            return h('div', { key, className: 'nk-band' },
+              h('span', null, key),
+              h('div', { className: 'nk-band-track' }, h('div', { className: 'nk-band-fill', style: { left: left + '%', width: width + '%' } })),
+              h('span', { className: 'nk-band-val' }, lo + '–' + hi))
+          }))
+        }
+
+        const profileCard = function (profile) {
+          const open = styleOpen === profile.id
+          const ruleTexts = Array.isArray(profile.ruleTexts) ? profile.ruleTexts : []
+          const avoid = Array.isArray(profile.avoid) ? profile.avoid : []
+          return h('section', { key: profile.id, className: 'nk-card' },
+            h('div', { className: 'nk-card-head' },
+              h('div', { className: 'nk-card-title' }, profile.name || profile.id),
+              h('span', { className: 'nk-badge' + (profile.status === 'confirmed' ? ' accent' : ' warn') }, profile.status === 'confirmed' ? '已确认' : '待确认'),
+              h('span', { className: 'nk-meta' }, 'v' + (profile.version ?? '?')), 
+              h('button', {
+                type: 'button', className: 'nk-btn', style: { marginLeft: 'auto' },
+                onClick: function () { setStyleOpen(open ? null : profile.id) },
+              }, open ? '收起' : '展开')),
+            h('div', { className: 'nk-tiny', style: { marginBottom: 6 } }, (profile.rules ?? ruleTexts.length) + ' 条规则 · ' + avoid.length + ' 个避免词'),
+            bandRows(profile),
+            open
+              ? h('div', { style: { marginTop: 10 } },
+                  ruleTexts.length
+                    ? h('div', null, ruleTexts.slice(0, 8).map(function (text, index) {
+                        return h('div', { key: index, className: 'nk-tiny', style: { lineHeight: 1.7 } }, '· ' + text)
+                      }))
+                    : inlineEmpty('规则还没编译；先确认档案。'),
+                  avoid.length
+                    ? h('div', { className: 'nk-chipline', style: { marginTop: 8 } },
+                        avoid.slice(0, 16).map(function (word) { return h('span', { key: word, className: 'nk-tag' }, word) }))
+                    : null,
+                  styleBrief && styleBrief.profileId === profile.id && styleBrief.brief && styleBrief.brief.available
+                    ? h('div', { className: 'nk-quote', style: { marginTop: 10, whiteSpace: 'pre-wrap' } }, styleBrief.brief.markdown)
+                    : null)
+              : null,
+            h('div', { className: 'nk-option-foot', style: { marginTop: 10 } },
+              profile.status !== 'confirmed'
+                ? h('button', { type: 'button', className: 'nk-btn primary', onClick: function () { confirmStyleNow(profile) } }, '确认这份档案')
+                : null,
+              h('button', { type: 'button', className: 'nk-btn', onClick: function () { loadStyleBrief(profile) } }, '生成写前简报')))
+        }
+
+        return h('div', { className: 'nk-wb-body' },
+          pageHead('风格工作室', '导入一本你喜欢的作品，看它的句长、对话比例、用词与禁忌；确认后才参与写作。'),
+          importPanel('style'),
+          h('div', { className: 'nk-stats', style: { marginTop: 14 } },
+            pageStat('档案', profiles.length),
+            pageStat('已确认', confirmed, confirmed ? '' : 'warn'),
+            pageStat('书库作品', works.length),
+            pageStat('书库字数', works.reduce(function (sum, item) { return sum + Number(item.chars || 0) }, 0))),
+          h('div', { className: 'nk-wb-col', style: { marginTop: 14 } },
+            profiles.length
+              ? profiles.map(profileCard)
+              : h('section', { className: 'nk-card' },
+                  h('div', { className: 'nk-empty-state' },
+                    h('div', { className: 'nk-glyph' }, '风'),
+                    h('div', { className: 'nk-tiny' }, '还没有文风档案。在上面填一个装着 txt 的目录，选一本你喜欢的作品。')),
+                  h('div', { className: 'nk-chipline', style: { justifyContent: 'center', marginTop: 8 } },
+                    ['句长区间', '段长区间', '对话比例', '用词密度', '常用句式', '避免词'].map(function (item) {
+                      return h('span', { key: item, className: 'nk-tag' }, item)
+                    }))),
+            works.length
+              ? h('section', { className: 'nk-card flush' },
+                  h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
+                    h('div', { className: 'nk-card-title' }, '旧 voice 书库'),
+                    h('span', { className: 'nk-meta' }, works.length + ' 部')),
+                  works.map(function (work) {
+                    return h('div', { key: work.workId, className: 'nk-kv', style: { padding: '9px 14px' } },
+                      h('span', { className: 'nk-kv-key' }, work.title || work.workId),
+                      h('span', { className: 'nk-kv-val' }, work.chapters + ' 章 · ' + work.chars + ' 字'))
+                  }))
+              : null))
+      }
+
+      // ── 同人页：canon 状态 / 事实与证据 / 人物 / 规则 / 禁忌 / 本章检查 ─────
+      function canonPage() {
+        const canon = materialData && materialData.canon ? materialData.canon : {}
         if (!canon.available) {
           return h('div', { className: 'nk-wb-body' },
             pageHead('同人', '导入原著，抽成事实、人物、规则与称呼；每条都要有原文证据。'),
             importPanel('canon'),
-            h('section', { className: 'nk-card' },
+            h('section', { className: 'nk-card', style: { marginTop: 14 } },
+              h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '建 canon 的四步')),
+              h('div', { className: 'nk-steps' }, [
+                ['STEP 1', '导入原著', '选一个装着 txt 的目录'],
+                ['STEP 2', '抽候选', '模型用 novel_canon 读原文'],
+                ['STEP 3', '逐条审阅', '每条都要有原文证据'],
+                ['STEP 4', '生效', '确认后才进写作依据'],
+              ].map(function (item) {
+                return h('div', { key: item[0], className: 'nk-step' },
+                  h('div', { className: 'nk-step-no' }, item[0]),
+                  h('div', { className: 'nk-step-label' }, item[1]),
+                  h('div', { className: 'nk-step-state' }, item[2]))
+              }))),
+            h('section', { className: 'nk-card', style: { marginTop: 12 } },
               h('div', { className: 'nk-empty-state' },
                 h('div', { className: 'nk-glyph' }, '原'),
                 h('div', { className: 'nk-tiny' }, '还没有绑定原著。导入后模型用 novel_canon 抽候选，你逐条确认才算生效。'))))
         }
-        const findings = (session && session.verification && Array.isArray(session.verification.findings)) ? session.verification.findings : []
-        const section = (title, items, render) => h('div', { style: { marginTop: 14 } },
-          h('div', { style: { ...faint, marginBottom: 5 } }, title + ' · ' + items.length),
-          items.length ? items.slice(0, 20).map(render) : h('div', { style: faint }, '暂无'))
+        const facts = Array.isArray(canon.facts) ? canon.facts : []
+        const characters = Array.isArray(canon.characters) ? canon.characters : []
+        const worldRules = Array.isArray(canon.worldRules) ? canon.worldRules : []
+        const forbidden = Array.isArray(canon.forbidden) ? canon.forbidden : []
+        const findings = session && session.verification && Array.isArray(session.verification.findings) ? session.verification.findings : []
+
         return h('div', { className: 'nk-wb-body' },
-          pageHead('同人', '导入原著，抽成事实/人物/规则/称呼；每条都要有原文证据。'),
-          h('div', { style: { maxWidth: 780 } },
-            h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
-              h('div', { style: { fontSize: 20, fontWeight: 700 } }, canon.title || '同人原著'),
-              h('span', { style: { fontSize: 10, color: canon.canonReady ? c.success : c.warning } }, canon.canonReady ? 'canon 已确认' : (canon.contractStatus || '待抽取')),
-              h('button', {
-                className: 'nk-btn ' + (canon.canonReady ? '' : 'primary'),
-                style: { marginLeft: 'auto' },
-                disabled: canonBusy || canon.canonReady,
-                onClick: function () { confirmCanonNow(canon) },
-              }, canon.canonReady ? '已确认' : (canonBusy ? '确认中…' : '确认这份 canon'))),
-            h('div', { style: { ...faint, marginTop: 2 } }, '原著 ' + (canon.sourceId || '-') + ' · rev ' + (canon.revision ?? '-') + (canon.contractRevision ? ' · contract ' + canon.contractRevision : '')),
-            canonMessage ? h('div', { style: { fontSize: 11.5, color: canonMessage.includes('失败') || canonMessage.includes('错误') ? c.error : c.sub, marginTop: 5 } }, canonMessage) : null,
-            section('事实', canon.facts || [], (fact, index) => h('div', { key: index, style: { padding: '6px 0', borderBottom: '1px dashed ' + c.border } },
-              h('div', { style: small }, String(fact.subject ?? fact.entity ?? '?') + (fact.key ? '·' + fact.key : '') + '：' + String(fact.value ?? fact.object ?? '')),
-              fact.quote ? h('div', { style: { color: c.faint, fontSize: 10.5, marginTop: 2, fontFamily: '"Songti SC", "Noto Serif SC", serif' } }, '“' + fact.quote + '”' + (fact.chapter ? ' · 第 ' + fact.chapter + ' 章' : '')) : null)),
-            section('人物', canon.characters || [], (person, index) => h('div', { key: index, style: { ...row, borderBottom: '1px dashed ' + c.border } },
-              h('span', { style: small }, person.name || '?'), h('span', { style: { ...faint, fontSize: 10 } }, person.role || ''))),
-            section('世界规则', canon.worldRules || [], (rule, index) => h('div', { key: index, style: small }, '- ' + (typeof rule === 'string' ? rule : rule?.text ?? ''))),
-            section('禁忌', canon.forbidden || [], (item, index) => h('div', { key: index, style: small }, '- ' + String(typeof item === 'string' ? item : item?.text ?? ''))),
-            section('称呼', canon.addresses || [], (row, index) => h('div', { key: index, style: small }, (row.from || '?') + '→' + (row.to || '?') + '：' + (row.form || ''))),
-            h('div', { style: { marginTop: 16, paddingTop: 12, borderTop: '1px solid ' + c.border } },
-              h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
-                h('div', { style: { fontSize: 14, fontWeight: 700 } }, '本章检查'),
-                h('span', { style: { ...faint, fontSize: 10 } }, session ? '第 ' + session.chapter + ' 章 · ' + session.state : '没有活动章节')),
-              findings.length === 0
-                ? h('div', { style: { ...faint, marginTop: 5 } }, '还没有检查记录；写完本章草稿后运行检查。')
-                : findings.slice(0, 12).map((finding, index) => h('div', { key: index, style: { marginTop: 5, padding: '7px 9px', border: '1px solid ' + (finding.severity === 'blocker' ? c.error : c.border), borderRadius: 8, background: c.layer } },
-                    h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
-                      h('span', { style: { fontSize: 9.5, color: finding.severity === 'blocker' ? c.error : c.warning, fontWeight: 700 } }, String(finding.severity || 'info').toUpperCase()),
-                      h('span', { style: { fontSize: 11.5, color: c.sub } }, finding.message || finding.code || '')),
-                    finding.quote ? h('div', { style: { ...faint, fontFamily: '"Songti SC", "Noto Serif SC", serif', marginTop: 2 } }, '“' + finding.quote + '”') : null)))))
+          pageHead('同人', '原著事实与禁忌决定这一本能不能写；有冲突先回原文核对。',
+            h('button', { type: 'button', className: 'nk-btn' + (canon.canonReady ? '' : ' primary'), onClick: function () { confirmCanonNow(canon) }, }, canon.canonReady ? '重新确认 canon' : '确认这份 canon')),
+          importPanel('canon'),
+          h('div', { className: 'nk-stats', style: { marginTop: 14 } },
+            pageStat('事实', facts.length),
+            pageStat('人物', characters.length),
+            pageStat('世界规则', worldRules.length),
+            pageStat('canon 状态', canon.canonReady ? '已确认' : (canon.contractStatus || '待抽取'), canon.canonReady ? '' : 'warn')),
+          canonMessage ? h('div', { className: 'nk-tiny', style: { margin: '10px 0' } }, canonMessage) : null,
+          h('div', { className: 'nk-wb-grid' },
+            h('div', { className: 'nk-wb-col' },
+              h('section', { className: 'nk-card flush' },
+                h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
+                  h('div', { className: 'nk-card-title' }, '原著事实'),
+                  h('span', { className: 'nk-meta' }, facts.length + ' 条')),
+                facts.length
+                  ? facts.slice(0, 20).map(function (fact, index) {
+                      return h('div', { key: index, className: 'nk-rowbtn', style: { cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: 4 } },
+                        h('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
+                          h('span', { className: 'nk-badge' }, fact.chapter ? 'CH.' + String(fact.chapter).padStart(2, '0') : '原著'),
+                          h('span', { className: 'nk-rowbtn-title', style: { whiteSpace: 'normal' } }, (fact.subject || '') + ' · ' + (fact.key || '') + '：' + (fact.value || ''))),
+                        fact.quote ? h('div', { className: 'nk-quote', style: { margin: '2px 0 0' } }, fact.quote) : null)
+                    })
+                  : inlineEmpty('还没有事实。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '世界规则与禁忌')),
+                worldRules.length
+                  ? worldRules.slice(0, 10).map(function (rule, index) {
+                      return h('div', { key: index, className: 'nk-tiny', style: { lineHeight: 1.8 } }, '· ' + rule)
+                    })
+                  : inlineEmpty('还没有世界规则。'),
+                forbidden.length
+                  ? h('div', { className: 'nk-chipline', style: { marginTop: 8 } },
+                      forbidden.slice(0, 16).map(function (word) { return h('span', { key: word, className: 'nk-tag' }, word) }))
+                  : null)),
+            h('div', { className: 'nk-wb-col nk-wb-aside' },
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '人物与称呼')),
+                characters.length
+                  ? characters.slice(0, 20).map(function (person, index) {
+                      return h('div', { key: index, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, person.name || '?'),
+                        h('span', { className: 'nk-kv-val' }, (person.aliases || []).join(' / ') || person.role || ''))
+                    })
+                  : inlineEmpty('还没有人物。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '本章检查')),
+                findings.length
+                  ? findings.slice(0, 8).map(function (item, index) {
+                      return h('div', { key: index, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, item.severity || 'info'),
+                        h('span', { className: 'nk-kv-val' }, item.message || ''))
+                    })
+                  : inlineEmpty('本章还没有检查结果；写完正文再收尾会跑一遍。')))))
       }
 
       function flowView() {
@@ -1623,10 +1828,10 @@ window.__ModuleLoader__.load({
           ),
         )
         : section === 'desk' ? deskView()
-        : section === 'beat' ? beatView()
-        : section === 'fade' ? fadeView()
-        : section === 'voice' ? voiceView()
-        : section === 'fanfic' ? fanficView()
+        : section === 'beat' ? decisionsPage()
+        : section === 'fade' ? memoryPage()
+        : section === 'voice' ? stylePage()
+        : section === 'fanfic' ? canonPage()
         : dataView()
 
       // 唯一入口：左竖栏切页，主区只放当前页。没有页签条，也没有第二个面板。
@@ -1667,7 +1872,23 @@ window.__ModuleLoader__.load({
                 : null,
               h('button', { type: 'button', className: 'nk-btn', onClick: function () { load() } }, state.phase === 'refreshing' ? '…' : '刷新'))),
           state.error ? h('div', { style: { color: c.error, padding: '8px 22px', fontSize: 12 } }, state.error) : null,
-          pageView))
+          !state.data && state.phase === 'loading'
+            ? h('div', { className: 'nk-wb-body' },
+                h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 720 } },
+                  h('div', { className: 'nk-skeleton', style: { height: 84 } }),
+                  h('div', { className: 'nk-skeleton', style: { height: 120 } }),
+                  h('div', { className: 'nk-skeleton', style: { height: 200 } })))
+            : !(data && (data.book || books.length))
+              ? h('div', { className: 'nk-wb-body' },
+                  h('div', { className: 'nk-empty-state', style: { paddingTop: 64 } },
+                    h('div', { className: 'nk-glyph' }, '说'),
+                    h('div', { className: 'nk-h2', style: { marginTop: 8 } }, '还没有作品'),
+                    h('div', { className: 'nk-tiny' }, '先建一本自己的作品，或者导入一本你喜欢的书学文笔。'),
+                    h('button', {
+                      type: 'button', className: 'nk-btn primary', style: { marginTop: 12, height: 32, padding: '0 14px' },
+                      onClick: function () { setSection('data') },
+                    }, '去新建作品')))
+              : pageView))
     }
 
     return {
