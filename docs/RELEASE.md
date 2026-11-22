@@ -1,96 +1,107 @@
-﻿# dsh-novel-kit 发布清单
+# dsh-novel-kit 发布清单
 
-> 发布 = 自检 → 登录 → `npm publish` → 校 registry → GitHub Release。
+> 发布 = **自检** → **真实 DSH 冒烟** → 登录 → `npm publish` → 校 registry → GitHub Release。
 > 本机默认源是 npmmirror，**所有版本查询都要显式加 `--registry=https://registry.npmjs.org`**，否则会读到滞后的镜像。
 
-## 0. 一条命令
+## 0. 自检（默认不发布）
 
 ```powershell
 cd D:\Novel-gate\dsh-novel-kit
-node scripts\publish.mjs                  # 自检 → whoami → 发布 → 校 registry
-node scripts\publish.mjs --skip-publish   # 只自检（离线/CI）
+node scripts\publish.mjs              # 只自检；任何一项失败就拒发
+node scripts\publish.mjs --publish    # 自检全绿才真正发布
 ```
 
-自检项：`npm run check`、`node --test`（110）、`npm run acceptance`（19）、`npm run acceptance:real`（10）。
-`whoami` 失败会直接退出并提示先登录；发布后脚本用带时间戳的 version 文档校验，不吃缓存。
+自检七项，任一失败即停：
 
-## 1. 登录（需要作者的 2FA / 安全密钥）
+| 项 | 检查什么 |
+|---|---|
+| 版本一致 | `package.json` = CHANGELOG 首条 = README 标注 |
+| 构建产物 | 样式 / remote 契约 / ui-kit 三块与源文件一致 |
+| 测试 | `node --test` 全过 |
+| 合成验收 | `npm run acceptance`（19 项行为） |
+| 加载链 | `npm run acceptance:load`（8 项，锁「重启后整包消失」） |
+| 真实验收 | `npm run acceptance:real`（复制账本跑一章，缺账本时跳过不阻塞） |
+| 工作区 | `git status` 为空；同名 tag 会提示 |
+| 打包清单 | `npm pack --dry-run` 必需文件齐全（62 文件，不含开发截图） |
+
+## 1. 真实 DSH 冒烟（必须人工点一遍）
+
+插件市场装的是**打包后的产物**，`node --test` 证明不了真实 remote 调用链。发布前在真实 DSH 里：
+
+1. **重载 DSH**（`Ctrl+R` 或重开窗口），确认「小说工作台」入口出现；
+2. 会话里 `/novel master on` → `/novel on` → `/novel status`；
+3. 打开工作台，**书桌**能看到当前作品与「下一笔」；
+4. **正文**页写两行、Ctrl S 保存，刷新后内容还在；
+5. 有未保存正文时**切换作品** → 应出现「保存并切换 / 丢弃并切换 / 取消」；
+6. **同人**页：待审阅队列能接受一条、拒绝一条，点「应用」后生效版本 +1；
+7. **正文**页检查列表点「定位」，光标跳到那一句；
+8. **资料**页能改总开关与模式。
+
+任一项不对：先修，再重跑自检。
+
+## 2. 登录（需要作者的 2FA / 安全密钥）
 
 ```powershell
 npm login --auth-type=web --registry=https://registry.npmjs.org
-```
-
-- 输出一个 `https://www.npmjs.com/login?next=/login/cli/<uuid>`；
-- 在本机浏览器里完成 **2FA 安全密钥**确认（页面停在「Use security key」时就是这一步）；
-- 成功后 token 写进 `NPM_CONFIG_USERCONFIG`（本机 `D:\data\node-env\npmrc`）。
-
-确认：
-
-```powershell
 npm whoami --registry=https://registry.npmjs.org     # 应输出 DrizzleGig
 ```
 
-## 2. 发布
+## 3. 发布
 
 ```powershell
-cd D:\Novel-gate\dsh-novel-kit
-npm publish --registry=https://registry.npmjs.org --access public
+node scripts\publish.mjs --publish
 ```
 
-- 账号是 `auth-and-writes` 时，publish 可能再要求一次浏览器 2FA（打印 `Authenticate your account at: https://www.npmjs.com/auth/cli/<uuid>`），按 ENTER 打开授权页即可；
-- 首发/安全扫描期间 registry 会先收下再处理：CLI 打印 `Your package is being processed`，**版本文档约 2 分钟才出现**，`npm view` 此刻仍是旧版本，不要当成失败；
-- `latest` 指向新版本；占位版 `0.0.0-stage` / `0.0.1-stage` 的 `stage` tag 不动。
+- `auth-and-writes` 账号可能再要求一次浏览器 2FA（打印授权 URL），按提示确认；
+- 首发/安全扫描期间 registry 会先收下再处理，**版本文档约 2 分钟才出现**，`npm view` 此刻仍是旧版本，不要当成失败；
+- 脚本用带时间戳的 version 文档轮询，最多等 4 分钟。
 
-## 3. 校验
+## 4. 校验
 
 ```powershell
 npm view dsh-novel-kit version --registry=https://registry.npmjs.org
 npm view dsh-novel-kit dist-tags --registry=https://registry.npmjs.org
 ```
 
-- 刚发布时 packument 可能还要几秒；脚本轮询 version 文档，最多等 4 分钟（40 × 6s）；
-- **别在发布后马上反复探同一个 tarball URL**：CDN 按完整 URL 负缓存（`max-age=300`），裸路径会 404 几分钟；加任意 query（`?t=<ts>`）立刻 200。安装自测等 10–15 分钟。
+> **别在发布后马上反复探同一个 tarball URL**：CDN 按完整 URL 负缓存（`max-age=300`），加任意 query（`?t=<ts>`）立刻 200。安装自测等 10–15 分钟。
 
-## 4. GitHub Release
-
-tag 已在仓库；`gh` 未登录时可以用 git credential 里的 token：
+## 5. GitHub Release
 
 ```powershell
-$in = "protocol=https`nhost=github.com`n`n"
-$tok = (($in | git credential fill) -split "`n" | Where-Object { $_ -like 'password=*' }) -replace '^password=',''
-$env:GH_TOKEN = $tok
-gh release create v0.1.13 --repo DrizzleGig/dsh-novel-kit --title "v0.1.13" --notes-file <notes.md>
+git tag v0.5.0
+git push origin main --tags
+gh release create v0.5.0 --repo DrizzleGig/dsh-novel-kit --title "v0.5.0" --notes-file <notes.md>
 ```
-
-或网页：仓库 → Releases → Draft a new release → 选 tag → 粘贴下面的模板。
 
 发布说明模板：
 
 ```markdown
-## dsh-novel-kit v0.1.13
+## dsh-novel-kit v0.5.0 · 小说工作台
 
-一个独立包：章节引擎 + 四段上下文 + 8 个 `novel_*` 工具 + 右栏「小说」面板 + 旧五件接管。
+一个界面写完一部长篇：七页工作台 + 四段写作依据 + 一章一条链。
 
-- 章节引擎：`plan → start → write → finish`，可恢复事务（CAS + fsync）、回执、blocker 不落账
-- 验证：禁忌 / 20 字复制 / 疑似错名 / 长句 / 称呼矩阵 / 文风 bands；`strict` 只查声明过的能力
-- 作者操作：拍板、记忆钉/忘/恢复、原著导入、旧五件接管（只关选择层，可回退）
-- 相容性：只读兼容 beat / fade / voice / fanfic 的 `.dsh-novel-*` 账本；与五件共存说明见 docs/COEXIST.md
-- 证据：测试 161/161、合成验收 19/19、真实验收 11/11、`npm pack` 54 文件
+- 七页工作台：书桌 / 正文 / 决策 / 记忆 / 风格 / 同人 / 资料
+- 四段依据：剧情决策、世界契约、长篇记忆、文风，各有预算与来源修订号
+- 章节链：plan → start → write → finish，检查 → 事务落账，中断可恢复
+- 检查定位：禁忌 / 与原著雷同 / 疑似错名 / 称呼矩阵 / 文风越界，点「定位」选中那句
+- 同人：原著导入 → 世界契约 → 待审阅队列逐条接受/拒绝，应用后才进依据
+- 草稿保护：切作品不静默丢稿、保存互斥、回包校验归属
+- 默认关闭：不开总开关不占工具列表
+- 证据：测试 219/219、合成验收 19/19、加载链 8/8、真实验收 11/11、`npm pack` 62 文件
 
 Co-authored-by: MiyueWinter <mingyue_11129@qq.com>
 ```
 
-## 5. 发布后
+## 6. 发布后
 
-1. DSH → 插件 → 搜「小说」安装，确认右栏六页签与 `/novel status`；
+1. DSH → 插件 → 搜「小说工作台」安装，确认入口与 `/novel status`；
 2. 在真实书上跑一章（先复制书目录）；
 3. 把新发现写进 [docs/LIMITS.md](LIMITS.md)。
 
 ## 附：提交与标签
 
 ```powershell
-git commit -m "<type>(kit): <what>" -m "Co-authored-by: MiyueWinter <mingyue_11129@qq.com>"
-git tag v0.1.13
+git -c user.name=DrizzleGig -c user.email=captain2233@qq.com commit -m "<type>(kit): <what>" -m "Co-authored-by: MiyueWinter <mingyue_11129@qq.com>"
+git tag v0.5.0
 git push origin main --tags
 ```
-
