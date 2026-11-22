@@ -349,7 +349,7 @@ window.__ModuleLoader__.load({
                 value.secrets.slice(0, 8).map((secret, index) => h('div', { key: index, style: { color: c.faint, fontSize: 11 } },
                   (secret.publicAtChapter ? secret.publicAtChapter + ' 起公开' : '未公开') + '：' + String(secret.what).slice(0, 40))))
             : null,
-          value.source === 'kit' && !value.canonReady && ((value.facts && value.facts.length) || (value.worldRules && value.worldRules.length) || (value.characters && value.characters.length))
+          value.source === 'kit' && !value.canonReady && ((value.facts && value.facts.length) || (value.worldRules && value.worldRules.length) || (value.characters && value.characters.length) || (value.secrets && value.secrets.length) || (value.addresses && value.addresses.length) || (value.forbidden && value.forbidden.length))
             ? h('button', {
                 type: 'button',
                 onClick: function () { runConfirmCanon(value) },
@@ -704,6 +704,7 @@ window.__ModuleLoader__.load({
 
       const saveDraft = React.useCallback(async function () {
         if (!remote || !data || !data.session || typeof remote.saveDraft !== 'function') return
+        if (!draftState.dirty) { setSaveState({ phase: 'idle', message: '没有未保存的修改' }); return }
         setSaveState({ phase: 'saving', message: '' })
         try {
           const result = await Promise.resolve(remote.saveDraft(sessionId, {
