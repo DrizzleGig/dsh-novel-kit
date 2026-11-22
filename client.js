@@ -34,6 +34,7 @@ window.__ModuleLoader__.load({
         { method: 'getStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getPlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getOperations', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'reviseDecision', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'savePlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
@@ -503,11 +504,12 @@ window.__ModuleLoader__.load({
         try {
           const data = await Promise.resolve(remote.getSnapshot(sessionId, { book: nextBook || book || null })).then(unwrap)
           const diag = await Promise.resolve(remote.getDiagnostics(sessionId)).then(unwrap).catch(() => null)
+          const operations = await Promise.resolve(remote.getOperations(sessionId, { limit: 20 })).then(unwrap).catch(() => null)
           if (requestRef.current !== requestId) return
           setSearchHits(null)
           setTabData({})
           setCanonEdit(null)
-          setState({ phase: 'ready', data, diag, error: null })
+          setState({ phase: 'ready', data: { ...data, operations }, diag, error: null })
         } catch (error) {
           if (requestRef.current !== requestId) return
           setState({ phase: 'error', data: null, error: String(error?.message ?? error) })
@@ -755,6 +757,11 @@ window.__ModuleLoader__.load({
       }
       if (data && data.canon && !data.canon.ready && data.settings && data.settings.mode === 'fanfic') {
         panelInbox.push({ kind: 'canon', text: '同人原著待确认（' + (data.canon.status || '?') + '）' })
+      }
+      if (data && data.operations && Array.isArray(data.operations.items)) {
+        for (const operation of data.operations.items.filter((item) => item.status === 'failed').slice(0, 3)) {
+          panelInbox.push({ kind: '失败', text: (operation.command || operation.operationId) + '：' + (operation.error?.message || '操作失败') })
+        }
       }
 
       if (mode === 'studio') {
@@ -1134,6 +1141,7 @@ window.__ModuleLoader__.load({
       const [planDraft, setPlanDraft] = React.useState(null)
       const [planBusy, setPlanBusy] = React.useState(false)
       const [planMessage, setPlanMessage] = React.useState('')
+      const [operationsData, setOperationsData] = React.useState(null)
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
@@ -1199,6 +1207,7 @@ window.__ModuleLoader__.load({
         setPlanEditing(false)
         setPlanDraft(null)
         setPlanMessage('')
+        setOperationsData(null)
       }, [data && data.book])
 
       React.useEffect(function () {
@@ -1211,6 +1220,15 @@ window.__ModuleLoader__.load({
         }).catch(function () { if (!cancelled) setPlanData(null) })
         return function () { cancelled = true }
       }, [remote, sessionId, data && data.book, data && data.session && data.session.chapter])
+
+      React.useEffect(function () {
+        if (section !== 'data' || !remote) return undefined
+        let cancelled = false
+        Promise.resolve(remote.getOperations(sessionId, { limit: 20 })).then(unwrap).then(function (ops) {
+          if (!cancelled) setOperationsData(ops)
+        }).catch(function () { if (!cancelled) setOperationsData(null) })
+        return function () { cancelled = true }
+      }, [section, remote, sessionId])
 
       const saveDraft = React.useCallback(async function () {
         if (!remote || !data || !data.session || typeof remote.saveDraft !== 'function') return
@@ -1556,11 +1574,21 @@ window.__ModuleLoader__.load({
             sceneComposer(),
             h('div', { style: { ...faint, margin: '16px 0 5px' } }, '收件箱'),
             pendingIds.length === 0 && conflictTotal === 0
+              && !(data && data.canon && data.settings && data.settings.mode === 'fanfic' && !data.canon.ready)
+              && !(data && data.operations && (data.operations.items || []).some((item) => item.status === 'failed'))
               ? h('div', { style: faint }, '没有待处理事项。')
               : h('div', null,
                   pendingIds.slice(0, 6).map((id) => h('div', { key: id, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
                     h('span', { style: small }, '拍板 · ' + id),
                     h('span', { style: { color: c.faint, fontSize: 11 } }, '待作者确认'))),
+                  (data && data.canon && data.settings && data.settings.mode === 'fanfic' && !data.canon.ready)
+                    ? h('div', { style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
+                        h('span', { style: small }, 'canon · 同人原著待确认'),
+                        h('span', { style: { color: c.warning, fontSize: 11 } }, data.canon.contractStatus || 'pending'))
+                    : null,
+                  (data && data.operations && Array.isArray(data.operations.items) ? data.operations.items : []).filter((item) => item.status === 'failed').slice(0, 3).map((operation) => h('div', { key: operation.operationId, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
+                    h('span', { style: small }, '失败 · ' + (operation.command || operation.operationId)),
+                    h('span', { style: { color: c.error, fontSize: 11 } }, operation.error?.message || '操作失败'))),
                   (data.conflicts && data.conflicts.items ? data.conflicts.items : []).slice(0, 4).map((item, index) => h('div', { key: 'c' + index, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
                     h('span', { style: small }, '冲突 · ' + (item.entity || '?') + ' · ' + (item.key || '?')),
                     h('span', { style: { color: c.faint, fontSize: 11 } }, '只报告，不裁决')))),
@@ -1867,6 +1895,16 @@ window.__ModuleLoader__.load({
             canon.available
               ? h('div', { style: { ...faint } }, (canon.title || canon.id || '?') + ' · ' + (canon.canonReady ? '已确认' : (canon.contractStatus || '待抽取')))
               : h('div', { style: faint }, '没有绑定同人 canon。'),
+            h('div', { style: { ...faint, margin: '14px 0 4px' } }, '最近操作'),
+            (function () {
+              const ops = operationsData || (data && data.operations) || { items: [] }
+              const items = Array.isArray(ops.items) ? ops.items : []
+              return items.length === 0
+                ? h('div', { style: faint }, '还没有操作记录。')
+                : items.slice(0, 10).map((operation) => h('div', { key: operation.operationId, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '4px 0' } },
+                    h('span', { style: small }, (operation.command || operation.operationId) + ' · ' + (operation.targetRef?.book || '')),
+                    h('span', { style: { fontSize: 10.5, color: operation.status === 'failed' ? c.error : operation.status === 'completed' ? c.success : c.warning } }, operation.status + (operation.attempts > 1 ? ' ×' + operation.attempts : ''))))
+            })(),
           ))
       }
 

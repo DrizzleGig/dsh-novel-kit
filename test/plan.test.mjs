@@ -6,6 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { readChapterPlan, saveChapterPlan, compilePlanBrief } from '../lib/engine/plan.js'
 import { executeAuthorCommand } from '../lib/engine/author.js'
+import { listOperations } from '../lib/engine/operations.js'
 
 const root = () => mkdtempSync(path.join(os.tmpdir(), 'kit-plan-'))
 
@@ -55,4 +56,8 @@ test('作者命令：plan.save 带 operation 幂等', async () => {
   const again = await executeAuthorCommand(input)
   assert.equal(again.ok, true)
   assert.equal(again.idempotent, true)
+  const ops = await listOperations(dir)
+  assert.equal(ops.total, 1)
+  assert.equal(ops.items[0].command, 'plan.save')
+  assert.equal(ops.items[0].status, 'completed')
 })
