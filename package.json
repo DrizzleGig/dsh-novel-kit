@@ -1,7 +1,7 @@
 {
   "name": "dsh-novel-kit",
-  "version": "0.4.0",
-  "description": "小说整合包（Pro）：一个包提供 beat / fade / voice / fanfic / conductor 的能力——八个 novel_* 工具、三层开关、原创/同人模式、文风与世界观双导入、右栏任务卡与小说工作台；旧五件账本可 /novel legacy 接管后再卸载五件。",
+  "version": "0.5.0",
+  "description": "小说工作台：一个界面写完一部长篇。四段写作依据（剧情决策/世界契约/长篇记忆/文风）每次动笔前按预算装配，写完先检查再落进可恢复事务；同人世界观逐条审阅后应用，草稿切作品不丢，默认关闭不占工具列表。",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -52,8 +52,10 @@
     "dsh-plugin",
     "novel",
     "novel-writing",
-    "suite",
-    "bundle"
+    "long-form",
+    "fan-fiction",
+    "writing-workbench",
+    "style-transfer"
   ],
   "license": "MIT",
   "author": "DrizzleGig",

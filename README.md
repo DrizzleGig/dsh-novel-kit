@@ -1,246 +1,155 @@
-# dsh-novel-kit · 小说工作台
+# 小说工作台 · dsh-novel-kit
 
-> **一个界面，写完一部长篇。** 书桌、正文、决策、记忆、风格工作室、同人、资料七页收在一个「小说工作台」里：章节引擎、四段写作依据、八个 `novel_*` 工具。
->
-> 当前 `0.4.0`：入口收敛成一个页面（右栏页签与会话头按钮已删除），导入作品的动线进了风格工作室与同人页，右栏的总开关/模式/新建作品迁到「资料 · 工作区设置」。
+> **一个界面，写完一部长篇。**
+> 书桌、正文、决策、记忆、风格工作室、同人、资料——七页收在一个工作台里。
+> 每一章都有始有终：先装配依据，再写，写完接受检查，最后落进一个可恢复的事务。
 
-[![stars](https://img.shields.io/github/stars/DrizzleGig/dsh-novel-kit)](https://github.com/DrizzleGig/dsh-novel-kit/stargazers)
-
-`0.4.0` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness
+`0.5.0` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness · [更新日志](CHANGELOG.md)
 
 ![小说工作台 · 书桌](docs/mockups/live/wb-desk-dark.png)
 
-## 为什么是整合包
+## 它解决什么
 
-AI 写长篇有三个绕不过去的问题：
+AI 写长篇，卡人的地方从来不是「写不出来」，而是这三件事：
 
 - **会忘**：上一章的人、事、伏笔，写到第三十章只剩一个大概；
 - **会飘**：设定、称呼、禁忌前后矛盾，越写越像另一本书；
 - **会不像你**：句子、节奏、对话比例千篇一律，读起来像 AI 写的。
 
-kit 把「事件 / 拍板 / 记忆 / 文风 / 同人世界观 / 编排」收进一个安装，在每次动笔前装配成四段依据，在收尾时把正文、剧情账、记忆卡放进一个可恢复事务。它不是五个插件拼在一起，而是**一条从导入、计划、拍板、写作、检查到落账的链**。
+小说工作台把「剧情决策 / 世界契约 / 长篇记忆 / 文风」收成**四段写作依据**，每次动笔前按预算装配好送进上下文；收尾时把正文、剧情账、记忆卡放进**同一个可恢复事务**，中断了也能续上。
 
-## 0.4.0 核心能力
+不是「再装一个写小说的工具」，而是**一条链**：导入 → 计划 → 拍板 → 开章 → 写 → 检查 → 落账。
 
-### 三层开关，先管住调用
+## 七页工作台
 
-```text
-/novel master on          # profile 级总开关；默认关，跨重启保留
-/novel on                 # 只开本会话
-/novel off                # 收起本会话
-/novel status             # 看总开关 / 本会话 / 工具数
-```
-
-- 不开 `master`，任何小说工具都不会出现；
-- 不开 `/novel on`，工具不进入当前会话；
-- 工具执行前再查一次开关，避免「准入后关掉 master 仍能执行」。
-
-### 原创 / 同人，两条不同的写作路
-
-```text
-/novel mode original <书>   # 原创：导入作品只影响文笔，不注入世界事实
-/novel mode fanfic <书>     # 同人：需要原著与已确认的世界契约
-```
-
-**原创模式**只使用文风档案、剧情账和记忆；即使误绑了同人项目，也不会把 canon 注入正文。
-
-**同人模式**必须绑定 `CanonSource`，并且 `WorldContract` 已经由作者确认；否则开章直接返回 `canon-required` / `canon-not-ready`，不会无约束硬写。
-
-### 两个导入口，不是同一种导入
-
-| 入口 | 导入什么 | 产出 | 影响 |
-|---|---|---|---|
-| **学文笔** | 你喜欢的小说的 txt/md | `StyleProfile`：句长/段长/对话比 bands、规则、avoid 词、决策倾向 | 只影响怎么写，不写世界事实 |
-| **写同人** | 原著 txt/md | `CanonSource` + `WorldContract`：人物、称呼、事实、关系、禁忌、秘密 | 强约束世界观，必须作者确认 |
-
-两类导入共用 `SourceDocument`：同一部作品双导入只存一份原文，原文按完整 SHA-256 去重；文风与世界观是两个独立产物，互不污染。
-
-### 文风不是形容词，是决策倾向
-
-- `novel_plan` 返回 `styleHint`；
-- 每个提案选项可以带 `styleFit` / `styleWhy`，用「克制、慢揭示、留白、对话驱动」等可解释标签标注；
-- 决策记录保存选项、提案 id、文风适配与理由；
-- 模型只能 **propose**，不能 adopt/reject；作者在面板拍板后，工具才继续。
-
-### 一章有始有终
-
-```text
-novel_plan({ book, chapter, proposals })          # 只登记提案
-novel_chapter_start({ book, chapter })             # 装配四段依据
-novel_chapter_write({ session_id, text })          # 保存完整草稿（版本/hash）
-novel_chapter_finish({ session_id, segments, memory })  # 检查 → 事务落账
-```
-
-`finish` 会检查禁忌词、同人原著复制、疑似写错名字、称呼矩阵、文风 bands。blocker 不落账；通过后，**正文文件 + beat 段落 + fade 记忆卡**在同一个可恢复事务里提交，返回回执。中断后 `resume` 能看事务进度，`finish` 能从回执补齐会话。
-
-### 作者命令与可恢复操作
-
-面板上的拍板、导入、切模式、保存草稿、确认文风/canon，都走 `executeAuthorCommand`：
-
-- 每个操作有 `operationId`，同键同输入幂等，同键不同输入冲突；
-- 操作日志在 `.dsh-novel-kit/operations/<id>.json`；
-- 模型身份不能调用作者命令；
-- canon 编辑/确认带独立 revision，切书不会把 A 书的契约写进 B 书。
-
-### 面板与工作台
-
-- **右栏任务卡**：印 + 书名 + 刷新；大号「下一笔」卡只给一个主行动；下面是待处理、本章依据（条形 + 图例）、最近章节、五本账；底栏固定「打开工作台 / 设置与详情」。一个动作只出现在一处。
-- **小说工作台**：书桌 / 正文 / 故事 / 记忆 / 风格 / 同人 / 资料七域；主栏 + 300px 侧栏（写作依据 / 五本账 / 本章检查），宽度不足 1080px 时自动收成单栏。
-  - 书桌：下一笔 hero 卡、四指标、章节流程四步、本章场景、收件箱、最近章节；
-  - 正文：完整正文编辑 + Ctrl S 保存 + 四段依据 + 检查；
-  - 故事：拍板记录、待拍板提案、未回收线索、章节历史；
-  - 资料：四段依据、文风档案、canon 摘要。
-- **视觉**：暖纸底 + 三级墨色 + 朱砂强调，全部由宿主主题 token 用 `color-mix` 派生，暗色/亮色同一份样式；字阶与间距见 [v0.3.0 设计文档](/D:/Novel-gate/docs/小说插件系列-dsh-novel-kit-v0.3.0-UI重做-设计方案.md)。
-
-![小说工作台 · 决策页](docs/mockups/live/wb-beat-dark.png)
-
-## 安装与启用
-
-1. DSH → 设置 → 插件 → 搜索 **小说**（`dsh-novel-kit`）→ 安装；
-2. 重启 DSH，右栏出现「小说」页签；
-3. 在会话里执行：
-
-```text
-/novel master on
-/novel on
-```
-
-4. 打开「小说工作台」；如果工作区还没有书，右栏首屏可以直接**新建作品**（kit 会创建剧情账、记忆账与项目设置，不依赖 beat/fade）；
-5. 用「学文笔 / 写同人」导入样本。
-
-> `master` 默认关，这是有意的：不写小说时，kit 不会把任何 `novel_*` 工具塞进你的会话。
-
-## 从旧五件迁移（推荐这样做）
-
-如果你已经在用 beat / fade / voice / fanfic / conductor，建议**先让 kit 接管旧账本，再卸载五件**，不要反过来。
-
-### 1. 先备份
-
-备份工作区里的旧账本目录（至少这些）：
-
-```text
-<workspace>/.dsh-novel-beat/
-<workspace>/.dsh-novel-fade/
-<workspace>/.dsh-novel-voice/
-<workspace>/.dsh-novel-fanfic/
-<workspace>/.dsh-novel-conductor/
-```
-
-### 2. 安装 kit 并接管旧账本
-
-```text
-/novel master on
-/novel on
-/novel legacy
-```
-
-`/novel legacy` 会扫描旧账本，为每本书建立 kit 项目设置：
-
-- 有 fanfic 项目的书 → `fanfic` 模式；
-- 其他书 → `original` 模式；
-- 已有项目设置的书会跳过，不覆盖你后来的选择。
-
-它不复制、不迁移、不改写旧账本格式；kit 就在原目录读写这些文件。
-
-### 3. 验证内容都还在
-
-- 面板能看到旧书、章节历史、拍板、记忆卡；
-- `novel_query({ view: 'history' })` / `memory` / `ledgers` 能读到数据；
-- 同人书能读到旧 canon（只读兼容）；需要 kit 自己的 canon 时，用「写同人」重新导入并确认。
-
-### 4. 再卸载五件
-
-确认 kit 能独立工作后，在插件管理里**卸载** beat / fade / voice / fanfic / conductor（不是只停用）：
-
-- 两套执行者同时写同一本账，会重复登记或撞 CAS 冲突；
-- 卸载插件**不会删除** `.dsh-novel-*` 数据目录；
-- kit 继续就地读写这些目录，所以旧内容/记忆不会丢；
-- 卸载前仍然建议保留第 1 步的备份。
-
-### 5. 文风与同人的迁移边界
-
-- **旧 voice 文风库**：kit 只读兼容 `library.json`，不会把它变成 kit 的 `StyleProfile`；想用 kit 的新文风档案，用「学文笔」重新导入原文。
-- **旧 fanfic 项目/canon**：kit 只读兼容；kit 自己的 `WorldContract` 需要「写同人」导入 + 作者确认。
-- **旧 beat/fade 记忆**：kit 直接读写，不需要迁移；`/novel legacy` 只是把书登记成 kit 项目。
-
-## 八个工具
-
-| 工具 | 作用 |
+| 页 | 你在这里做什么 |
 |---|---|
-| `novel_plan` | 只登记提案（propose）；作者在面板拍板，模型不能 adopt/reject |
-| `novel_canon` | 同人 canon：outline / read / propose；propose 只进 pending-review |
-| `novel_chapter_start` | 开一章：四段依据 + 会话 |
-| `novel_chapter_write` | 保存完整草稿（新版本；不落账） |
-| `novel_chapter_finish` | 校验并落账（正文 + beat 段落 + fade 卡 + 回执） |
-| `novel_chapter_resume` | 恢复/重装配上下文，查看未完成事务 |
-| `novel_chapter_abort` | 放弃本会话（不动已落账内容） |
-| `novel_query` | 只读查询：session / conflicts / memory / style / canon / ledgers / history |
+| **书桌** | 看「下一笔」：唯一的主行动、四段依据状态、本章场景、待处理收件箱、最近章节 |
+| **正文** | 写完整正文，Ctrl S 保存；右侧常驻四段依据与账本；下方是本章检查，「定位」直接选中要改的那一句 |
+| **决策** | 待拍板提案、已拍板记录、未回收线索、章节历史。模型只能提议，拍板永远是你 |
+| **记忆** | 事件卡、钉住的硬信息、正在淡出的旧事；可钉、可遗忘、可恢复 |
+| **风格** | 导入你喜欢的小说，得到文风档案：句长/段长/对话比区间、要避免的词、决策倾向 |
+| **同人** | 导入原著，得到世界契约：人物、称呼矩阵、事实、关系、禁忌、秘密；逐条审阅后应用 |
+| **资料** | 四段依据的版本对照、账本目录、工作区设置与总开关 |
+
+主栏 + 右侧 300px 侧栏；窗口窄于 1080px 时自动收成单栏。
+
+![小说工作台 · 正文与检查](docs/mockups/live/wb-chapter-light.png)
+
+## 一条链：一章怎么走
+
+```text
+novel_plan              # 登记提案（模型只能 propose，拍板在你）
+novel_chapter_start     # 装配四段依据，开会话
+novel_chapter_write     # 保存完整草稿（版本 + 内容哈希）
+novel_chapter_finish    # 检查 → 事务落账 → 回执
+novel_chapter_resume    # 中断后接着来
+```
+
+`finish` 会先跑确定性检查：**禁忌词、与原著连续相同、疑似写错的名字、称呼矩阵、文风区间**。blocker 不落账；通过后正文、剧情段落、记忆卡在同一个可恢复事务里提交，返回回执。中断了，`resume` 能看到事务进度；回执丢了，`finish` 能补齐。
+
+## 四段依据，各有预算与版本
+
+| 段 | 装什么 | 预算 |
+|---|---|---|
+| 剧情 | 本章已拍板决策、未回收线索、本书 canon | 800 字 |
+| 世界 | 称呼矩阵、禁忌、事实、关系（同人） | 800 字 |
+| 记忆 | 近章事件卡 + 长期线索，越旧越淡 | 1400 字 |
+| 文风 | 句长/对话比区间、要避免的词、决策倾向 | 600 字 |
+
+每段都记录来源修订号。**依据变了会明确告诉你**：改的是预算之外的内容也算——因为章节检查读的正是那些内容。
+
+## 草稿是你的，不会丢
+
+- 有未保存正文时切换作品，不会静默清空，而是先问你：**保存并切换 / 丢弃并切换 / 取消**；
+- 保存按钮与 Ctrl S 共用一个互斥口，连点不会把版本号踩乱；
+- 保存回包会校验「书 + 章节 + 编辑序号」，期间切走了就只提示，不往当前编辑器里写；
+- 载入响应也认归属，晚到的那份会被丢弃，不会把 A 章的稿子写进 B 章。
+
+## 同人：先审阅，再生效
+
+原著导入后，模型可以提候选变更（人物、称呼、事实、规则、禁忌……），但**只能进待审阅队列**：
+
+![小说工作台 · 同人待审阅队列](docs/mockups/live/wb-canon-demo-light.png)
+
+- 队列顶部一行说清三层状态：**生效版本 v4 · 待审 2 · 已接受待应用 1**；
+- 逐条「接受 / 拒绝」，每次审阅都留痕，不会覆盖上一次的决定；
+- 接受 ≠ 生效：**只有点了应用才进写作依据**；
+- 生效内容与文件版本分开记账（`revision` / `contractRevision` / 内容指纹），拒绝一条提案不会让上下文失效，接受但没应用的内容绝不会混进正文。
+
+整份覆盖式的旧接口已经全部关掉——包括作者命令与模型工具。想改世界观，只有「提候选 → 审 → 用」这一条路。
+
+## 文风：学的是写法，不是抄句子
+
+导入一本你喜欢的小说，得到的是**可执行的档案**，不是形容词：
+
+- 句长均值与波动、段长、对话占比、抽象词密度——都有区间；
+- 要避免的词；决策倾向（克制、慢揭示、留白、对话驱动……）；
+- 写前给文风简报，写后把越界的地方指到具体那句。
+
+文风与世界观是**两个独立产物**：学文笔只影响怎么写，不往你的世界里塞事实；写同人只管世界约束，不改你的句子。
+
+## 开关默认是关的
+
+```text
+/novel master on|off     # profile 级总开关，默认关，跨重启保留
+/novel on|off            # 只影响本会话
+/novel mode original|fanfic <书>
+/novel status            # 看总开关 / 本会话 / 工具数
+```
+
+不写小说的时候，它**不会把任何工具塞进你的会话**。原创模式下即使误绑了同人项目，也不会注入世界事实；同人模式缺原著或契约未确认，开章直接拒绝，不会无约束硬写。
+
+## 安装
+
+1. DSH → 设置 → 插件 → 搜索「**小说工作台**」→ 安装；
+2. 重启 DSH，会话里出现「小说工作台」入口；
+3. 会话里执行 `/novel master on` 与 `/novel on`；
+4. 打开工作台：没有作品就在书桌**新建**；想学写法去「风格」导入，写同人去「同人」导入原著。
 
 ## 数据放在哪
 
+全部是**工作区里的普通文件**，可以直接备份、用 git 管、手动看：
+
 ```text
-<workspace>/.dsh-novel-beat/<book>/book.json        # 章节段落与拍板
-<workspace>/.dsh-novel-fade/<book>/memory.json      # 记忆卡
-<workspace>/.dsh-novel-voice/<library>/library.json # 旧文风库（只读兼容）
-<workspace>/.dsh-novel-fanfic/<project>/            # 旧同人项目（只读兼容）
-<workspace>/.dsh-novel-conductor/                   # 旧编排数据（不读不写）
-<workspace>/.dsh-novel-kit/                         # kit 自己的资产
-  ├─ projects/<book>/settings.json                  # mode / 文风绑定 / canon 绑定
-  ├─ sources/<sha256>/                              # 双导入口共用原文
-  ├─ styles/<profileId>.json                        # kit 文风档案
-  ├─ canon/<book>/<sourceId>/world.json             # 世界契约
-  ├─ sessions/  transactions/ operations/           # 会话、事务、作者命令日志
+<workspace>/.dsh-novel-kit/
+  ├─ projects/<书>/settings.json        # 模式、文风与 canon 绑定
+  ├─ sources/<sha256>/                  # 导入的原文（按内容去重，一份）
+  ├─ styles/<profileId>.json            # 文风档案
+  ├─ canon/<书>/<sourceId>/world.json   # 世界契约（含待审队列与审阅历史）
+  ├─ sessions/  transactions/  operations/   # 会话、可恢复事务、作者操作日志
   └─ ...
 ```
 
-profile 级总开关在 `$DSH_HOME/profiles/<name>/novel-kit/prefs.json`。
+剧情账与记忆账沿用 `.dsh-novel-beat/`、`.dsh-novel-fade/` 目录结构，**卸载插件不会删数据**。
 
-## 验收
+## 给老用户：从旧插件过来
 
-当前开发版的模拟验收（不依赖真实 DSH 界面）：
+早期版本是五个独立插件（beat / fade / voice / fanfic / conductor）。工作台已经是一个独立包，**不再依赖任何一个**：
 
-```text
-node --test                 169/169
-npm run acceptance:load      8/8
-npm run acceptance          19/19
-npm run acceptance:real     11/11
-npm run check               通过
-npm pack --dry-run          58 文件
-```
+1. 先备份工作区里的 `.dsh-novel-*` 目录；
+2. 装工作台 → `/novel master on` → `/novel on` → `/novel legacy`（把旧书登记成工作台项目，就地读写，不复制不改格式）；
+3. 确认书、章节、拍板、记忆都在；
+4. **再卸载**那五个插件——两套执行者同时写同一本账会重复登记或撞版本冲突。
 
-> `acceptance:load` 模拟 DSH 的加载链：package 元数据、bundle patch 两条 entry、Host index/tools/remote 导入、client tab/面板/工作台注册。它专门锁住「重启后整包不出现」这类事故。
->
-> `acceptance:real` 会把真实账本复制到临时工作区再跑一章，不动原书。
-
-## 边界与未完成
-
-- 这是 `0.4.0`，不是最终稳定版；
-- 真实 DSH 界面验收、写盘故障注入还没完成；
-- operation/canon 锁目前是单 Host 进程内锁，多进程同时写同一工作区未覆盖；
-- canon 逐条接受/证据回查、页边批注、文风规则/锚句编辑仍在后续；
-- 旧 voice/fanfic 只读兼容，不等于完整迁移；需要 kit 自有档案时请重新导入/确认。
+旧文风库与旧同人项目是只读兼容；要用工作台自己的档案，用「学文笔」「写同人」重新导入并确认一次即可。
 
 ## 开发
 
 ```text
-git clone https://github.com/DrizzleGig/dsh-novel-kit.git
-cd dsh-novel-kit
-node --test
-npm run acceptance
-npm run acceptance:real
-npm run check
+npm test                 # 216 条单元/集成测试
+npm run acceptance       # 19 项行为验收
+npm run acceptance:load  # 8 项加载链验收（专门锁「重启后整包消失」）
+npm run acceptance:real  # 用真实账本副本跑一章，不动原书
+npm run check            # 语法 + 构建产物一致性
+npm run build:client     # 样式/契约/ui-kit 三个块内联进 client.js
+npm run ui:snapshot      # 七个页面 × 暗亮 出图
 ```
 
-设计和开发记录见 [docs/](docs/)；界面设计见 [UI-V2.md](docs/UI-V2.md)，五插件功能对照见 [FIVE-PLUGIN-PARITY.md](docs/FIVE-PLUGIN-PARITY.md)，与旧五件的共存细节见 [docs/COEXIST.md](docs/COEXIST.md)。
+源码结构：`lib/engine/`（章节、canon、上下文、检查）、`lib/host/`（工具、命令、remote、视图）、`client.js`（工作台 UI，由 `client-src/` 与本仓库源码构建内联）。
+
+边界与未完成项见 [docs/LIMITS.md](docs/LIMITS.md)，开发状态见 [docs/DEV-STATUS.md](docs/DEV-STATUS.md)，界面规范见 [docs/UI-V2.md](docs/UI-V2.md)。
 
 ## 许可
 
-MIT。作者：DrizzleGig。
-
-
-
-
-
-
-
-
+MIT · 作者 **DrizzleGig** · 协作者 **MiyueWinter**

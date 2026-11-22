@@ -2,8 +2,8 @@
   "meta": {
     "title": "Novel Workbench",
     "detail": "docs/DETAIL.md",
-    "description": "Novel Workbench: write a long novel in one place — desk, manuscript, decisions, memory, style studio, canon and sources — with a chapter engine, four context segments, style/canon imports and recoverable transactions."
+    "description": "Novel Workbench: write a long novel in one place — desk, manuscript, decisions, memory, style studio, canon and sources. Four context segments budgeted before you write; checks that jump to the exact sentence; every chapter committed in a recoverable transaction."
   },
   "name": "Novel Workbench",
-  "description": "One install for beat / fade / voice / fanfic / conductor: eight novel_* tools, master/project/session switches, original/fanfic modes, style and world imports, all inside a single Novel Workbench page. Adopt legacy ledgers, then uninstall the five separate plugins."
+  "description": "A workbench for long-form and fan fiction: plot decisions, world contract, long-term memory and voice style are assembled into four budgeted context segments before each chapter. One chain per chapter (plan → start → write → check → commit, resumable), per-entry canon review, drafts protected when switching books, and off by default so it never clutters your tool list."
 }
