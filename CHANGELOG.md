@@ -57,6 +57,10 @@
 - **审阅历史不再被覆盖**：`reviewCanonChange` 改为向 `reviewHistory` 追加记录（`decision/reviewedBy/reviewedAt/note`），`decision` 表示当前结论；已接受未应用的可以改判为拒绝，反过来要重新提案；**已应用的提案不能再审阅**（`canon-already-applied`）；请求带 `expectedChangeHash` 且对不上时返回 `canon-change-conflict`。界面审阅时会带上候选的 `changeHash`。
 - **世界契约视图统一**：新增 `worldContractView(contract)`（`lib/host/views.js`），一处理清 `revision` / `contractRevision` / `contentHash` / `published` / `reviewSummary`，`getCanonQueue` 改为读它，不再自己拼版本语义；`published` 在没有生效版本时就是 `null`。
 - 测试 **203/203**。
+- **旧写入口全部关掉**：`updateWorldContract` / `confirmWorldContract` 变为兼容桩，统一返回 `canon-queue-required`；作者命令 `canon.update` / `canon.confirm` 同样拒绝，新增 `canon.propose` 作候选入口。整份替换会误删「没出现在新契约里」的条目，这条路径不能再留。
+- **模型提案改单条**：`novel_canon propose` 参数从 `contract: {整份}` 改为 `change: {collection, operation, entryId?, after?, evidenceRefs?}`，并可带 `expected_revision` / `base_contract_revision` / `base_content_hash`；旧整份参数明确返回 `canon-queue-required`，不再静默 diff 兼容。
+- **提案基线校验**：`proposeCanonChanges` 新增 `baseContractRevision` / `baseContentHash` 校验（不符返回 `canon-base-stale`），并拒绝不成立的条目（`canon-invalid-change`）。
+- **测试重写**：`canon.test.mjs` 改为「旧入口零写 + 候选队列是唯一入口 + 评审应用闭环后自动确认」；`tools.test.mjs` 覆盖单条 change 与旧参数报错。测试 **204/204**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。

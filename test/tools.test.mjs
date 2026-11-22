@@ -88,17 +88,25 @@ test('novel_canon：outline / read / propose 通过工具调用', async () => {
 
   const proposed = await tools.novel_canon.execute({
     action: 'propose', book: '书', source_id: imported.sourceId,
-    contract: { characters: [{ name: '陈凡' }], facts: [{ entity: '唐昊', key: '身份', value: '封号斗罗' }] },
+    change: { collection: 'characters', operation: 'add', after: { id: 'c1', name: '陈凡' } },
   }, exec)
   assert.equal(proposed.ok, true)
   assert.equal(Array.isArray(proposed.created), true)
-  assert.equal(proposed.created.length, 2, 'characters + facts 各一条候选')
+  assert.equal(proposed.created.length, 1, '单条 change 产一条候选')
   assert.match(proposed.message, /待审阅队列/, '结果要告诉模型去等作者审阅')
+
+  // 旧的整份 contract 参数明确报错，不再兼容直写
+  const legacy = await tools.novel_canon.execute({
+    action: 'propose', book: '书', source_id: imported.sourceId,
+    contract: { characters: [{ name: '陈凡' }] },
+  }, exec)
+  assert.equal(legacy.ok, false)
+  assert.equal(legacy.code, 'canon-queue-required')
 
   // 提案不碰生效内容：契约状态不变、候选只在队列里、投影里没有。
   const contract = await readWorldContract(root, '书', imported.sourceId)
   assert.equal(contract.status, 'pending-extraction', '提案不改契约状态')
-  assert.equal(contract.pendingChanges.length, 2)
+  assert.equal(contract.pendingChanges.length, 1)
   assert.equal(contract.contractRevision, 0)
   assert.equal(getPublishedCanon(contract), null, '没有生效版本时投影必须是 null，不能拿候选冒充')
 })
