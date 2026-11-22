@@ -648,6 +648,31 @@ test('finish 事务不把合法 JSON 正文重新序列化', async () => {
   assert.equal(readFileSync(finished.chapterFile, 'utf8'), text)
 })
 
+test('finish 恢复：事务已完成但会话未保存时，从回执补齐 receipt/chapterFile', async () => {
+  const root = workspace()
+  const { session } = await startChapter({ root, book: '书', chapter: 34 })
+  const text = '陈凡把令牌放在桌上。'
+  await writeChapter({ root, sessionId: session.id, text })
+  const finished = await finishChapter({
+    root, sessionId: session.id,
+    extraction: { segments: [{ quote: text }], memory: { cards: [{ gist: text, quote: text, salience: 2 }] } },
+  })
+  assert.equal(finished.ok, true)
+  const broken = await loadSession(root, session.id)
+  broken.state = 'committing'
+  broken.receipt = null
+  broken.receiptIds = []
+  broken.chapterFile = null
+  await saveSession(root, broken)
+
+  const recovered = await finishChapter({ root, sessionId: session.id, extraction: {} })
+  assert.equal(recovered.ok, true)
+  assert.equal(recovered.recovered, true)
+  assert.equal(recovered.session.state, 'completed')
+  assert.equal(recovered.receipt.txId, finished.receipt.txId)
+  assert.match(recovered.session.chapterFile, /第34章/)
+})
+
 test('decision 重试：beat 已落账但会话保存失败时按提案 id 找回，不重复写', async () => {
   const root = workspace()
   const planned = await planChapter({

@@ -18,7 +18,8 @@
 - **工作台四入口**：书桌（下一笔/收件箱/最近）、章节（可编辑正文+依据/检查）、故事（拍板/提案/线索/历史）、资料（四段依据/文风/canon）；右栏顶部补「下一笔」卡。
 - **右栏任务卡**：默认显示总开关/模式/导入/下一笔/四段尺/收件箱/最近章节；详细六页签收进「详情」，不再一打开就是台账。
 - **Codex 第五轮复核修复**：finish/write 共用会话锁；decision 重试按提案 id 找回；operationId 加锁；草稿保存期间的新输入保持 dirty；冲突不自动覆盖本地稿；canon 编辑固定 book/source 并带 contract revision；canon 条目有效性与已确认保护；事务按 after 原文写入，合法 JSON 正文不再被重序列化。
-- 测试 **157/157**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
+- **收尾回执恢复**：事务已完成但会话未保存时，从 receipt 补齐 `receipt/chapterFile`，不再只标 completed。
+- 测试 **158/158**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
 
 ## 0.1.14 — 2026-11-22
 
@@ -257,6 +258,7 @@ S0 只读层：只装 kit 也能读懂已有五本账，且绝不改文件。
 - npm 名字与 GitHub 仓库占位：只注册包名、声明 bundle 入口，不挂工具、面板或命令。
 - 目的：市场 PR 要求仓库满 1 天；先建仓，`0.1.0` 发布后即可提 PR。
 - 方案见 `docs/小说插件系列-dsh-novel-kit-整合包设计方案-2026-11-21.md`。
+
 
 
 
