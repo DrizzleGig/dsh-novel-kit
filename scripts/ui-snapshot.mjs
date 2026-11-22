@@ -360,8 +360,10 @@ for (const { config, Component } of registered) {
   if (config.name !== 'conversation.view') continue
   // 每一页各出一张：改哪页就能立刻看见哪页，不用来回点。
   for (const [key, label] of PAGES) {
+    // 样例收件箱单独出图，不覆盖真实账本的截图。
+    const file = (key === 'desk' && process.env.NK_INBOX_DEMO === '1') ? 'wb-inbox-demo' : 'wb-' + key
     targets.push({
-      file: 'wb-' + key,
+      file,
       label,
       width: 1440,
       height: 900,
