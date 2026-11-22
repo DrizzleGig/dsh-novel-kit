@@ -1731,6 +1731,25 @@ window.__ModuleLoader__.load({
       }, LABEL)
     }
 
+    function WorkbenchButton(props) {
+      return h('button', {
+        type: 'button',
+        title: '打开小说七域工作台',
+        onClick: function () {
+          // 宿主没有暴露 openView；从主视图 tab 直接切换，失败时退回右栏。
+          const tab = Array.from(document.querySelectorAll('[role="tab"],button,a'))
+            .find((node) => String(node.textContent || '').trim() === '小说工作台')
+          if (tab) { tab.click(); return }
+          if (props.open) props.open()
+        },
+        style: {
+          appearance: 'none', border: '1px solid var(--dsw-alias-border-l1)', background: 'transparent',
+          color: 'var(--dsw-alias-label-secondary)', borderRadius: 6, padding: '2px 8px', fontSize: 12,
+          lineHeight: '18px', cursor: 'pointer', fontFamily: 'inherit',
+        },
+      }, '工作台')
+    }
+
     return {
       inject: ['slots', 'sidebarRight', 'sidebarRightTabs', 'remote'],
       async apply(ctx) {
@@ -1790,6 +1809,17 @@ window.__ModuleLoader__.load({
             sessionId,
           }),
         }, OpenButton)))
+
+        ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+          name: 'conversation.session.header.utilities',
+          id: 'novel-kit-workbench-open',
+          order: 36,
+          label: '工作台',
+          inject: (sessionId) => ({
+            open: () => ctx.sidebarRight.openTab(KIND),
+            sessionId,
+          }),
+        }, WorkbenchButton)))
       },
     }
   },

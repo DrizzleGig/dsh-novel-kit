@@ -78,7 +78,7 @@ test('client.js：能装进宿主替身并渲染面板与工作台，不抛异�
   }
   await mod.apply(ctx)
 
-  assert.equal(registered.length, 3, '注册 panel / workbench / header 三个组件')
+  assert.equal(registered.length, 4, '注册 panel / workbench / 两个 header 按钮')
   for (const { config, Component } of registered) {
     assert.equal(typeof Component, 'function', config.name + ' 组件是函数')
     const tree = Component({ sessionId: 's-test', remote: fakeRemote, open: () => {} })
