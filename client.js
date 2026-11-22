@@ -1123,6 +1123,8 @@ window.__ModuleLoader__.load({
       const [workOrder, setWorkOrder] = React.useState('')
       const [memoryOpen, setMemoryOpen] = React.useState(null)
       const [styleOpen, setStyleOpen] = React.useState(null)
+      const [canonBusy, setCanonBusy] = React.useState(false)
+      const [canonMessage, setCanonMessage] = React.useState('')
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
@@ -1181,6 +1183,7 @@ window.__ModuleLoader__.load({
         setWorkOrder('')
         setMemoryOpen(null)
         setStyleOpen(null)
+        setCanonMessage('')
       }, [data && data.book])
 
       const saveDraft = React.useCallback(async function () {
@@ -1306,8 +1309,28 @@ window.__ModuleLoader__.load({
         if (decisions) setStoryData((prev) => ({ ...(prev || {}), decisions }))
       }, [remote, sessionId, data, session])
 
-      const actOnMemory = React.useCallback(async function (card, action) {
-        if (!remote || !data || !data.book || !card) return
+      const confirmCanonNow = React.useCallback(async function (canon) {
+        if (!remote || !data || !data.book || !canon) return
+        setCanonBusy(true)
+        setCanonMessage('正在确认 canon…')
+        try {
+          const result = await Promise.resolve(remote.confirmCanon(sessionId, {
+            book: data.book,
+            sourceId: canon.sourceId || '',
+            expectedRevision: canon.contractRevision ?? canon.revision ?? null,
+          })).then(unwrap)
+          if (!result || result.ok === false) { setCanonMessage(result?.message || result?.code || '确认失败'); return }
+          setCanonMessage('canon 已确认。')
+          const next = await Promise.resolve(remote.getCanon(sessionId, { book: data.book })).then(unwrap).catch(() => null)
+          if (next) setMaterialData((prev) => ({ ...(prev || {}), canon: next }))
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        } finally {
+          setCanonBusy(false)
+        }
+      }, [remote, sessionId, data])
+
+      const actOnMemory = React.useCallback(async function (card, action) {        if (!remote || !data || !data.book || !card) return
         try {
           const result = await Promise.resolve(remote.memoryAction(sessionId, { book: data.book, cardId: card.id, action })).then(unwrap)
           if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '记忆操作失败'); return }
@@ -1609,8 +1632,15 @@ window.__ModuleLoader__.load({
           h('div', { style: { maxWidth: 780 } },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
               h('div', { style: { fontSize: 20, fontWeight: 700 } }, canon.title || '同人原著'),
-              h('span', { style: { fontSize: 10, color: canon.canonReady ? c.success : c.warning } }, canon.canonReady ? 'canon 已确认' : (canon.contractStatus || '待抽取'))),
-            h('div', { style: { ...faint, marginTop: 2 } }, '原著 ' + (canon.sourceId || '-') + ' · rev ' + (canon.revision ?? '-')),
+              h('span', { style: { fontSize: 10, color: canon.canonReady ? c.success : c.warning } }, canon.canonReady ? 'canon 已确认' : (canon.contractStatus || '待抽取')),
+              h('button', {
+                className: 'nk-btn ' + (canon.canonReady ? '' : 'primary'),
+                style: { marginLeft: 'auto' },
+                disabled: canonBusy || canon.canonReady,
+                onClick: function () { confirmCanonNow(canon) },
+              }, canon.canonReady ? '已确认' : (canonBusy ? '确认中…' : '确认这份 canon'))),
+            h('div', { style: { ...faint, marginTop: 2 } }, '原著 ' + (canon.sourceId || '-') + ' · rev ' + (canon.revision ?? '-') + (canon.contractRevision ? ' · contract ' + canon.contractRevision : '')),
+            canonMessage ? h('div', { style: { fontSize: 11.5, color: canonMessage.includes('失败') || canonMessage.includes('错误') ? c.error : c.sub, marginTop: 5 } }, canonMessage) : null,
             section('事实', canon.facts || [], (fact, index) => h('div', { key: index, style: { padding: '6px 0', borderBottom: '1px dashed ' + c.border } },
               h('div', { style: small }, String(fact.subject ?? fact.entity ?? '?') + (fact.key ? '·' + fact.key : '') + '：' + String(fact.value ?? fact.object ?? '')),
               fact.quote ? h('div', { style: { color: c.faint, fontSize: 10.5, marginTop: 2, fontFamily: '"Songti SC", "Noto Serif SC", serif' } }, '“' + fact.quote + '”' + (fact.chapter ? ' · 第 ' + fact.chapter + ' 章' : '')) : null)),
