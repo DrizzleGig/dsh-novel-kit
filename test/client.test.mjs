@@ -1,4 +1,4 @@
-// S2：客户端面板结构 + 只读契约对齐。
+﻿// S2：客户端面板结构 + 只读契约对齐。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -116,9 +116,10 @@ test('client：注册 conversation.view 章节工作台', async () => {
   const view = calls.registered.find(({ options }) => options.name === 'conversation.view')
   assert.ok(view, '要注册 conversation.view')
   assert.equal(view.options.id, 'novel-kit.chapter')
-  assert.equal(view.options.label, '章节工作台')
+  assert.equal(view.options.label, '小说工作台')
   assert.equal(typeof view.component, 'function')
   const props = view.options.inject('session-1')
   assert.equal(props.sessionId, 'session-1')
   assert.equal(typeof props.remote.getSnapshot, 'function')
 })
+
