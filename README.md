@@ -1,4 +1,4 @@
-﻿# dsh-novel-kit · 小说整合包
+# dsh-novel-kit · 小说整合包
 
 > **一个包，写完一部长篇。** 章节引擎、四段写作依据、八个 `novel_*` 工具、右栏任务卡与四入口小说工作台，都在一个 DSH 插件里。
 >
@@ -200,7 +200,7 @@ npm run acceptance:load      8/8
 npm run acceptance          19/19
 npm run acceptance:real     11/11
 npm run check               通过
-npm pack --dry-run          54 文件
+npm pack --dry-run          57 文件
 ```
 
 > `acceptance:load` 模拟 DSH 的加载链：package 元数据、bundle patch 两条 entry、Host index/tools/remote 导入、client tab/面板/工作台注册。它专门锁住「重启后整包不出现」这类事故。
