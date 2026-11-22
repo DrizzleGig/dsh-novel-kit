@@ -99,8 +99,8 @@ test('novel_canon：outline / read / propose 通过工具调用', async () => {
   const contract = await readWorldContract(root, '书', imported.sourceId)
   assert.equal(contract.status, 'pending-extraction', '提案不改契约状态')
   assert.equal(contract.pendingChanges.length, 2)
-  assert.equal(getPublishedCanon(contract).characters.length, 0, '未应用不进生效投影')
   assert.equal(contract.contractRevision, 0)
+  assert.equal(getPublishedCanon(contract), null, '没有生效版本时投影必须是 null，不能拿候选冒充')
 })
 
 test('工具：缺参数时返回可读错误而不是抛栈', async () => {

@@ -783,26 +783,6 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, materialData])
 
-      const confirmCanonNow = React.useCallback(async function (canon) {        if (!remote || !data || !data.book || !canon) return
-        setCanonBusy(true)
-        setCanonMessage('正在确认 canon…')
-        try {
-          const result = await Promise.resolve(remote.confirmCanon(sessionId, {
-            book: data.book,
-            sourceId: canon.sourceId || '',
-            expectedRevision: canon.contractRevision ?? canon.revision ?? null,
-          })).then(unwrap)
-          if (!result || result.ok === false) { setCanonMessage(result?.message || result?.code || '确认失败'); return }
-          setCanonMessage('canon 已确认。')
-          const next = await Promise.resolve(remote.getCanon(sessionId, { book: data.book })).then(unwrap).catch(() => null)
-          if (next) setMaterialData((prev) => ({ ...(prev || {}), canon: next }))
-        } catch (error) {
-          setCanonMessage(String(error?.message ?? error))
-        } finally {
-          setCanonBusy(false)
-        }
-      }, [remote, sessionId, data])
-
       const startPlanEdit = React.useCallback(function () {
         const plan = planData || { intent: '', pov: '', time: '', place: '', scenes: [], revision: 0 }
         setPlanDraft({
@@ -1779,8 +1759,8 @@ window.__ModuleLoader__.load({
           : addresses
 
         return h('div', { className: 'nk-wb-body' },
-          pageHead('同人', '原著事实与禁忌决定这一本能不能写；有冲突先回原文核对。',
-            h('button', { type: 'button', className: 'nk-btn' + (canon.canonReady ? '' : ' primary'), onClick: function () { confirmCanonNow(canon) }, }, canon.canonReady ? '重新确认 canon' : '确认这份 canon')),
+          pageHead('同人', '原著事实与禁忌决定这一本能不能写；先逐条审阅候选，应用后才会进写作依据。',
+            h('span', { className: 'nk-meta' }, canon.canonReady ? '生效 canon 已确认' : '生效 canon 未确认')),
           importPanel('canon'),
           h('div', { className: 'nk-stats', style: { marginTop: 14 } },
             pageStat('事实', facts.length),

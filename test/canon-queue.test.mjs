@@ -216,6 +216,63 @@ test('diffContractPatch：整份替换换算成 add / update / remove', async ()
   assert.equal(changes.every((change) => change.collection === 'facts'), true, '只有 facts 有改动')
 })
 
+test('schema 1 未确认契约迁移：旧条目全部转成待审候选，生效区清空', () => {
+  const legacy = {
+    schemaVersion: 1,
+    book: BOOK,
+    sourceId: SOURCE,
+    status: 'pending-review',
+    facts: [{ subject: '沈砚', key: '身份', value: '巡夜人' }],
+    characters: [{ name: '沈砚' }, { name: '沈砚' }],
+    revision: 7,
+  }
+  const first = migrateWorldContract(legacy, { book: BOOK, sourceId: SOURCE })
+  assert.equal(first.contractRevision, 0)
+  assert.equal(first.contentHash, null, '没有生效版本时不能拿空数组 hash 冒充')
+  assert.equal(first.revision, 7, '迁移不重置文档 revision')
+  assert.deepEqual(first.facts, [], '未确认内容不能留在生效区')
+  assert.equal(first.pendingChanges.length, 3, '3 条旧条目全部转候选（含重复条目）')
+
+  const ids = first.pendingChanges.map((item) => item.entryId)
+  assert.equal(new Set(ids).size, 3, '重复条目不合并、ID 不碰撞')
+  assert.equal(first.pendingChanges.every((item) => item.operation === 'add' && item.baseContractRevision === 0), true)
+
+  const second = migrateWorldContract(legacy, { book: BOOK, sourceId: SOURCE })
+  assert.deepEqual(
+    second.pendingChanges.map((item) => item.changeId),
+    first.pendingChanges.map((item) => item.changeId),
+    '反复迁移必须得到同一组 changeId',
+  )
+  assert.equal(first.legacyV1.schemaVersion, 1, '原始资料要留档')
+})
+
+test('投影：没有生效版本时返回 null；有生效版本时是深拷贝', () => {
+  const draft = { ...defaultWorldContract({ book: BOOK, sourceId: SOURCE }), facts: [{ subject: '沈砚' }], contractRevision: 0 }
+  assert.equal(getPublishedCanon(draft), null)
+
+  const live = { ...draft, contractRevision: 2, contentHash: computeContentHash(draft) }
+  const published = getPublishedCanon(live)
+  assert.ok(published)
+  published.facts.push({ subject: '改投影' })
+  assert.equal(live.facts.length, 1, '改投影不能污染原文档')
+  assert.equal('pendingChanges' in published, false)
+})
+
+test('内容指纹：键顺序无关、数组顺序有关、审阅元数据无关', () => {
+  const base = { ...defaultWorldContract({ book: BOOK, sourceId: SOURCE }), contractRevision: 1 }
+  const ordered = { ...base, facts: [{ id: 'f1', subject: 'A', value: '1' }, { id: 'f2', subject: 'B', value: '2' }] }
+  const reorderedKeys = { ...base, facts: [{ value: '1', subject: 'A', id: 'f1' }, { id: 'f2', value: '2', subject: 'B' }] }
+  assert.equal(computeContentHash(ordered), computeContentHash(reorderedKeys), '对象键顺序不影响指纹')
+
+  const swapped = { ...base, facts: [ordered.facts[1], ordered.facts[0]] }
+  assert.notEqual(computeContentHash(ordered), computeContentHash(swapped), '数组顺序影响指纹（装配取前 N 条）')
+
+  const reviewed = structuredClone(ordered)
+  reviewed.facts[0].reviewedAt = '2026-11-23T00:00:00Z'
+  reviewed.facts[0].note = '作者备注'
+  assert.equal(computeContentHash(reviewed), computeContentHash(ordered), '审阅元数据不进指纹')
+})
+
 test('同一批不允许同一条目出现两条变更', async () => {
   const { root } = await makeContract()
   const result = await proposeCanonChanges({

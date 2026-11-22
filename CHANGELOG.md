@@ -43,6 +43,13 @@
 - **整份确认加闸**：队列里还有「待审」或「已接受未应用」的候选时，`canon.confirm` 返回 `canon-queue-pending` 并列出 changeId，不允许整份批准绕过逐条审阅；这条排在 `canon-empty` 之前，提示更可操作。
 - **修一个静默丢条目的 bug**：`isUsableEntry` 的 facts 只认 `entity`/`subjectName`，而 fanfic 导入用 `subject`——带 `subject` 的事实会被静默过滤掉。现在两个字段都认（由 diff 测试当场发现）。
 - 测试 **192/192**。
+- **按 Codex 实现评审修正迁移与投影**：`migrateWorldContract(raw, {book, sourceId})` 改成纯函数——schema 1 **未确认**契约不再把旧数组当生效内容，而是清空生效区、把旧条目逐条转成确定性 ID 的待审 `add` 候选（重复条目不合并、反复迁移 ID 不变），`contractRevision=0`、`contentHash=null`；已确认契约保留数组、`contractRevision=1`；两种都保留原 `revision` 与 `legacyV1` 原始资料。未知/损坏 schema 抛 `canon-schema-unsupported` / `canon-corrupt`，不再「顺手修复」。
+- **投影收紧**：`getPublishedCanon()` 在 `contractRevision === 0` 时返回 `null`（不再拿空数组冒充），返回深拷贝，不含候选与审阅历史。
+- **指纹改白名单**：`computeContentHash()` 只哈希 title/sourceId + 八类条目的白名单字段（含 `entryId`、`evidenceRefs`），审阅时间、备注、回执、文档 revision 都不进指纹；对象键序无关、数组顺序有关。
+- **锁与回执**：canon 锁键改为含 `root` 的完整路径（不同工作区不再互相占锁）；`appliedOperations` 不再截断 50 条，旧 operationId 的持久幂等不会被挤掉。
+- **导入不再覆盖坏契约**：`importCanon` 只在文件不存在（ENOENT）时创建默认契约，损坏或不支持的 schema 直接抛错。
+- **界面收口**：同人页去掉「确认这份 canon」按钮（确认已由「应用候选」隐含完成），页头改为生效状态 + 指向待审阅队列；删掉随之失效的 `confirmCanonNow`。
+- 测试 **195/195**。
 - **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
 - **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
 - 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。
