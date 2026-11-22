@@ -1,4 +1,4 @@
-# dsh-novel-kit · 小说整合包
+﻿# dsh-novel-kit · 小说整合包
 
 > **一个包，写完一部长篇。** 章节引擎、四段写作依据、八个 `novel_*` 工具、右栏任务卡与四入口小说工作台，都在一个 DSH 插件里。
 >
@@ -195,7 +195,7 @@ profile 级总开关在 `$DSH_HOME/profiles/<name>/novel-kit/prefs.json`。
 当前开发版的模拟验收（不依赖真实 DSH 界面）：
 
 ```text
-node --test                 164/164
+node --test                 165/165
 npm run acceptance:load      8/8
 npm run acceptance          19/19
 npm run acceptance:real     11/11
@@ -231,6 +231,7 @@ npm run check
 ## 许可
 
 MIT。作者：DrizzleGig。
+
 
 
 

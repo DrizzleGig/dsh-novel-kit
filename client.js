@@ -34,6 +34,7 @@ window.__ModuleLoader__.load({
         { method: 'getStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'reviseDecision', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'memoryAction', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'searchMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'importSource', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
@@ -1104,6 +1105,11 @@ window.__ModuleLoader__.load({
       const [fadeData, setFadeData] = React.useState(null)
       const [beatTab, setBeatTab] = React.useState('map')
       const [beatQuery, setBeatQuery] = React.useState('')
+      const [beatEditing, setBeatEditing] = React.useState(null)
+      const [beatOption, setBeatOption] = React.useState('')
+      const [beatNote, setBeatNote] = React.useState('')
+      const [beatMessage, setBeatMessage] = React.useState('')
+      const [workOrder, setWorkOrder] = React.useState('')
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
@@ -1270,6 +1276,49 @@ window.__ModuleLoader__.load({
         { id: 'close', label: '事务收尾', done: !!(session && session.state === 'completed') },
       ]
 
+      const reloadBeat = React.useCallback(async function () {
+        if (!remote || !data || !data.book) return
+        const decisions = await Promise.resolve(remote.getDecisions(sessionId, { book: data.book, chapter: session ? session.chapter : null })).then(unwrap).catch(() => null)
+        if (decisions) setStoryData((prev) => ({ ...(prev || {}), decisions }))
+      }, [remote, sessionId, data, session])
+
+      const decideFromBeat = React.useCallback(async function (proposal, action, option) {
+        if (!remote || !proposal || !session) return
+        setBeatMessage(action === 'reject' ? '正在拒绝…' : '正在记录选择…')
+        try {
+          const result = await Promise.resolve(remote.decide(sessionId, {
+            chapterSessionId: session.id, proposalId: proposal.id, action,
+            option: option || '',
+          })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '拍板失败'); return }
+          setBeatMessage(action === 'reject' ? '已拒绝该提案。' : '已拍板：' + (option || ''))
+          await reloadBeat()
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, session, reloadBeat])
+
+      const submitRevise = React.useCallback(async function (decision) {
+        if (!remote || !data || !data.book || !decision) return
+        const option = beatOption.trim()
+        if (!option) { setBeatMessage('先写新方向'); return }
+        setBeatMessage('正在生成重写工单…')
+        try {
+          const result = await Promise.resolve(remote.reviseDecision(sessionId, {
+            book: data.book, decisionId: decision.id, option, note: beatNote.trim(),
+          })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '改选失败'); return }
+          setWorkOrder(result.workOrder || '')
+          setBeatMessage('已追加改选记录；旧线保留。')
+          setBeatEditing(null)
+          setBeatOption('')
+          setBeatNote('')
+          await reloadBeat()
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data, beatOption, beatNote, reloadBeat])
+
       const sectionLabel = { desk: '书桌', chapter: '正文', beat: '故事', fade: '记忆', voice: '风格', fanfic: '同人', data: '资料' }
       const sectionButton = (key) => h('button', {
         key,
@@ -1342,6 +1391,38 @@ window.__ModuleLoader__.load({
           onClick: function () { setBeatTab(key) },
           style: { appearance: 'none', border: '1px solid ' + (beatTab === key ? c.brand : c.border), background: beatTab === key ? c.layer : 'transparent', color: beatTab === key ? c.text : c.sub, borderRadius: 999, padding: '3px 10px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
         }, label + (count !== undefined ? ' ' + count : ''))
+
+        const decisionCard = function (item) {
+          const editing = beatEditing === item.id
+          const editor = editing
+            ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 5, marginTop: 7 } },
+                h('input', { value: beatOption, placeholder: '新方向，例如：绕山路', onChange: function (event) { setBeatOption(event.target.value) }, style: { border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } }),
+                h('input', { value: beatNote, placeholder: '改选理由（可选）', onChange: function (event) { setBeatNote(event.target.value) }, style: { border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } }),
+                h('div', { style: { display: 'flex', gap: 5 } },
+                  h('button', { className: 'nk-btn primary', onClick: function () { submitRevise(item) } }, '生成重写工单'),
+                  h('button', { className: 'nk-btn', onClick: function () { setBeatEditing(null) } }, '取消')))
+            : h('button', { className: 'nk-btn', onClick: function () { setBeatEditing(item.id); setBeatOption(item.option || ''); setBeatNote('') } }, '改选')
+          return h('div', { key: item.id, style: { padding: '10px 12px', border: '1px solid ' + c.border, borderRadius: 10, background: c.layer, marginBottom: 6 } },
+            h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
+              h('span', { style: { fontSize: 10, color: c.brand, fontWeight: 700 } }, 'CH ' + (item.chapter ?? '?')),
+              h('span', { style: { fontSize: 13, fontWeight: 600 } }, item.title),
+              item.kind === '改选' ? h('span', { style: { fontSize: 9.5, color: c.warning } }, '改选') : null,
+              h('span', { style: { marginLeft: 'auto', ...faint, fontSize: 10 } }, item.option || '')),
+            h('div', { style: { color: c.sub, fontSize: 12, marginTop: 3, lineHeight: 1.55 } }, item.change),
+            item.status !== 'reverted' ? editor : null)
+        }
+
+        const proposalCard = function (item) {
+          return h('div', { key: item.id, style: { padding: '10px 12px', border: '1px solid ' + c.warning, borderRadius: 10, background: c.layer, marginBottom: 6 } },
+            h('div', { style: { fontSize: 13, fontWeight: 600 } }, item.title),
+            (item.options || []).map(function (option, index) {
+              return h('div', { key: index, style: { display: 'flex', gap: 8, alignItems: 'baseline', marginTop: 5 } },
+                h('button', { className: 'nk-btn', onClick: function () { decideFromBeat(item, 'adopt', option.label) } }, option.label),
+                h('span', { style: { color: c.faint, fontSize: 10.5 } }, (option.styleFit ? '文风 ' + option.styleFit + ' · ' : '') + (option.styleWhy || option.impact || '')))
+            }),
+            h('button', { className: 'nk-btn', onClick: function () { decideFromBeat(item, 'reject') } }, '拒绝'))
+        }
+
         const map = h('div', null,
           h('input', {
             value: beatQuery,
@@ -1350,18 +1431,15 @@ window.__ModuleLoader__.load({
             style: { width: '100%', boxSizing: 'border-box', border: '1px solid ' + c.border, borderRadius: 9, background: c.layer, color: c.text, padding: '8px 10px', fontSize: 12, fontFamily: 'inherit', marginBottom: 10 },
           }),
           decisions.styleHint ? h('div', { style: { ...faint, marginBottom: 8 } }, decisions.styleHint) : null,
+          beatMessage ? h('div', { style: { fontSize: 11.5, color: beatMessage.includes('失败') || beatMessage.includes('错误') ? c.error : c.sub, marginBottom: 8 } }, beatMessage) : null,
+          workOrder ? h('div', { style: { padding: '10px 12px', border: '1px solid ' + c.brand, borderRadius: 10, background: c.layer, marginBottom: 10 } },
+            h('div', { style: { ...faint, marginBottom: 4 } }, '重写工单'),
+            h('pre', { style: { margin: 0, whiteSpace: 'pre-wrap', fontSize: 11.5, lineHeight: 1.6, color: c.sub, fontFamily: 'inherit' } }, workOrder)) : null,
           h('div', { style: { ...faint, marginBottom: 5 } }, '已拍板'),
-          filteredCommitted.length === 0 ? h('div', { style: faint }, query ? '没有匹配的决策。' : '还没有已拍板决策。') : filteredCommitted.map((item) => h('div', { key: item.id, style: { padding: '10px 12px', border: '1px solid ' + c.border, borderRadius: 10, background: c.layer, marginBottom: 6 } },
-            h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
-              h('span', { style: { fontSize: 10, color: c.brand, fontWeight: 700 } }, 'CH ' + (item.chapter ?? '?')),
-              h('span', { style: { fontSize: 13, fontWeight: 600 } }, item.title),
-              h('span', { style: { marginLeft: 'auto', ...faint, fontSize: 10 } }, item.option || '')),
-            h('div', { style: { color: c.sub, fontSize: 12, marginTop: 3, lineHeight: 1.55 } }, item.change))),
+          filteredCommitted.length === 0 ? h('div', { style: faint }, query ? '没有匹配的决策。' : '还没有已拍板决策。') : filteredCommitted.map(decisionCard),
           h('div', { style: { ...faint, margin: '14px 0 5px' } }, '待拍板'),
-          filteredProposals.length === 0 ? h('div', { style: faint }, '没有待拍板提案。') : filteredProposals.map((item) => h('div', { key: item.id, style: { padding: '10px 12px', border: '1px solid ' + c.warning, borderRadius: 10, background: c.layer, marginBottom: 6 } },
-            h('div', { style: { fontSize: 13, fontWeight: 600 } }, item.title),
-            (item.options || []).map((option, index) => h('div', { key: index, style: { color: c.sub, fontSize: 12, marginTop: 3 } },
-              '· ' + option.label + (option.styleFit ? ' · 文风 ' + option.styleFit : '') + (option.styleWhy ? ' — ' + option.styleWhy : ''))))))
+          filteredProposals.length === 0 ? h('div', { style: faint }, '没有待拍板提案。') : filteredProposals.map(proposalCard))
+
         const timeline = h('div', null,
           committed.length === 0 && chapters.length === 0 ? h('div', { style: faint }, '还没有时间线事件。') : h('div', null,
             committed.slice(0, 30).map((item) => h('div', { key: 'd' + item.id, style: { display: 'flex', gap: 10, padding: '7px 0', borderBottom: '1px dashed ' + c.border } },
@@ -1372,6 +1450,7 @@ window.__ModuleLoader__.load({
               h('span', { style: { ...faint, width: 72, flexShrink: 0 } }, '第 ' + item.chapter + ' 章'),
               h('span', { style: { color: c.success, fontSize: 10, width: 42, flexShrink: 0 } }, '完稿'),
               h('span', { style: { fontSize: 12, color: c.sub } }, (item.state || '?') + (item.chars ? ' · ' + item.chars + ' 字' : ''))))))
+
         const health = h('div', null,
           h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 } },
             h('div', { style: { border: '1px solid ' + c.border, borderRadius: 10, padding: 10 } }, h('div', { style: { ...faint, fontSize: 10 } }, '待拍板'), h('div', { style: { fontSize: 20, fontWeight: 700, color: proposals.length ? c.warning : c.text } }, String(proposals.length))),
@@ -1382,6 +1461,7 @@ window.__ModuleLoader__.load({
           h('div', { style: { ...faint, margin: '12px 0 5px' } }, '未回收线索'),
           (memory.threads || []).length === 0 ? h('div', { style: faint }, '没有未回收线索。') : (memory.threads || []).slice(0, 12).map((thread) => h('div', { key: thread.id, style: { ...row, borderBottom: '1px dashed ' + c.border } },
             h('span', { style: small }, thread.text), h('span', { style: { ...faint, fontSize: 10 } }, '第 ' + thread.chapter + ' 章'))))
+
         return h('div', { style: { padding: '18px 20px 28px', overflowY: 'auto' } },
           h('div', { style: { maxWidth: 820 } },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },

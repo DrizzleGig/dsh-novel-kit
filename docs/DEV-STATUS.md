@@ -37,6 +37,7 @@
 - **kit-only 建书**：`book.create` 作者命令 + `/novel` 面板新建作品；kit 自己创建 `.dsh-novel-beat` / `.dsh-novel-fade` 与项目设置，不依赖旧五件。
 - **工作台 v3**：书桌/正文/故事/记忆/风格/同人/资料七个入口；故事含地图/时间线/体检，记忆含卡片/线索/人物，风格含档案/旧书库，同人含原著事实/人物/规则/称呼，书桌含章节流程/runbook；资料含依据与设置。
 - **右栏直达工作台**：右上角「工作台」按钮调用 `layout.openRightbar(false,true)` 并嵌入七域工作台；embedded 时「返回任务卡」。
+- **决策操作**：故事页可采纳/拒绝提案；已拍板决策可改选，追加「改选」记录并生成重写工单，旧决策保留；`decision.revise` 走作者命令。
 - **五插件审计**：新增 [FIVE-PLUGIN-PARITY.md](FIVE-PLUGIN-PARITY.md)，逐项对照五件 UI 与能力，列出 kit 缺口。
 
 ### 第二刀：作者命令、完整草稿、收尾事务
@@ -95,7 +96,7 @@
 
 ```powershell
 cd D:\Novel-gate\dsh-novel-kit
-node --test                 # 164/164
+node --test                 # 165/165
 npm run acceptance:load     # 8/8
 npm run acceptance          # 19/19
 npm run acceptance:real     # 11/11
@@ -144,6 +145,7 @@ npm run check               # 通过
 ## 6. 下一刀建议
 
 先做「canon 逐条接受/证据回查 + 会话完成结果纳入事务 + 统一收件箱（含页边批注）」三件；它们决定同人能不能顺畅开写、崩溃窗口是否真正闭合、以及任务卡是否从摘要变成可操作。写盘故障注入与真实 DSH UI 验收并行。每刀完成后更新本页与 CHANGELOG，并跑 `node --test` + 两个 acceptance。
+
 
 
 

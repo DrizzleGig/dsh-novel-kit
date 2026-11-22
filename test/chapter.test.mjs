@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { startChapter, writeChapter, readDraft, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal, chapterHistory } from '../lib/engine/chapter.js'
+import { startChapter, writeChapter, readDraft, finishChapter, queryChapter, resumeChapter, planChapter, decideProposal, reviseDecision, chapterHistory } from '../lib/engine/chapter.js'
 import { writeProjectSettings } from '../lib/engine/settings.js'
 import { loadSession, saveSession } from '../lib/engine/session-store.js'
 import { worldContractFile } from '../lib/engine/canon.js'
@@ -691,6 +691,26 @@ test('decision 重试：beat 已落账但会话保存失败时按提案 id 找�
   assert.equal(again.recovered, true)
   const beat = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
   assert.equal(beat.decisions.filter((item) => item.proposalId === 'p-retry').length, 1)
+})
+
+test('reviseDecision：追加改选与重写工单，旧决策保留，重复调用幂等', async () => {
+  const root = workspace()
+  const planned = await planChapter({
+    root, book: '书', chapter: 35,
+    proposals: [{ id: 'p-rev', title: '走哪条路', options: [{ label: '官道', impact: '快' }] }],
+  })
+  await decideProposal({ root, sessionId: planned.session.id, proposalId: 'p-rev', action: 'adopt', option: '官道' })
+  const beatBefore = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
+  const old = beatBefore.decisions.find((item) => item.proposalId === 'p-rev')
+  const revised = await reviseDecision({ root, book: '书', decisionId: old.id, newOption: '山路', note: '避开追兵' })
+  assert.equal(revised.ok, true)
+  assert.match(revised.workOrder, /山路/)
+  const beatAfter = JSON.parse(readFileSync(path.join(root, '.dsh-novel-beat', '书', 'book.json'), 'utf8'))
+  assert.equal(beatAfter.decisions.length, beatBefore.decisions.length + 1)
+  assert.equal(beatAfter.decisions[beatAfter.decisions.length - 1].kind, '改选')
+  assert.equal(beatAfter.decisions[beatAfter.decisions.length - 1].supersedes, old.id)
+  const again = await reviseDecision({ root, book: '书', decisionId: old.id, newOption: '山路' })
+  assert.equal(again.idempotent, true)
 })
 
 test('finish 与 write 共用会话锁：不会把已保存的新稿回退成旧稿', async () => {
