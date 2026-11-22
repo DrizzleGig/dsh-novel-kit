@@ -22,7 +22,10 @@
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
-    "docs"
+    "docs/*.md",
+    "docs/mockups/live/wb-desk-dark.png",
+    "docs/mockups/live/wb-chapter-light.png",
+    "docs/mockups/live/wb-canon-demo-light.png"
   ],
   "scripts": {
     "test": "node --test",
