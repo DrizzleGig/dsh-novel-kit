@@ -1,7 +1,7 @@
-// dsh-novel-kit 的 Web 半：右栏「小说」面板 + 会话头入口。
+// dsh-novel-kit 的 Web 半：唯一入口「小说工作台」（conversation.view）。
 //
-// 只做展示与导航：数据来自 novelKitPanel remote（Host 只读快照），不读文件、
-// 不执行任何命令（commands.execute 会往会话日志写行，0.2.3 的教训）。
+// 0.4.0 起一个插件只有一个界面：左竖栏七页 + 主区。右栏面板与会话头按钮都已移除，
+// 数据来自 novelKitPanel remote（Host 只读快照），不读文件、不执行命令。
 window.__ModuleLoader__.load({
   id: 'dsh-novel-kit',
   factory(require) {
@@ -92,62 +92,13 @@ window.__ModuleLoader__.load({
     const small = { color: c.sub, fontSize: 12, lineHeight: 1.5 }
 
     // 新右栏使用一套独立 class，避免继续在旧 inline 样式上打补丁。
-    const UI_CSS = `
-      .nk-panel { height: 100%; overflow-y: auto; padding: 18px 16px 24px; display: flex; flex-direction: column; gap: 14px; color: var(--dsw-alias-label-primary); background: color-mix(in srgb, var(--dsw-alias-bg-base) 93%, #eedfc9 7%); font-family: var(--dsw-font-family, "PingFang SC", "Microsoft YaHei", sans-serif); }
-      .nk-head { display: flex; align-items: center; gap: 10px; }
-      .nk-panel .grow { flex: 1; min-width: 0; }
-      .nk-seal { width: 38px; height: 38px; flex: 0 0 auto; border: 1.5px solid #b5432d; border-radius: 7px; color: #b5432d; display: grid; place-items: center; font-family: "Songti SC", "Noto Serif SC", serif; font-size: 21px; font-weight: 700; background: color-mix(in srgb, #b5432d 6%, transparent); }
-      .nk-title { font-family: "Songti SC", "Noto Serif SC", serif; font-size: 18px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; }
-      .nk-book { color: var(--dsw-alias-label-tertiary); font-size: 11.5px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .nk-actions { margin-left: auto; display: flex; gap: 5px; }
-      .nk-btn { appearance: none; border: 1px solid var(--dsw-alias-border-l1); background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-secondary); border-radius: 8px; padding: 5px 9px; font-size: 11.5px; line-height: 1.2; cursor: pointer; font-family: inherit; }
-      .nk-btn:hover { border-color: var(--dsw-alias-label-tertiary); }
-      .nk-btn.primary { background: #b5432d; border-color: #b5432d; color: #fff8ef; font-weight: 600; }
-      .nk-btn.primary:hover { background: #96372a; border-color: #96372a; }
-      .nk-select { width: 100%; height: 34px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); padding: 0 10px; font-size: 12px; font-family: inherit; }
-      .nk-next { position: relative; overflow: hidden; border-radius: 15px; padding: 18px 16px 15px; background: var(--dsw-alias-label-primary); color: var(--dsw-alias-bg-base); box-shadow: 0 6px 22px rgba(0,0,0,.12); }
-      .nk-next::after { content: "章"; position: absolute; right: -6px; bottom: -28px; font-family: "Songti SC", "Noto Serif SC", serif; font-size: 118px; line-height: 1; color: color-mix(in srgb, var(--dsw-alias-bg-base) 8%, transparent); pointer-events: none; }
-      .nk-eyebrow { position: relative; z-index: 1; color: color-mix(in srgb, var(--dsw-alias-bg-base) 58%, transparent); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; }
-      .nk-next-title { position: relative; z-index: 1; margin: 6px 0 4px; font-family: "Songti SC", "Noto Serif SC", serif; font-size: 24px; line-height: 1.35; font-weight: 700; letter-spacing: -.02em; }
-      .nk-next-copy { position: relative; z-index: 1; color: color-mix(in srgb, var(--dsw-alias-bg-base) 68%, transparent); font-size: 11.5px; line-height: 1.7; }
-      .nk-next-meta { position: relative; z-index: 1; display: flex; gap: 6px; margin-top: 10px; }
-      .nk-chip { display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 999px; color: var(--dsw-alias-label-secondary); background: transparent; font-size: 10px; white-space: nowrap; }
-      .nk-next .nk-chip { border-color: color-mix(in srgb, var(--dsw-alias-bg-base) 22%, transparent); color: color-mix(in srgb, var(--dsw-alias-bg-base) 76%, transparent); }
-      .nk-next-btn { position: relative; z-index: 1; width: 100%; height: 37px; margin-top: 13px; border: 0; border-radius: 8px; background: #b5432d; color: #fff8ef; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit; }
-      .nk-next-btn:hover { background: #96372a; }
-      .nk-section { display: flex; flex-direction: column; gap: 5px; }
-      .nk-section-head { display: flex; justify-content: space-between; align-items: baseline; }
-      .nk-section-title { font-family: "Songti SC", "Noto Serif SC", serif; font-size: 13.5px; font-weight: 700; }
-      .nk-meta { color: var(--dsw-alias-label-tertiary); font-size: 10px; }
-      .nk-inbox { display: flex; flex-direction: column; }
-      .nk-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--dsw-alias-border-l1); font-size: 11.5px; line-height: 1.55; }
-      .nk-item:last-child { border-bottom: 0; }
-      .nk-kind { width: 36px; flex: 0 0 auto; color: #b5432d; font-weight: 700; font-size: 9.5px; padding-top: 1px; }
-      .nk-kind.amber { color: #a87322; }
-      .nk-kind.jade { color: #2f6a5a; }
-      .nk-item-main { color: var(--dsw-alias-label-secondary); }
-      .nk-item-main b { color: var(--dsw-alias-label-primary); font-weight: 600; }
-      .nk-ebar { display: flex; gap: 2px; height: 7px; border-radius: 7px; overflow: hidden; background: var(--dsw-alias-border-l1); }
-      .nk-ebar i { display: block; height: 100%; }
-      .nk-elegend { display: flex; gap: 8px; flex-wrap: wrap; color: var(--dsw-alias-label-tertiary); font-size: 9.5px; }
-      .nk-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
-      .nk-recent { display: flex; flex-direction: column; }
-      .nk-recent-row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--dsw-alias-border-l1); font-size: 11px; }
-      .nk-recent-row:last-child { border-bottom: 0; }
-      .nk-recent-no { width: 36px; flex: 0 0 auto; color: var(--dsw-alias-label-tertiary); font-family: "Songti SC", "Noto Serif SC", serif; }
-      .nk-recent-title { flex: 1; min-width: 0; color: var(--dsw-alias-label-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .nk-recent-state { color: var(--dsw-alias-label-tertiary); font-size: 9.5px; }
-      .nk-foot { margin-top: auto; display: flex; gap: 7px; padding-top: 10px; border-top: 1px solid var(--dsw-alias-border-l1); }
-      .nk-foot .nk-btn { flex: 1; }
-      .nk-empty { border: 1px solid var(--dsw-alias-border-l1); border-radius: 11px; background: var(--dsw-alias-bg-layer-1); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-      .nk-empty input { border: 1px solid var(--dsw-alias-border-l1); border-radius: 8px; background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); padding: 7px 9px; font-size: 12px; font-family: inherit; }
-    `
+
 
 
     // ── v0.3 视觉层 ────────────────────────────────────────────────────────
-    // 旧 UI_CSS 是兼容底子（类名还在用），这一层把设计 token、字阶、间距、卡片、
-    // 工作台布局整套重写，覆盖在上面。所有颜色从宿主 alias token 派生，
-    // 用 color-mix 让同一份样式在暗色/亮色主题下都成立。
+    // 整套 token、字阶、间距、卡片与工作台布局都在这里；右栏时代那份兼容 CSS
+    // 已在 0.4.0 删除，只把仍被使用的控件基础规则并了进来。
+    // 所有颜色从宿主 alias token 用 color-mix 派生，同一份样式在暗色/亮色下都成立。
     const NK_SKIN = `
       .nk-panel, .nk-wb {
         --nk-line: color-mix(in srgb, var(--dsw-alias-label-primary) 14%, transparent);
@@ -178,12 +129,16 @@ window.__ModuleLoader__.load({
       .nk-title { font-size: 16.5px; letter-spacing: .01em; }
       .nk-book { font-size: 11.5px; color: var(--nk-ink-3); margin-top: 2px; }
       .nk-actions { gap: 6px; }
-      .nk-btn { height: 26px; padding: 0 10px; font-size: 11.5px; border-radius: var(--nk-r-sm);
+      .nk-btn, .nk-select, .nk-input, .nk-tab, .nk-rowbtn, .nk-rail-item { font-family: inherit; }
+      .nk-btn { appearance: none; border: 1px solid var(--nk-line); cursor: pointer; line-height: 1.2;
+        height: 26px; padding: 0 10px; font-size: 11.5px; border-radius: var(--nk-r-sm);
         border-color: var(--nk-line); background: transparent; color: var(--nk-ink-2); transition: background .15s, border-color .15s, color .15s; }
       .nk-btn:hover { background: var(--nk-surface); border-color: var(--nk-line); color: var(--nk-ink); }
       .nk-btn.primary { background: var(--nk-accent); border-color: var(--nk-accent); color: #fff8ef; }
       .nk-btn.primary:hover { filter: brightness(1.06); }
 
+      .nk-select { width: 100%; height: 34px; border: 1px solid var(--nk-line); border-radius: var(--nk-r-sm);
+        background: var(--nk-surface); color: var(--nk-ink); padding: 0 10px; font-size: 12px; cursor: pointer; }
       /* 作品切换：做成一行轻量胶囊，不再占一整块 */
       .nk-panel > .nk-select { width: auto; margin: 10px 16px 0; height: 30px; font-size: 12px;
         background: var(--nk-surface); border-color: var(--nk-line-soft); border-radius: var(--nk-r-sm); }
@@ -469,6 +424,7 @@ window.__ModuleLoader__.load({
       const [importBusy, setImportBusy] = React.useState(false)
       const [importMessage, setImportMessage] = React.useState('')
       const [workSettings, setWorkSettings] = React.useState(null)
+      const [sourcesData, setSourcesData] = React.useState(null)
       const [newBookName, setNewBookName] = React.useState('')
       const [workBusy, setWorkBusy] = React.useState(false)
       const [workMessage, setWorkMessage] = React.useState('')
@@ -583,6 +539,11 @@ window.__ModuleLoader__.load({
         Promise.resolve(remote.getOperations(sessionId, { limit: 20 })).then(unwrap).then(function (ops) {
           if (!cancelled) setOperationsData(ops)
         }).catch(function () { if (!cancelled) setOperationsData(null) })
+        if (typeof remote.listSources === 'function') {
+          Promise.resolve(remote.listSources(sessionId, {})).then(unwrap).then(function (sources) {
+            if (!cancelled) setSourcesData(sources)
+          }).catch(function () { if (!cancelled) setSourcesData({ ok: false, sources: [] }) })
+        }
         return function () { cancelled = true }
       }, [section, remote, sessionId])
 
@@ -888,24 +849,10 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, data, beatOption, beatNote, reloadBeat])
 
-      const sectionLabel = { desk: '书桌', chapter: '正文', beat: '故事', fade: '记忆', voice: '风格', fanfic: '同人', data: '资料' }
-      // 页签上的小红点：有事要处理时才亮，不堆计数文字。
-      const sectionDot = {
-        beat: pendingIds.length + conflictTotal > 0,
-        fanfic: !!(data && data.canon && data.settings && data.settings.mode === 'fanfic' && !data.canon.ready),
-        data: !!(data && data.operations && Array.isArray(data.operations.items) && data.operations.items.some((item) => item.status === 'failed')),
-      }
-      const sectionButton = (key) => h('button', {
-        key,
-        type: 'button',
-        className: 'nk-tab' + (section === key ? ' active' : ''),
-        onClick: function () { setSection(key) },
-      }, sectionLabel[key], sectionDot[key] ? h('span', { className: 'nk-tab-dot' }) : null)
-
       const browseImport = React.useCallback(async function (dir) {
         const target = String(dir || importDir || (data && data.root) || '').trim()
         if (!remote || typeof remote.listSourceFiles !== 'function') { setImportMessage('宿主没有导入接口，先重载 DSH。'); return }
-        if (!target) { setImportMessage('先填一个目录，例如 D:\\我的小说'); return }
+        if (!target) { setImportMessage('先填一个目录，例如 D:\我的小说'); return }
         try {
           const result = await Promise.resolve(remote.listSourceFiles(sessionId, { dir: target })).then(unwrap)
           setImportDir(target)
@@ -939,41 +886,6 @@ window.__ModuleLoader__.load({
           setImportBusy(false)
         }
       }, [remote, sessionId, data, load])
-
-      /** 导入面板：风格工作室与同人共用，只有目标命令不同。 */
-      function importPanel(kind) {
-        const isStyle = kind === 'style'
-        const noBook = !(data && data.book)
-        return h('section', { className: 'nk-card' },
-          h('div', { className: 'nk-card-head' },
-            h('div', { className: 'nk-card-title' }, isStyle ? '导入作品 · 学文笔' : '导入原著 · 建 canon'),
-            h('span', { className: 'nk-meta' }, 'UTF-8 的 .txt / .md，≤ 64 MB')),
-          h('div', { className: 'nk-import-row' },
-            h('input', {
-              className: 'nk-input',
-              value: importDir,
-              placeholder: '放书的目录，例如 D:\\我的小说',
-              onChange: function (event) { setImportDir(event.target.value) },
-              onKeyDown: function (event) { if (event.key === 'Enter') browseImport(event.target.value) },
-            }),
-            h('button', { type: 'button', className: 'nk-btn', disabled: importBusy, onClick: function () { browseImport() } }, '浏览')),
-          importMessage ? h('div', { className: 'nk-tiny', style: { marginTop: 7 } }, importMessage) : null,
-          noBook ? h('div', { className: 'nk-tiny', style: { marginTop: 7, color: c.warning } }, '先建一本自己的作品，导入会绑定到它。') : null,
-          importFiles && importFiles.length
-            ? h('div', { style: { marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 } },
-                importFiles.slice(0, 12).map(function (file) {
-                  return h('div', { key: file.path, className: 'nk-file-row' },
-                    h('span', { className: 'nk-file-name' }, file.name),
-                    h('span', { className: 'nk-file-meta' }, Math.max(1, Math.round((file.bytes || 0) / 1024)) + ' KB'),
-                    h('button', {
-                      type: 'button', className: 'nk-btn primary', disabled: importBusy || noBook,
-                      onClick: function () { runImport(kind, file) },
-                    }, importBusy ? '…' : (isStyle ? '学这本' : '导入')))
-                }))
-            : importFiles
-              ? h('div', { className: 'nk-tiny', style: { marginTop: 9 } }, '这个目录里没有 .txt / .md。')
-              : null)
-      }
 
       const loadWorkSettings = React.useCallback(async function () {
         if (!remote || typeof remote.getSettings !== 'function') return
@@ -1041,7 +953,42 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, newBookName, load, loadWorkSettings])
 
-      /** 工作区设置：右栏删掉后，总开关/模式/新建作品必须在这里。 */
+      /** 导入面板：风格工作室与同人共用，只有目标命令不同。 */
+      function importPanel(kind) {
+        const isStyle = kind === 'style'
+        const noBook = !(data && data.book)
+        return h('section', { className: 'nk-card' },
+          h('div', { className: 'nk-card-head' },
+            h('div', { className: 'nk-card-title' }, isStyle ? '导入作品 · 学文笔' : '导入原著 · 建 canon'),
+            h('span', { className: 'nk-meta' }, 'UTF-8 的 .txt / .md，≤ 64 MB')),
+          h('div', { className: 'nk-import-row' },
+            h('input', {
+              className: 'nk-input',
+              value: importDir,
+              placeholder: '放书的目录，例如 D:\\我的小说',
+              onChange: function (event) { setImportDir(event.target.value) },
+              onKeyDown: function (event) { if (event.key === 'Enter') browseImport(event.target.value) },
+            }),
+            h('button', { type: 'button', className: 'nk-btn', disabled: importBusy, onClick: function () { browseImport() } }, '浏览')),
+          importMessage ? h('div', { className: 'nk-tiny', style: { marginTop: 7 } }, importMessage) : null,
+          noBook ? h('div', { className: 'nk-tiny', style: { marginTop: 7, color: c.warning } }, '先建一本自己的作品，导入会绑定到它。') : null,
+          importFiles && importFiles.length
+            ? h('div', { style: { marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 } },
+                importFiles.slice(0, 12).map(function (file) {
+                  return h('div', { key: file.path, className: 'nk-file-row' },
+                    h('span', { className: 'nk-file-name' }, file.name),
+                    h('span', { className: 'nk-file-meta' }, Math.max(1, Math.round((file.bytes || 0) / 1024)) + ' KB'),
+                    h('button', {
+                      type: 'button', className: 'nk-btn primary', disabled: importBusy || noBook,
+                      onClick: function () { runImport(kind, file) },
+                    }, importBusy ? '…' : (isStyle ? '学这本' : '导入')))
+                }))
+            : importFiles
+              ? h('div', { className: 'nk-tiny', style: { marginTop: 9 } }, '这个目录里没有 .txt / .md。')
+              : null)
+      }
+
+      /** 工作区设置：右栏删掉后，总开关 / 模式 / 新建作品必须在这里。 */
       function workSettingsCard() {
         const master = !!(workSettings && workSettings.master)
         const projectMode = (workSettings && workSettings.project && workSettings.project.mode) || 'original'
@@ -1076,7 +1023,8 @@ window.__ModuleLoader__.load({
       }
 
       /** 每个页面自己的标题条：标题 + 一句说明 + 页内动作。 */
-      function pageHead(title, sub, actions) {        return h('div', { className: 'nk-page-head' },
+      function pageHead(title, sub, actions) {
+        return h('div', { className: 'nk-page-head' },
           h('div', null,
             h('div', { className: 'nk-h2' }, title),
             sub ? h('div', { className: 'nk-page-sub' }, sub) : null),
@@ -1370,7 +1318,18 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'nk-body' }, (view && view.intent) || '还没有写本章意图；可以在书桌的「本章场景」里填。')),
               h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '文风倾向')),
-                h('div', { className: 'nk-body' }, (view && view.styleHint) || '还没有文风提示；导入风格档案后这里会给出倾向。')))))
+                h('div', { className: 'nk-body' }, (view && view.styleHint) || '还没有文风提示；导入风格档案后这里会给出倾向。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '未回收线索'),
+                  h('span', { className: 'nk-meta' }, ((view && view.obligations) || []).length + ' 条')),
+                ((view && view.obligations) || []).length
+                  ? ((view && view.obligations) || []).slice(0, 10).map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter || 0).padStart(2, '0') + (item.dueChapter ? ' → 第 ' + item.dueChapter + ' 章' : '')),
+                        h('span', { className: 'nk-kv-val' }, item.text || ''))
+                    })
+                  : inlineEmpty('没有挂着的线索。')))))
       }
 
       // ── 记忆页：卡库 / 检索 / 人物 / 线索 / 卡片详情 ───────────────────────
@@ -1382,6 +1341,10 @@ window.__ModuleLoader__.load({
         const opened = cards.filter(function (item) { return item.id === memoryOpen })[0] || null
         const pinned = cards.filter(function (item) { return item.pinned }).length
         const hits = Array.isArray(memoryHits) ? memoryHits : null
+        const chapterMap = new Map()
+        for (const card of cards) chapterMap.set(card.chapter, (chapterMap.get(card.chapter) || 0) + 1)
+        const chapterCounts = Array.from(chapterMap.entries()).sort(function (a, b) { return a[0] - b[0] }).map(function (entry) { return { chapter: entry[0], count: entry[1] } })
+        const maxChapterCount = chapterCounts.reduce(function (max, item) { return Math.max(max, item.count) }, 1)
 
         const cardRow = function (item) {
           const active = item.id === memoryOpen
@@ -1460,6 +1423,18 @@ window.__ModuleLoader__.load({
                   : inlineEmpty('这本书还没有记忆卡。每章收尾时会沉淀；先在「正文」页把第一章写完并收尾。'))),
             h('div', { className: 'nk-wb-col nk-wb-aside' },
               detail,
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '按章分布'),
+                  h('span', { className: 'nk-meta' }, '卡数')),
+                chapterCounts.length
+                  ? chapterCounts.map(function (item) {
+                      return h('div', { key: item.chapter, className: 'nk-band' },
+                        h('span', null, 'CH.' + String(item.chapter).padStart(2, '0')),
+                        h('div', { className: 'nk-band-track' }, h('div', { className: 'nk-band-fill', style: { left: 0, width: Math.max(4, Math.round(item.count / maxChapterCount * 100)) + '%' } })),
+                        h('span', { className: 'nk-band-val' }, String(item.count)))
+                    })
+                  : inlineEmpty('还没有卡片分布。')),
               h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '人物')),
                 entities.length
@@ -1603,6 +1578,7 @@ window.__ModuleLoader__.load({
         const worldRules = Array.isArray(canon.worldRules) ? canon.worldRules : []
         const forbidden = Array.isArray(canon.forbidden) ? canon.forbidden : []
         const findings = session && session.verification && Array.isArray(session.verification.findings) ? session.verification.findings : []
+        const secrets = Array.isArray(canon.secrets) ? canon.secrets : []
 
         return h('div', { className: 'nk-wb-body' },
           pageHead('同人', '原著事实与禁忌决定这一本能不能写；有冲突先回原文核对。',
@@ -1651,6 +1627,17 @@ window.__ModuleLoader__.load({
                     })
                   : inlineEmpty('还没有人物。')),
               h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '秘密'),
+                  h('span', { className: 'nk-meta' }, secrets.length + ' 条')),
+                secrets.length
+                  ? secrets.slice(0, 8).map(function (item, index) {
+                      return h('div', { key: index, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, item.publicAtChapter ? '第 ' + item.publicAtChapter + ' 章公开' : '未定公开'),
+                        h('span', { className: 'nk-kv-val' }, item.what || ''))
+                    })
+                  : inlineEmpty('还没有秘密条目。')),
+              h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '本章检查')),
                 findings.length
                   ? findings.slice(0, 8).map(function (item, index) {
@@ -1661,70 +1648,99 @@ window.__ModuleLoader__.load({
                   : inlineEmpty('本章还没有检查结果；写完正文再收尾会跑一遍。')))))
       }
 
-      function flowView() {
-        const steps = [
-          { id: 'preflight', label: '计划 / 提案', done: !!(session && session.plan) },
-          { id: 'write', label: '正文草稿', done: !!(session && session.draft) },
-          { id: 'verify', label: '检查', done: !!(session && session.verification) },
-          { id: 'close', label: '收尾事务', done: !!(session && session.state === 'completed') },
-        ]
-        return h('div', { className: 'nk-wb-body' },
-          pageHead('编排', '计划 → 正文 → 检查 → 收尾的 runbook 与运行记录。'),
-          h('div', { style: { maxWidth: 780 } },
-            h('div', { style: { fontSize: 20, fontWeight: 700 } }, '编排 / 运行记录'),
-            h('div', { style: { ...faint, marginTop: 2 } }, 'kit 的 runbook：计划 → 正文 → 检查 → 事务收尾；失败时从这里恢复。'),
-            h('div', { style: { display: 'flex', gap: 6, marginTop: 14 } },
-              steps.map((step, index) => h('div', { key: step.id, style: { flex: 1, padding: '10px 8px', borderRadius: 10, border: '1px solid ' + (step.done ? c.success : c.border), background: c.layer, textAlign: 'center' } },
-                h('div', { style: { fontSize: 10, color: c.faint } }, 'STEP ' + (index + 1)),
-                h('div', { style: { fontSize: 11.5, fontWeight: 600, marginTop: 2 } }, step.label),
-                h('div', { style: { fontSize: 10, color: step.done ? c.success : c.faint, marginTop: 2 } }, step.done ? '完成' : '待做')))),
-            h('div', { style: { ...faint, margin: '16px 0 6px' } }, '会话'),
-            h('div', { style: { ...row, borderBottom: '1px dashed ' + c.border } }, h('span', { style: small }, '章节'), h('span', null, session ? '第 ' + session.chapter + ' 章' : '—')),
-            h('div', { style: { ...row, borderBottom: '1px dashed ' + c.border } }, h('span', { style: small }, '状态'), h('span', null, session ? session.state : '—')),
-            h('div', { style: { ...row, borderBottom: '1px dashed ' + c.border } }, h('span', { style: small }, '事务'), h('span', { style: { fontSize: 11 } }, (session && (session.transactionId || session.receiptIds?.join(', '))) || '—')),
-            h('div', { style: { ...row, borderBottom: '1px dashed ' + c.border } }, h('span', { style: small }, 'blocker / warning'), h('span', null, session && session.verification ? session.verification.blockers + ' / ' + session.verification.warnings : '—')),
-            h('div', { style: { ...faint, margin: '14px 0 6px' } }, '能力矩阵'),
-            [['beat', '剧情/拍板'], ['fade', '长篇记忆'], ['voice', '文风'], ['fanfic', '同人']].map(([key, label]) => h('div', { key, style: { ...row, borderBottom: '1px dashed ' + c.border } },
-              h('span', { style: small }, label), h('span', { style: { fontSize: 10, color: c.faint } }, (data && data.ledgers && data.ledgers[key]) ? '有数据' : '未接入')))))
-      }
-
       function dataView() {
-        if (!materialData) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '加载资料…'))
+        if (!materialData) {
+          return h('div', { className: 'nk-wb-body' },
+            pageHead('资料与设置', '来源库、本章依据、操作日志，以及总开关与模式。'),
+            h('div', { className: 'nk-skeleton', style: { height: 160 } }))
+        }
         const style = materialData.style || {}
         const canon = materialData.canon || {}
-        return h('div', { className: 'nk-wb-body' },
-          pageHead('资料与设置', '来源库、本章依据、操作日志，以及总开关与模式。'),
+        const sources = sourcesData && Array.isArray(sourcesData.sources) ? sourcesData.sources : []
+        const operations = operationsData && Array.isArray(operationsData.items) ? operationsData.items : []
+        const profiles = Array.isArray(style.kitProfiles) ? style.kitProfiles : []
+        const contexts = (previewData && Array.isArray(previewData.segments)) ? previewData.segments : ((data && data.contexts) || [])
+        const totalChars = contexts.reduce(function (sum, segment) { return sum + Math.max(0, segment.chars || 0) }, 0) || 1
+        const palette = ['#b5432d', '#3f5f8a', '#2f6a5a', '#a87322']
+
+        const block = function (title, meta, children) {
+          return h('section', { className: 'nk-card' },
+            h('div', { className: 'nk-card-head' },
+              h('div', { className: 'nk-card-title' }, title),
+              meta ? h('span', { className: 'nk-meta' }, meta) : null),
+            children)
+        }
+        const kv = function (key, value, color) {
+          return h('div', { className: 'nk-kv' },
+            h('span', { className: 'nk-kv-key' }, key),
+            h('span', { className: 'nk-kv-val', style: color ? { color } : undefined }, value))
+        }
+
+        const sourceRows = sources.length
+          ? sources.slice(0, 8).map(function (item) {
+              return kv(item.title || item.filename || String(item.sourceId).slice(0, 10),
+                (item.chapterCount || 0) + ' 章 · ' + fmtNum(item.chars || 0) + ' 字')
+            })
+          : [inlineEmpty('还没有导入过原文。风格与同人页的导入都会在这里留一份来源。')]
+
+        const bars = h('div', { className: 'nk-ebar', style: { marginBottom: 10 } }, contexts.map(function (segment, index) {
+          return h('i', {
+            key: 'bar-' + (segment.component || index),
+            style: { width: (Math.max(1, segment.chars || 1) / totalChars * 100) + '%', background: palette[index % palette.length], opacity: segment.available ? 1 : .25 },
+          })
+        }))
+        const contextRows = contexts.length
+          ? [bars].concat(contexts.map(function (segment) {
+              return kv(segment.component, segment.available
+                ? fmtNum(segment.chars || 0) + '/' + (segment.budgetChars ? fmtNum(segment.budgetChars) : '?') + ' · rev ' + (segment.revision ?? '-')
+                : '未接入')
+            }))
+          : [inlineEmpty('还没有装配依据。开章后这里显示四段字数与预算。')]
+
+        const operationRows = operations.length
+          ? operations.slice(0, 10).map(function (operation) {
+              const color = operation.status === 'failed' ? c.error : operation.status === 'completed' ? c.success : c.warning
+              return kv((operation.command || operation.operationId) + (operation.targetRef && operation.targetRef.book ? ' · ' + operation.targetRef.book : ''),
+                operation.status + (operation.attempts > 1 ? ' ×' + operation.attempts : ''), color)
+            })
+          : [inlineEmpty('还没有操作记录。作者命令（拍板 / 保存 / 导入 / 确认）都会留一条。')]
+
+        const profileRows = profiles.length
+          ? profiles.slice(0, 6).map(function (profile) {
+              return kv((profile.name || profile.id) + ' · ' + (profile.status === 'confirmed' ? '已确认' : '待确认'), (profile.rules ?? 0) + ' 条规则')
+            })
+          : [inlineEmpty('还没有文风档案；去「风格」页导入一本作品。')]
+
+        const canonRows = canon.available
+          ? [kv('原著', canon.title || canon.id || '—'),
+             kv('事实 / 人物 / 规则', String((canon.facts || []).length) + ' / ' + String((canon.characters || []).length) + ' / ' + String((canon.worldRules || []).length)),
+             kv('状态', canon.canonReady ? '已确认' : (canon.contractStatus || '待抽取'))]
+          : [inlineEmpty('还没有绑定原著；去「同人」页导入。')]
+
+        const left = [
           workSettingsCard(),
-          h('div', { style: { maxWidth: 760 } },
-            h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 } },
-              h('div', { style: faint }, '本章依据'),
-              h('button', { className: 'nk-btn', style: { marginLeft: 'auto' }, onClick: previewContextNow }, previewData ? '重新预览' : '预览依据'),
-              previewData && previewData.available ? h('span', { style: { ...faint, fontSize: 10 } }, previewData.chars + ' 字 · ' + previewData.mode) : null),
-            ((previewData && previewData.segments) || (data && data.contexts) || []).map((segment) => h('div', { key: segment.component, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '6px 0' } },
-              h('span', { style: small }, segment.component),
-              h('span', { style: { color: segment.available ? c.sub : c.faint, fontSize: 11.5 } },
-                segment.available ? `${segment.chars}/${segment.budgetChars ?? '?'} · rev ${segment.revision ?? '-'}` : '未接入'))),
-            h('div', { style: { ...faint, margin: '14px 0 4px' } }, '文风档案'),
-            (style.kitProfiles || []).length
-              ? (style.kitProfiles || []).map((profile) => h('div', { key: profile.id, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
-                  h('span', { style: small }, (profile.name || profile.id) + ' · ' + profile.status),
-                  h('span', { style: { color: c.faint, fontSize: 11 } }, (profile.rules || []).length + ' 条规则')))
-              : h('div', { style: faint }, '还没有导入文风档案。'),
-            h('div', { style: { ...faint, margin: '14px 0 4px' } }, '同人 canon'),
-            canon.available
-              ? h('div', { style: { ...faint } }, (canon.title || canon.id || '?') + ' · ' + (canon.canonReady ? '已确认' : (canon.contractStatus || '待抽取')))
-              : h('div', { style: faint }, '没有绑定同人 canon。'),
-            h('div', { style: { ...faint, margin: '14px 0 4px' } }, '最近操作'),
-            (function () {
-              const ops = operationsData || (data && data.operations) || { items: [] }
-              const items = Array.isArray(ops.items) ? ops.items : []
-              return items.length === 0
-                ? h('div', { style: faint }, '还没有操作记录。')
-                : items.slice(0, 10).map((operation) => h('div', { key: operation.operationId, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '4px 0' } },
-                    h('span', { style: small }, (operation.command || operation.operationId) + ' · ' + (operation.targetRef?.book || '')),
-                    h('span', { style: { fontSize: 10.5, color: operation.status === 'failed' ? c.error : operation.status === 'completed' ? c.success : c.warning } }, operation.status + (operation.attempts > 1 ? ' ×' + operation.attempts : ''))))
-            })(),
-          ))
+          block('来源库', sources.length + ' 份', sourceRows),
+          block('本章依据', previewData && previewData.available ? fmtNum(previewData.chars || 0) + ' 字 · ' + previewData.mode : '已装配快照', contextRows),
+          block('操作记录', operations.length + ' 条', operationRows),
+        ]
+        const right = [
+          block('文风档案', profiles.length + ' 份', profileRows),
+          block('同人 canon', canon.available ? (canon.canonReady ? '已确认' : (canon.contractStatus || '待抽取')) : '未绑定', canonRows),
+        ]
+
+        return h('div', { className: 'nk-wb-body' },
+          pageHead('资料与设置', '来源库、本章依据、操作日志，以及总开关与模式。',
+            h('button', { type: 'button', className: 'nk-btn', onClick: previewContextNow }, previewData ? '重新预览依据' : '预览依据')),
+          h('div', { className: 'nk-wb-grid' },
+            h('div', { className: 'nk-wb-col' }, left),
+            h('div', { className: 'nk-wb-col nk-wb-aside' }, right)))
+      }
+
+      // 竖栏红点：有事要处理时才亮，不堆计数文字。
+      const sectionDot = {
+        beat: pendingIds.length + conflictTotal > 0,
+        fanfic: !!(data && data.canon && data.settings && data.settings.mode === 'fanfic' && !data.canon.ready),
+        data: !!(data && data.operations && Array.isArray(data.operations.items) && data.operations.items.some((item) => item.status === 'failed')),
       }
 
       const RAIL = [
@@ -1917,7 +1933,7 @@ window.__ModuleLoader__.load({
           if (typeof document !== 'undefined' && !document.getElementById('dsh-novel-kit-ui-css')) {
             const tag = document.createElement('style')
             tag.id = 'dsh-novel-kit-ui-css'
-            tag.textContent = UI_CSS + '\n' + NK_SKIN
+            tag.textContent = NK_SKIN
             document.head.appendChild(tag)
             ctx.effect(() => () => { try { tag.remove() } catch { /* ignore */ } })
           }

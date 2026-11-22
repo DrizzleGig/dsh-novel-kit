@@ -200,9 +200,9 @@ function extractCss(source) {
     if (end < 0) throw new Error(name + ' 没有闭合')
     return source.slice(from, end)
   }
-  const base = pull('UI_CSS')
-  if (!base) throw new Error('client.js 里找不到 UI_CSS')
-  return base + '\n' + pull('NK_SKIN')
+  const css = pull('NK_SKIN')
+  if (!css) throw new Error('client.js 里找不到 NK_SKIN')
+  return css
 }
 
 // ── 宿主主题替身（DSH 的 alias token 由宿主注入，这里给一套等价暖纸/墨夜）──
