@@ -1,4 +1,4 @@
-# dsh-novel-kit · 小说整合包
+﻿# dsh-novel-kit · 小说整合包
 
 > **一个包，写完一部长篇。** 章节引擎、四段写作依据、八个 `novel_*` 工具、右栏任务卡与四入口小说工作台，都在一个 DSH 插件里。
 >
@@ -83,7 +83,7 @@ novel_chapter_finish({ session_id, segments, memory })  # 检查 → 事务落�
 ### 面板与工作台
 
 - **右栏 v2**：品牌头 + 当前作品 + 大号「下一笔」卡 + 本章依据/收件箱/最近章节；总开关、模式、导入、诊断和六页签都收进「设置与详情」，首屏不再被表单占满；
-- **小说工作台**：书桌、章节、故事、资料四个入口；作品头、状态胶囊、书桌主行动；
+- **小说工作台 v3**：书桌、正文、故事、记忆、风格、同人、资料七个入口；故事含地图/时间线/体检，记忆含卡片/线索/人物，风格含档案/旧书库，同人含原著事实/人物/规则/称呼，书桌含章节流程/runbook；资料含依据与设置；
   - 书桌：下一笔、收件箱、最近章节；
   - 章节：完整正文编辑 + Ctrl S 保存 + 四段依据 + 检查；
   - 故事：拍板记录、待拍板提案、未回收线索、章节历史；
@@ -100,7 +100,8 @@ novel_chapter_finish({ session_id, segments, memory })  # 检查 → 事务落�
 /novel on
 ```
 
-4. 打开「小说工作台」，用「学文笔 / 写同人」导入样本。
+4. 打开「小说工作台」；如果工作区还没有书，右栏首屏可以直接**新建作品**（kit 会创建剧情账、记忆账与项目设置，不依赖 beat/fade）；
+5. 用「学文笔 / 写同人」导入样本。
 
 > `master` 默认关，这是有意的：不写小说时，kit 不会把任何 `novel_*` 工具塞进你的会话。
 
@@ -194,7 +195,7 @@ profile 级总开关在 `$DSH_HOME/profiles/<name>/novel-kit/prefs.json`。
 当前开发版的模拟验收（不依赖真实 DSH 界面）：
 
 ```text
-node --test                 162/162
+node --test                 164/164
 npm run acceptance:load      8/8
 npm run acceptance          19/19
 npm run acceptance:real     11/11
@@ -225,10 +226,12 @@ npm run acceptance:real
 npm run check
 ```
 
-设计和开发记录见 [docs/](docs/)；与旧五件的共存细节见 [docs/COEXIST.md](docs/COEXIST.md)。
+设计和开发记录见 [docs/](docs/)；界面设计见 [UI-V2.md](docs/UI-V2.md)，五插件功能对照见 [FIVE-PLUGIN-PARITY.md](docs/FIVE-PLUGIN-PARITY.md)，与旧五件的共存细节见 [docs/COEXIST.md](docs/COEXIST.md)。
 
 ## 许可
 
 MIT。作者：DrizzleGig。
+
+
 
 

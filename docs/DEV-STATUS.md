@@ -1,4 +1,4 @@
-# dsh-novel-kit 0.2.0 开发状态（2026-11-22）
+﻿# dsh-novel-kit 0.2.0 开发状态（2026-11-22）
 
 > 版本：`0.2.0-dev.0`（未发布）｜基线：`0.1.14`｜设计：[v0.2.0 设计方案](../../docs/小说插件系列-dsh-novel-kit-v0.2.0-设计方案.md)
 > 这一页只写「已经能跑什么、还没做什么、怎么验证」，不替代 README 与 CHANGELOG。
@@ -34,6 +34,10 @@
 - 决策记录带 `option/proposalId/styleFit/styleWhy/effect:'option-recorded'`。
 - `novel_plan` 只允许 propose；模型不能再 `adopt/reject`。
 
+- **kit-only 建书**：`book.create` 作者命令 + `/novel` 面板新建作品；kit 自己创建 `.dsh-novel-beat` / `.dsh-novel-fade` 与项目设置，不依赖旧五件。
+- **工作台 v3**：书桌/正文/故事/记忆/风格/同人/资料七个入口；故事含地图/时间线/体检，记忆含卡片/线索/人物，风格含档案/旧书库，同人含原著事实/人物/规则/称呼，书桌含章节流程/runbook；资料含依据与设置。
+- **五插件审计**：新增 [FIVE-PLUGIN-PARITY.md](FIVE-PLUGIN-PARITY.md)，逐项对照五件 UI 与能力，列出 kit 缺口。
+
 ### 第二刀：作者命令、完整草稿、收尾事务
 
 - **canon 审阅**：新增 `novel_canon` 工具（outline/read/propose）；propose 只进 `pending-review`，作者在面板确认后才 `confirmed`；空契约拒绝确认；面板可编辑事实/人物/规则/禁忌并保存为待审阅。
@@ -42,7 +46,7 @@
 - **完整草稿**：`readDraft` 不截断；`writeChapter` 带 `expectedVersion`/`expectedDraftHash`，同会话串行化；冲突 `draft-conflict` 不覆盖。
 - **收尾事务**：`finish` 把正文文件 + beat 段落 + fade 卡放进同一个事务（`effects` 3 项），不再先写正文再提交账本。
 - **右栏任务卡**：默认总开关/模式/导入/下一笔/四段尺/收件箱/最近章节；详细六页签收进「详情」，不再首屏台账。
-- **工作台四入口**：书桌/章节/故事/资料；章节是可编辑正文 + 依据/检查，书桌给下一笔/收件箱/最近，故事给拍板/提案/线索，资料给四段依据/文风/canon。
+
 - **工作台编辑**：完整正文 textarea + 保存（Ctrl S），显示未保存/已保存/冲突；旧宿主无 `getDraft` 时退回只读。
 
 ### Codex 第五轮复核后修复
@@ -90,7 +94,7 @@
 
 ```powershell
 cd D:\Novel-gate\dsh-novel-kit
-node --test                 # 162/162
+node --test                 # 164/164
 npm run acceptance:load     # 8/8
 npm run acceptance          # 19/19
 npm run acceptance:real     # 11/11
@@ -139,6 +143,9 @@ npm run check               # 通过
 ## 6. 下一刀建议
 
 先做「canon 逐条接受/证据回查 + 会话完成结果纳入事务 + 统一收件箱（含页边批注）」三件；它们决定同人能不能顺畅开写、崩溃窗口是否真正闭合、以及任务卡是否从摘要变成可操作。写盘故障注入与真实 DSH UI 验收并行。每刀完成后更新本页与 CHANGELOG，并跑 `node --test` + 两个 acceptance。
+
+
+
 
 
 
