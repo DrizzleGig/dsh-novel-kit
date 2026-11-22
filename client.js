@@ -409,6 +409,8 @@ window.__ModuleLoader__.load({
       const [styleBrief, setStyleBrief] = React.useState(null)
       const [canonBusy, setCanonBusy] = React.useState(false)
       const [canonMessage, setCanonMessage] = React.useState('')
+      // 称呼速查表的本地筛选（Codex：先在客户端筛，不新增接口）
+      const [addressFilter, setAddressFilter] = React.useState('')
       // 证据回查：点「看原文」读回来的那一段
       const [excerpt, setExcerpt] = React.useState(null)
       const [memoryQuery, setMemoryQuery] = React.useState('')
@@ -1404,6 +1406,7 @@ window.__ModuleLoader__.load({
         const opened = cards.filter(function (item) { return item.id === memoryOpen })[0] || null
         const pinned = cards.filter(function (item) { return item.pinned }).length
         const hits = Array.isArray(memoryHits) ? memoryHits : null
+        const forgotten = cards.filter(function (card) { return card.status === 'forgotten' })
         const chapterMap = new Map()
         for (const card of cards) chapterMap.set(card.chapter, (chapterMap.get(card.chapter) || 0) + 1)
         const chapterCounts = Array.from(chapterMap.entries()).sort(function (a, b) { return a[0] - b[0] }).map(function (entry) { return { chapter: entry[0], count: entry[1] } })
@@ -1497,6 +1500,22 @@ window.__ModuleLoader__.load({
               detail,
               h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '可恢复的记忆'),
+                  h('span', { className: 'nk-meta' }, forgotten.length ? forgotten.length + ' 张已遗忘' : '无')),
+                forgotten.length
+                  ? forgotten.slice(0, 4).map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key', style: { flexShrink: 0 } }, 'CH.' + String(item.chapter).padStart(2, '0')),
+                        h('span', { className: 'nk-kv-val', style: { maxWidth: '52%' } }, item.gist || ''),
+                        h('button', {
+                          type: 'button', className: 'nk-btn', style: { flexShrink: 0 },
+                          onClick: function () { actOnMemory(item, 'restore') },
+                        }, '恢复'))
+                    })
+                  : inlineEmpty('本次载入的记忆中没有已遗忘卡。'),
+                h('div', { className: 'nk-tiny', style: { marginTop: 8 } }, '只统计本次载入范围，不代表全书遗忘率。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
                   h('div', { className: 'nk-card-title' }, '按章分布'),
                   h('span', { className: 'nk-meta' }, '卡数')),
                 chapterCounts.length
@@ -1538,6 +1557,13 @@ window.__ModuleLoader__.load({
         const profiles = Array.isArray(style.kitProfiles) ? style.kitProfiles : []
         const works = Array.isArray(style.works) ? style.works : []
         const confirmed = profiles.filter(function (item) { return item.status === 'confirmed' }).length
+        // 绑定 ≠ 确认 ≠ 本章采用：这里只回答「本书绑了哪几份档案」。
+        const boundIds = (data && data.settings && Array.isArray(data.settings.activeStyleProfileIds)) ? data.settings.activeStyleProfileIds : []
+        const boundProfiles = boundIds.map(function (id) {
+          const found = profiles.filter(function (profile) { return profile.id === id })[0]
+          if (!found) return { id, name: String(id).slice(0, 10) + '…', status: '档案暂不可读', version: null }
+          return { id, name: found.name || found.id, status: found.status === 'confirmed' ? '已确认' : '待确认', version: found.version }
+        })
 
         const bandRows = function (profile) {
           const bands = profile.bands && typeof profile.bands === 'object' ? profile.bands : {}
@@ -1603,28 +1629,42 @@ window.__ModuleLoader__.load({
             pageStat('已确认', confirmed, confirmed ? '' : 'warn'),
             pageStat('书库作品', works.length),
             pageStat('书库字数', works.reduce(function (sum, item) { return sum + Number(item.chars || 0) }, 0))),
-          h('div', { className: 'nk-wb-col', style: { marginTop: 14 } },
-            profiles.length
-              ? profiles.map(profileCard)
-              : h('section', { className: 'nk-card' },
-                  h('div', { className: 'nk-empty-state' },
-                    h('div', { className: 'nk-glyph' }, '风'),
-                    h('div', { className: 'nk-tiny' }, '还没有文风档案。在上面填一个装着 txt 的目录，选一本你喜欢的作品。')),
-                  h('div', { className: 'nk-chipline', style: { justifyContent: 'center', marginTop: 8 } },
-                    ['句长区间', '段长区间', '对话比例', '用词密度', '常用句式', '避免词'].map(function (item) {
-                      return h('span', { key: item, className: 'nk-tag' }, item)
-                    }))),
-            works.length
-              ? h('section', { className: 'nk-card flush' },
-                  h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
-                    h('div', { className: 'nk-card-title' }, '旧 voice 书库'),
-                    h('span', { className: 'nk-meta' }, works.length + ' 部')),
-                  works.map(function (work) {
-                    return h('div', { key: work.workId, className: 'nk-kv', style: { padding: '9px 14px' } },
-                      h('span', { className: 'nk-kv-key' }, work.title || work.workId),
-                      h('span', { className: 'nk-kv-val' }, work.chapters + ' 章 · ' + work.chars + ' 字'))
-                  }))
-              : null))
+          h('div', { className: 'nk-wb-grid', style: { marginTop: 14 } },
+            h('div', { className: 'nk-wb-col' },
+              profiles.length
+                ? profiles.map(profileCard)
+                : h('section', { className: 'nk-card' },
+                    h('div', { className: 'nk-empty-state' },
+                      h('div', { className: 'nk-glyph' }, '风'),
+                      h('div', { className: 'nk-tiny' }, '还没有文风档案。在上面填一个装着 txt 的目录，选一本你喜欢的作品。')),
+                    h('div', { className: 'nk-chipline', style: { justifyContent: 'center', marginTop: 8 } },
+                      ['句长区间', '段长区间', '对话比例', '用词密度', '常用句式', '避免词'].map(function (item) {
+                        return h('span', { key: item, className: 'nk-tag' }, item)
+                      })))),
+            h('div', { className: 'nk-wb-col nk-wb-aside' },
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '本书已绑定档案'),
+                  h('span', { className: 'nk-meta' }, boundProfiles.length ? boundProfiles.length + ' 份' : '未绑定')),
+                boundProfiles.length
+                  ? boundProfiles.map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, item.name),
+                        h('span', { className: 'nk-kv-val' }, item.status + (item.version ? ' · v' + item.version : '')))
+                    })
+                  : inlineEmpty('本书未绑定 kit 文风档案。'),
+                h('div', { className: 'nk-tiny', style: { marginTop: 8 } }, '绑定 ≠ 已确认 ≠ 本章已采用；旧文风书库不在此列。')),
+              works.length
+                ? h('section', { className: 'nk-card flush' },
+                    h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
+                      h('div', { className: 'nk-card-title' }, '旧 voice 书库'),
+                      h('span', { className: 'nk-meta' }, works.length + ' 部')),
+                    works.map(function (work) {
+                      return h('div', { key: work.workId, className: 'nk-kv', style: { padding: '9px 14px' } },
+                        h('span', { className: 'nk-kv-key' }, work.title || work.workId),
+                        h('span', { className: 'nk-kv-val' }, work.chapters + ' 章 · ' + work.chars + ' 字'))
+                    }))
+                : null)))
       }
 
       // ── 同人页：canon 状态 / 事实与证据 / 人物 / 规则 / 禁忌 / 本章检查 ─────
@@ -1658,6 +1698,13 @@ window.__ModuleLoader__.load({
         const forbidden = Array.isArray(canon.forbidden) ? canon.forbidden : []
         const findings = session && session.verification && Array.isArray(session.verification.findings) ? session.verification.findings : []
         const secrets = Array.isArray(canon.secrets) ? canon.secrets : []
+        const addresses = Array.isArray(canon.addresses) ? canon.addresses : []
+        const addressTerm = addressFilter.trim().toLowerCase()
+        const shownAddresses = addressTerm
+          ? addresses.filter(function (row) {
+              return String(row.from || '').toLowerCase().includes(addressTerm) || String(row.to || '').toLowerCase().includes(addressTerm)
+            })
+          : addresses
 
         return h('div', { className: 'nk-wb-body' },
           pageHead('同人', '原著事实与禁忌决定这一本能不能写；有冲突先回原文核对。',
@@ -1703,7 +1750,7 @@ window.__ModuleLoader__.load({
                   : null)),
             h('div', { className: 'nk-wb-col nk-wb-aside' },
               h('section', { className: 'nk-card' },
-                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '人物与称呼')),
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '人物与别名')),
                 characters.length
                   ? characters.slice(0, 20).map(function (person, index) {
                       return h('div', { key: index, className: 'nk-kv' },
@@ -1711,6 +1758,29 @@ window.__ModuleLoader__.load({
                         h('span', { className: 'nk-kv-val' }, (person.aliases || []).join(' / ') || person.role || ''))
                     })
                   : inlineEmpty('还没有人物。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '对话称呼速查'),
+                  h('span', { className: 'nk-meta' }, addresses.length ? addresses.length + ' 条' : '未记录')),
+                addresses.length
+                  ? h('input', {
+                      className: 'nk-input', value: addressFilter, placeholder: '按人物名筛选',
+                      style: { marginBottom: 8 },
+                      onChange: function (event) { setAddressFilter(event.target.value) },
+                    })
+                  : null,
+                addresses.length === 0
+                  ? inlineEmpty('尚未记录人物之间的称呼。')
+                  : shownAddresses.length === 0
+                    ? inlineEmpty('没有匹配的称呼记录。')
+                    : shownAddresses.slice(0, 10).map(function (row, index) {
+                        return h('div', { key: index, className: 'nk-kv', style: { alignItems: 'flex-start', flexDirection: 'column', gap: 2 } },
+                          h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline', width: '100%' } },
+                            h('span', { style: { fontSize: 12.5, fontWeight: 600 } }, (row.from || '?') + ' → ' + (row.to || '?')),
+                            row.fromChapter ? h('span', { className: 'nk-badge', style: { marginLeft: 'auto' } }, '起始章 ' + row.fromChapter) : null),
+                          h('div', { className: 'nk-tiny' },
+                            '公开「' + (row.publicForm || row.form || '—') + '」 · 私下「' + (row.privateForm || row.form || '—') + '」'))
+                      })),
               h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' },
                   h('div', { className: 'nk-card-title' }, '秘密'),
@@ -1811,6 +1881,24 @@ window.__ModuleLoader__.load({
           : [inlineEmpty('还没有绑定原著；去「同人」页导入。')]
 
         const issues = (data && Array.isArray(data.issues)) ? data.issues : []
+        // 依据版本对照：只比同一套来源体系的账本 revision，不据此判定「本章失效」。
+        const currentLedgers = (data && data.ledgers) || {}
+        const versionRows = contexts.map(function (segment) {
+          const ledger = currentLedgers[segment.component] || null
+          const adoptedRevision = segment.revision
+          const currentRevision = ledger ? ledger.revision : null
+          let verdict = '当前无此账本'
+          if (ledger && adoptedRevision !== null && adoptedRevision !== undefined && currentRevision !== null) {
+            verdict = String(adoptedRevision) === String(currentRevision) ? '版本号相同' : '资料有更新'
+          }
+          return kv(segment.component,
+            '开章 rev ' + (adoptedRevision ?? '—') + ' → 当前 rev ' + (currentRevision ?? '—') + ' · ' + verdict,
+            verdict === '资料有更新' ? c.warning : undefined)
+        })
+        const versionBlock = contexts.length
+          ? versionRows.concat([h('div', { className: 'nk-tiny', style: { marginTop: 8 } },
+              '版本号不同只说明资料改过，不等于本章失效；要看最新装配请点「预览依据」。')])
+          : [inlineEmpty('开章后，这里会比较本章采用的依据与当前资料。')]
         const issueRows = issues.length
           ? issues.slice(0, 8).map(function (issue, index) {
               return kv((issue.component || '?') + ' · ' + (issue.code || 'issue'), issue.message || '', c.warning)
@@ -1821,6 +1909,7 @@ window.__ModuleLoader__.load({
           workSettingsCard(),
           block('来源库', sources.length + ' 份', sourceRows),
           block('本章依据', previewData && previewData.available ? fmtNum(previewData.chars || 0) + ' 字 · ' + previewData.mode : '已装配快照', contextRows),
+          block('依据版本对照', '开章时 vs 现在', versionBlock),
           block('操作记录', operations.length + ' 条', operationRows),
         ]
         const right = [
