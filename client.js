@@ -84,6 +84,59 @@ window.__ModuleLoader__.load({
     const faint = { color: c.faint, fontSize: 11 }
     const small = { color: c.sub, fontSize: 12, lineHeight: 1.5 }
 
+    // 新右栏使用一套独立 class，避免继续在旧 inline 样式上打补丁。
+    const UI_CSS = `
+      .nk-panel { height: 100%; overflow-y: auto; padding: 18px 16px 24px; display: flex; flex-direction: column; gap: 14px; color: var(--dsw-alias-label-primary); background: color-mix(in srgb, var(--dsw-alias-bg-base) 93%, #eedfc9 7%); font-family: var(--dsw-font-family, "PingFang SC", "Microsoft YaHei", sans-serif); }
+      .nk-head { display: flex; align-items: center; gap: 10px; }
+      .nk-panel .grow { flex: 1; min-width: 0; }
+      .nk-seal { width: 38px; height: 38px; flex: 0 0 auto; border: 1.5px solid #b5432d; border-radius: 7px; color: #b5432d; display: grid; place-items: center; font-family: "Songti SC", "Noto Serif SC", serif; font-size: 21px; font-weight: 700; background: color-mix(in srgb, #b5432d 6%, transparent); }
+      .nk-title { font-family: "Songti SC", "Noto Serif SC", serif; font-size: 18px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; }
+      .nk-book { color: var(--dsw-alias-label-tertiary); font-size: 11.5px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .nk-actions { margin-left: auto; display: flex; gap: 5px; }
+      .nk-btn { appearance: none; border: 1px solid var(--dsw-alias-border-l1); background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-secondary); border-radius: 8px; padding: 5px 9px; font-size: 11.5px; line-height: 1.2; cursor: pointer; font-family: inherit; }
+      .nk-btn:hover { border-color: var(--dsw-alias-label-tertiary); }
+      .nk-btn.primary { background: #b5432d; border-color: #b5432d; color: #fff8ef; font-weight: 600; }
+      .nk-btn.primary:hover { background: #96372a; border-color: #96372a; }
+      .nk-select { width: 100%; height: 34px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); padding: 0 10px; font-size: 12px; font-family: inherit; }
+      .nk-next { position: relative; overflow: hidden; border-radius: 15px; padding: 18px 16px 15px; background: var(--dsw-alias-label-primary); color: var(--dsw-alias-bg-base); box-shadow: 0 6px 22px rgba(0,0,0,.12); }
+      .nk-next::after { content: "章"; position: absolute; right: -6px; bottom: -28px; font-family: "Songti SC", "Noto Serif SC", serif; font-size: 118px; line-height: 1; color: color-mix(in srgb, var(--dsw-alias-bg-base) 8%, transparent); pointer-events: none; }
+      .nk-eyebrow { position: relative; z-index: 1; color: color-mix(in srgb, var(--dsw-alias-bg-base) 58%, transparent); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; }
+      .nk-next-title { position: relative; z-index: 1; margin: 6px 0 4px; font-family: "Songti SC", "Noto Serif SC", serif; font-size: 24px; line-height: 1.35; font-weight: 700; letter-spacing: -.02em; }
+      .nk-next-copy { position: relative; z-index: 1; color: color-mix(in srgb, var(--dsw-alias-bg-base) 68%, transparent); font-size: 11.5px; line-height: 1.7; }
+      .nk-next-meta { position: relative; z-index: 1; display: flex; gap: 6px; margin-top: 10px; }
+      .nk-chip { display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 999px; color: var(--dsw-alias-label-secondary); background: transparent; font-size: 10px; white-space: nowrap; }
+      .nk-next .nk-chip { border-color: color-mix(in srgb, var(--dsw-alias-bg-base) 22%, transparent); color: color-mix(in srgb, var(--dsw-alias-bg-base) 76%, transparent); }
+      .nk-next-btn { position: relative; z-index: 1; width: 100%; height: 37px; margin-top: 13px; border: 0; border-radius: 8px; background: #b5432d; color: #fff8ef; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit; }
+      .nk-next-btn:hover { background: #96372a; }
+      .nk-section { display: flex; flex-direction: column; gap: 5px; }
+      .nk-section-head { display: flex; justify-content: space-between; align-items: baseline; }
+      .nk-section-title { font-family: "Songti SC", "Noto Serif SC", serif; font-size: 13.5px; font-weight: 700; }
+      .nk-meta { color: var(--dsw-alias-label-tertiary); font-size: 10px; }
+      .nk-inbox { display: flex; flex-direction: column; }
+      .nk-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--dsw-alias-border-l1); font-size: 11.5px; line-height: 1.55; }
+      .nk-item:last-child { border-bottom: 0; }
+      .nk-kind { width: 36px; flex: 0 0 auto; color: #b5432d; font-weight: 700; font-size: 9.5px; padding-top: 1px; }
+      .nk-kind.amber { color: #a87322; }
+      .nk-kind.jade { color: #2f6a5a; }
+      .nk-item-main { color: var(--dsw-alias-label-secondary); }
+      .nk-item-main b { color: var(--dsw-alias-label-primary); font-weight: 600; }
+      .nk-ebar { display: flex; gap: 2px; height: 7px; border-radius: 7px; overflow: hidden; background: var(--dsw-alias-border-l1); }
+      .nk-ebar i { display: block; height: 100%; }
+      .nk-elegend { display: flex; gap: 8px; flex-wrap: wrap; color: var(--dsw-alias-label-tertiary); font-size: 9.5px; }
+      .nk-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
+      .nk-recent { display: flex; flex-direction: column; }
+      .nk-recent-row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--dsw-alias-border-l1); font-size: 11px; }
+      .nk-recent-row:last-child { border-bottom: 0; }
+      .nk-recent-no { width: 36px; flex: 0 0 auto; color: var(--dsw-alias-label-tertiary); font-family: "Songti SC", "Noto Serif SC", serif; }
+      .nk-recent-title { flex: 1; min-width: 0; color: var(--dsw-alias-label-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .nk-recent-state { color: var(--dsw-alias-label-tertiary); font-size: 9.5px; }
+      .nk-foot { margin-top: auto; display: flex; gap: 7px; padding-top: 10px; border-top: 1px solid var(--dsw-alias-border-l1); }
+      .nk-foot .nk-btn { flex: 1; }
+      .nk-empty { border: 1px solid var(--dsw-alias-border-l1); border-radius: 11px; background: var(--dsw-alias-bg-layer-1); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+      .nk-empty input { border: 1px solid var(--dsw-alias-border-l1); border-radius: 8px; background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); padding: 7px 9px; font-size: 12px; font-family: inherit; }
+    `
+
+
     function unwrap(rpc) {
       if (rpc && rpc.ok === false) {
         const reason = rpc.error ? (rpc.error.message || rpc.error.code) : '未知错误'
@@ -705,6 +758,88 @@ window.__ModuleLoader__.load({
         return h(Workbench, { sessionId, remote, embedded: true, onClose: function () { setMode('task') } })
       }
 
+      function renderTask() {
+        if (state.phase === 'loading' && !data) {
+          return h('div', { className: 'nk-panel' }, h('div', { className: 'nk-meta' }, '加载小说工作区…'))
+        }
+        const totalEvidence = panelContexts.reduce((sum, segment) => sum + Math.max(1, segment.chars || 1), 0) || 1
+        const colors = ['#b5432d', '#3f5f8a', '#2f6a5a', '#a87322']
+        const chapters = data && data.history && Array.isArray(data.history.chapters) ? data.history.chapters : []
+        if (!panelBook) {
+          return h('div', { className: 'nk-panel' },
+            h('div', { className: 'nk-head' },
+              h('div', { className: 'nk-seal' }, '小'),
+              h('div', { className: 'grow', style: { minWidth: 0 } },
+                h('div', { className: 'nk-title' }, '小说'),
+                h('div', { className: 'nk-book' }, '还没有作品')),
+              h('div', { className: 'nk-actions' }, h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置'))),
+            h('div', { className: 'nk-empty' },
+              h('div', { style: { fontSize: 10, letterSpacing: '.14em', color: c.faint } }, 'KIT-ONLY · 新建作品'),
+              h('div', { style: { fontSize: 13, lineHeight: 1.6, color: c.sub } }, '没有旧 beat/fade 也能开始：kit 会创建剧情账、记忆账与项目设置。'),
+              h('input', { value: newBook, placeholder: '作品名，例如：长夜行', onChange: function (event) { setNewBook(event.target.value) }, onKeyDown: function (event) { if (event.key === 'Enter') runCreateBook() } }),
+              h('button', { className: 'nk-next-btn', disabled: !newBook.trim(), onClick: function () { runCreateBook() } }, '新建并开始')),
+            action.message ? h('div', { style: { fontSize: 11, color: action.phase === 'error' ? c.error : c.sub } }, action.message) : null)
+        }
+        return h('div', { className: 'nk-panel' },
+          h('div', { className: 'nk-head' },
+            h('div', { className: 'nk-seal' }, '小'),
+            h('div', { className: 'grow', style: { minWidth: 0 } },
+              h('div', { className: 'nk-title' }, '小说'),
+              h('div', { className: 'nk-book' }, panelBook)),
+            h('div', { className: 'nk-actions' },
+              h('button', { className: 'nk-btn primary', onClick: openStudio }, '工作台'),
+              h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置'),
+              h('button', { className: 'nk-btn', onClick: function () { load() } }, state.phase === 'refreshing' ? '…' : '刷新'))),
+          books.length
+            ? h('select', { className: 'nk-select', value: panelBook, onChange: function (event) { setBook(event.target.value); load(event.target.value) } },
+                books.map((name) => h('option', { key: name, value: name }, name)))
+            : null,
+          h('section', { className: 'nk-next' },
+            h('div', { className: 'nk-eyebrow' }, 'NEXT · 下一笔'),
+            h('div', { className: 'nk-next-title' }, panelNext.title),
+            h('div', { className: 'nk-next-copy' }, panelNext.detail),
+            h('div', { className: 'nk-next-meta' },
+              h('span', { className: 'nk-chip' }, '第 ' + (panelNext.chapter || 1) + ' 章'),
+              panelPending ? h('span', { className: 'nk-chip' }, panelPending + ' 个待拍板') : null),
+            h('button', { className: 'nk-next-btn', disabled: panelPrimary.disabled || !panelPrimary.action, onClick: panelPrimary.action || undefined },
+              panelPrimary.label, h('span', null, '→'))),
+          action.message ? h('div', { style: { fontSize: 11, color: action.phase === 'error' ? c.error : c.sub } }, action.message) : null,
+          h('section', { className: 'nk-section' },
+            h('div', { className: 'nk-section-head' }, h('div', { className: 'nk-section-title' }, '待处理'), h('div', { className: 'nk-meta' }, String(panelInbox.length))),
+            panelInbox.length === 0
+              ? h('div', { className: 'nk-meta' }, '没有待处理事项。')
+              : h('div', { className: 'nk-inbox' }, panelInbox.slice(0, 5).map(function (item, index) {
+                  return h('div', { key: index, className: 'nk-item' },
+                    h('div', { className: 'nk-kind ' + (item.kind === 'canon' ? 'amber' : item.kind === '冲突' ? 'jade' : '') }, item.kind),
+                    h('div', { className: 'nk-item-main' }, item.text))
+                }))),
+          panelContexts.length
+            ? h('section', { className: 'nk-section' },
+                h('div', { className: 'nk-section-head' }, h('div', { className: 'nk-section-title' }, '本章依据'), h('div', { className: 'nk-meta' }, panelContexts.reduce((sum, segment) => sum + (segment.chars || 0), 0) + ' 字')),
+                h('div', { className: 'nk-ebar' }, panelContexts.map(function (segment, index) {
+                  return h('i', { key: segment.component || index, style: { width: (Math.max(1, segment.chars || 1) / totalEvidence * 100) + '%', background: colors[index % colors.length], opacity: segment.available ? 1 : .25 } })
+                })),
+                h('div', { className: 'nk-elegend' }, panelContexts.map(function (segment, index) {
+                  return h('span', { key: segment.component }, h('i', { className: 'nk-dot', style: { background: colors[index % colors.length] } }), segment.component + ' ' + (segment.chars || 0))
+                })))
+            : null,
+          h('section', { className: 'nk-section' },
+            h('div', { className: 'nk-section-head' }, h('div', { className: 'nk-section-title' }, '最近章节'), h('div', { className: 'nk-meta' }, '共 ' + (chapters.length || 0) + ' 章')),
+            chapters.length === 0
+              ? h('div', { className: 'nk-meta' }, '还没有落账章节。')
+              : h('div', { className: 'nk-recent' }, chapters.slice(0, 4).map(function (item) {
+                  return h('div', { key: item.chapter, className: 'nk-recent-row' },
+                    h('span', { className: 'nk-recent-no' }, 'CH.' + String(item.chapter).padStart(2, '0')),
+                    h('span', { className: 'nk-recent-title' }, '第 ' + item.chapter + ' 章'),
+                    h('span', { className: 'nk-recent-state' }, item.state === 'completed' ? '已落账' : (item.state || '进行中')))
+                }))),
+          h('div', { className: 'nk-foot' },
+            h('button', { className: 'nk-btn primary', onClick: openStudio }, '打开工作台'),
+            h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置')))
+      }
+
+      if (!settingsOpen && !details) return renderTask()
+
       return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 16px 28px', color: c.text, background: c.base, height: '100%', overflowY: 'auto', fontSize: 13 } },
         h('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
           h('div', { style: { width: 32, height: 32, flexShrink: 0, borderRadius: 10, background: c.brand, color: c.onBrand, display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 700, letterSpacing: '-.04em' } }, '小'),
@@ -712,6 +847,11 @@ window.__ModuleLoader__.load({
             h('div', { style: { fontSize: 15, fontWeight: 700, letterSpacing: '-.01em' } }, '小说'),
             h('div', { style: { ...faint, marginTop: 1 } }, panelBook || '还没有选择作品')),
           h('div', { style: { display: 'flex', gap: 6 } },
+            h('button', {
+              type: 'button',
+              onClick: function () { setSettingsOpen(false); setDetails(false) },
+              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
+            }, '返回'),
             h('button', {
               type: 'button',
               onClick: openStudio,
@@ -1514,6 +1654,15 @@ window.__ModuleLoader__.load({
     return {
       inject: ['slots', 'sidebarRight', 'sidebarRightTabs', 'remote'],
       async apply(ctx) {
+        try {
+          if (typeof document !== 'undefined' && !document.getElementById('dsh-novel-kit-ui-css')) {
+            const tag = document.createElement('style')
+            tag.id = 'dsh-novel-kit-ui-css'
+            tag.textContent = UI_CSS
+            document.head.appendChild(tag)
+            ctx.effect(() => () => { try { tag.remove() } catch { /* ignore */ } })
+          }
+        } catch { /* 宿主不提供 DOM 时忽略 */ }
         let panelRemote = null
         try {
           const dispose = await ctx.remote.$mount(TYPERT_REMOTE)
