@@ -35,6 +35,7 @@ window.__ModuleLoader__.load({
         { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getPlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getOperations', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'previewContext', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'reviseDecision', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'savePlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
@@ -1142,6 +1143,7 @@ window.__ModuleLoader__.load({
       const [planBusy, setPlanBusy] = React.useState(false)
       const [planMessage, setPlanMessage] = React.useState('')
       const [operationsData, setOperationsData] = React.useState(null)
+      const [previewData, setPreviewData] = React.useState(null)
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
@@ -1208,6 +1210,7 @@ window.__ModuleLoader__.load({
         setPlanDraft(null)
         setPlanMessage('')
         setOperationsData(null)
+        setPreviewData(null)
       }, [data && data.book])
 
       React.useEffect(function () {
@@ -1432,6 +1435,19 @@ window.__ModuleLoader__.load({
           setPlanBusy(false)
         }
       }, [remote, sessionId, data, session, planDraft, planData])
+
+      const previewContextNow = React.useCallback(async function () {
+        if (!remote || !data || !data.book) return
+        try {
+          const preview = await Promise.resolve(remote.previewContext(sessionId, {
+            book: data.book,
+            chapter: session ? session.chapter : 1,
+          })).then(unwrap)
+          setPreviewData(preview)
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data, session])
 
       const searchMemoryNow = React.useCallback(async function () {        if (!remote || !data || !data.book) return
         const query = memoryQuery.trim()
@@ -1880,8 +1896,11 @@ window.__ModuleLoader__.load({
         const canon = materialData.canon || {}
         return h('div', { style: { padding: '14px 18px', overflowY: 'auto' } },
           h('div', { style: { maxWidth: 760 } },
-            h('div', { style: { ...faint, marginBottom: 5 } }, '本章依据'),
-            (data && data.contexts ? data.contexts : []).map((segment) => h('div', { key: segment.component, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '6px 0' } },
+            h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 } },
+              h('div', { style: faint }, '本章依据'),
+              h('button', { className: 'nk-btn', style: { marginLeft: 'auto' }, onClick: previewContextNow }, previewData ? '重新预览' : '预览依据'),
+              previewData && previewData.available ? h('span', { style: { ...faint, fontSize: 10 } }, previewData.chars + ' 字 · ' + previewData.mode) : null),
+            ((previewData && previewData.segments) || (data && data.contexts) || []).map((segment) => h('div', { key: segment.component, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '6px 0' } },
               h('span', { style: small }, segment.component),
               h('span', { style: { color: segment.available ? c.sub : c.faint, fontSize: 11.5 } },
                 segment.available ? `${segment.chars}/${segment.budgetChars ?? '?'} · rev ${segment.revision ?? '-'}` : '未接入'))),

@@ -39,6 +39,7 @@
 - **同人检查**：同人页显示本章 `verification.findings`（severity / message / 引文），没有检查时如实提示。
 - **场景编排**：书桌新增「本章场景」编辑；`plan.save` 作者命令写 `.dsh-novel-kit/plans/<book>/<chapter>.json`，带 revision 冲突与 ≤1200 字写前 brief。
 - **收件箱汇总**：右栏/书桌统一收 pending 拍板、canon 待确认、冲突、failed operation；资料页显示最近操作日志。
+- **依据预览**：资料页可现场调用 `previewContext`，显示重新计算的四段字数/预算/revision，与已装配快照区分。
 - 测试 **169/169**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
 
 ## 0.1.14 — 2026-11-22
