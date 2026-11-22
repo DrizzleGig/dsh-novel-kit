@@ -45,6 +45,7 @@
 - **记忆检索**：记忆页可按人物/物品/秘密搜索，命中可点开卡片。
 - **记忆漂移**：drift 提示 + 低保真「已褪色」。
 - **同人检查**：同人页显示 verification findings（严重度/消息/引文）。
+- **场景编排**：书桌「本章场景」可编辑（意图/视角/地点/场景目标/转折），保存走 `plan.save`；文件带 revision，冲突不覆盖；`getPlan` 返回 ≤1200 字 brief。
 - **五插件审计**：新增 [FIVE-PLUGIN-PARITY.md](FIVE-PLUGIN-PARITY.md)，逐项对照五件 UI 与能力，列出 kit 缺口。
 
 ### 第二刀：作者命令、完整草稿、收尾事务
@@ -103,7 +104,7 @@
 
 ```powershell
 cd D:\Novel-gate\dsh-novel-kit
-node --test                 # 167/167
+node --test                 # 169/169
 npm run acceptance:load     # 8/8
 npm run acceptance          # 19/19
 npm run acceptance:real     # 11/11
@@ -152,6 +153,7 @@ npm run check               # 通过
 ## 6. 下一刀建议
 
 先做「canon 逐条接受/证据回查 + 会话完成结果纳入事务 + 统一收件箱（含页边批注）」三件；它们决定同人能不能顺畅开写、崩溃窗口是否真正闭合、以及任务卡是否从摘要变成可操作。写盘故障注入与真实 DSH UI 验收并行。每刀完成后更新本页与 CHANGELOG，并跑 `node --test` + 两个 acceptance。
+
 
 
 

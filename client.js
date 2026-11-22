@@ -33,8 +33,10 @@ window.__ModuleLoader__.load({
         { method: 'getMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getStyle', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'getCanon', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'getPlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'decide', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'reviseDecision', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
+        { method: 'savePlan', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'memoryAction', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'searchMemory', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
         { method: 'importSource', parameters: [param('sessionId', sessionIdSchema), param('request', requestSchema)] },
@@ -1127,6 +1129,11 @@ window.__ModuleLoader__.load({
       const [canonMessage, setCanonMessage] = React.useState('')
       const [memoryQuery, setMemoryQuery] = React.useState('')
       const [memoryHits, setMemoryHits] = React.useState(null)
+      const [planData, setPlanData] = React.useState(null)
+      const [planEditing, setPlanEditing] = React.useState(false)
+      const [planDraft, setPlanDraft] = React.useState(null)
+      const [planBusy, setPlanBusy] = React.useState(false)
+      const [planMessage, setPlanMessage] = React.useState('')
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
@@ -1188,7 +1195,22 @@ window.__ModuleLoader__.load({
         setCanonMessage('')
         setMemoryQuery('')
         setMemoryHits(null)
+        setPlanData(null)
+        setPlanEditing(false)
+        setPlanDraft(null)
+        setPlanMessage('')
       }, [data && data.book])
+
+      React.useEffect(function () {
+        if (!remote || !data || !data.book) return undefined
+        let cancelled = false
+        const current = data && data.session ? data.session : null
+        const chapter = current ? current.chapter : 1
+        Promise.resolve(remote.getPlan(sessionId, { book: data.book, chapter })).then(unwrap).then(function (plan) {
+          if (!cancelled) setPlanData(plan)
+        }).catch(function () { if (!cancelled) setPlanData(null) })
+        return function () { cancelled = true }
+      }, [remote, sessionId, data && data.book, data && data.session && data.session.chapter])
 
       const saveDraft = React.useCallback(async function () {
         if (!remote || !data || !data.session || typeof remote.saveDraft !== 'function') return
@@ -1334,8 +1356,66 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, data])
 
-      const searchMemoryNow = React.useCallback(async function () {
-        if (!remote || !data || !data.book) return
+      const startPlanEdit = React.useCallback(function () {
+        const plan = planData || { intent: '', pov: '', time: '', place: '', scenes: [], revision: 0 }
+        setPlanDraft({
+          intent: plan.intent || '', pov: plan.pov || '', time: plan.time || '', place: plan.place || '',
+          scenes: (plan.scenes || []).map((scene) => ({ ...scene })),
+        })
+        setPlanEditing(true)
+        setPlanMessage('')
+      }, [planData])
+
+      const updatePlanField = React.useCallback(function (key, value) {
+        setPlanDraft((prev) => ({ ...(prev || { intent: '', pov: '', time: '', place: '', scenes: [] }), [key]: value }))
+      }, [])
+
+      const updateScene = React.useCallback(function (index, key, value) {
+        setPlanDraft((prev) => {
+          const base = prev || { intent: '', pov: '', time: '', place: '', scenes: [] }
+          const scenes = base.scenes.map((scene, i) => i === index ? { ...scene, [key]: value } : scene)
+          return { ...base, scenes }
+        })
+      }, [])
+
+      const addScene = React.useCallback(function () {
+        setPlanDraft((prev) => {
+          const base = prev || { intent: '', pov: '', time: '', place: '', scenes: [] }
+          return { ...base, scenes: [...base.scenes, { title: '场景 ' + (base.scenes.length + 1), goal: '', conflict: '', turn: '', exit: '', cast: [], targetChars: 0 }] }
+        })
+      }, [])
+
+      const removeScene = React.useCallback(function (index) {
+        setPlanDraft((prev) => {
+          if (!prev) return prev
+          return { ...prev, scenes: prev.scenes.filter((_, i) => i !== index) }
+        })
+      }, [])
+
+      const savePlanNow = React.useCallback(async function () {
+        if (!remote || !data || !data.book || !planDraft) return
+        const chapter = session ? session.chapter : 1
+        setPlanBusy(true)
+        setPlanMessage('正在保存场景计划…')
+        try {
+          const result = await Promise.resolve(remote.savePlan(sessionId, {
+            book: data.book, chapter, intent: planDraft.intent, pov: planDraft.pov,
+            time: planDraft.time, place: planDraft.place, scenes: planDraft.scenes,
+            expectedRevision: planData ? planData.revision : 0,
+          })).then(unwrap)
+          if (!result || result.ok === false) { setPlanMessage(result?.message || result?.code || '保存失败'); return }
+          setPlanData(result.plan)
+          setPlanEditing(false)
+          setPlanDraft(null)
+          setPlanMessage('场景计划已保存。')
+        } catch (error) {
+          setPlanMessage(String(error?.message ?? error))
+        } finally {
+          setPlanBusy(false)
+        }
+      }, [remote, sessionId, data, session, planDraft, planData])
+
+      const searchMemoryNow = React.useCallback(async function () {        if (!remote || !data || !data.book) return
         const query = memoryQuery.trim()
         if (!query) { setMemoryHits(null); return }
         try {
@@ -1406,6 +1486,47 @@ window.__ModuleLoader__.load({
         },
       }, sectionLabel[key])
 
+      function sceneComposer() {
+        const plan = planData
+        const scenes = plan && Array.isArray(plan.scenes) ? plan.scenes : []
+        const draft = planDraft
+        return h('section', { style: { border: '1px solid ' + c.border, borderRadius: 12, background: c.layer, padding: 13, marginTop: 14 } },
+          h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
+            h('div', { style: { fontSize: 14, fontWeight: 700 } }, '本章场景'),
+            h('span', { style: { ...faint, fontSize: 10 } }, plan && plan.available ? 'rev ' + plan.revision : '未建立'),
+            h('div', { style: { marginLeft: 'auto', display: 'flex', gap: 5 } },
+              planEditing
+                ? h('div', { style: { display: 'flex', gap: 5 } },
+                    h('button', { className: 'nk-btn primary', disabled: planBusy, onClick: savePlanNow }, planBusy ? '保存中…' : '保存计划'),
+                    h('button', { className: 'nk-btn', disabled: planBusy, onClick: function () { setPlanEditing(false); setPlanDraft(null) } }, '取消'))
+                : h('button', { className: 'nk-btn', onClick: startPlanEdit }, scenes.length ? '编辑场景' : '新建场景计划'))),
+          planMessage ? h('div', { style: { fontSize: 11, color: planMessage.includes('失败') || planMessage.includes('错误') ? c.error : c.sub, marginTop: 5 } }, planMessage) : null,
+          planEditing && draft
+            ? h('div', { style: { marginTop: 9 } },
+                h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 } },
+                  h('input', { value: draft.intent, placeholder: '本章意图', onChange: function (event) { updatePlanField('intent', event.target.value) }, style: { gridColumn: '1 / -1', border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } }),
+                  h('input', { value: draft.pov, placeholder: '视角', onChange: function (event) { updatePlanField('pov', event.target.value) }, style: { border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } }),
+                  h('input', { value: draft.place, placeholder: '地点', onChange: function (event) { updatePlanField('place', event.target.value) }, style: { border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } })),
+                draft.scenes.map(function (scene, index) {
+                  return h('div', { key: index, style: { marginTop: 8, padding: 9, border: '1px solid ' + c.border, borderRadius: 9 } },
+                    h('div', { style: { display: 'flex', gap: 6 } },
+                      h('input', { value: scene.title || '', placeholder: '场景名', onChange: function (event) { updateScene(index, 'title', event.target.value) }, style: { flex: 1, border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } }),
+                      h('button', { className: 'nk-btn', onClick: function () { removeScene(index) } }, '删除')),
+                    h('input', { value: scene.goal || '', placeholder: '本场目标', onChange: function (event) { updateScene(index, 'goal', event.target.value) }, style: { width: '100%', boxSizing: 'border-box', marginTop: 5, border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } }),
+                    h('input', { value: scene.turn || '', placeholder: '转折（可选）', onChange: function (event) { updateScene(index, 'turn', event.target.value) }, style: { width: '100%', boxSizing: 'border-box', marginTop: 5, border: '1px solid ' + c.border, borderRadius: 7, background: c.base, color: c.text, padding: '6px 8px', fontSize: 11.5, fontFamily: 'inherit' } }))
+                }),
+                h('button', { className: 'nk-btn', style: { marginTop: 6 }, onClick: addScene }, '+ 添加场景'))
+            : scenes.length === 0
+              ? h('div', { style: { ...faint, marginTop: 7, fontSize: 11.5 } }, '还没有场景计划。先写 2–4 场：目标 / 冲突 / 转折 / 出口。')
+              : h('div', { style: { marginTop: 8 } },
+                  scenes.map(function (scene, index) {
+                    return h('div', { key: scene.id || index, style: { display: 'flex', gap: 8, padding: '5px 0', borderBottom: index < scenes.length - 1 ? '1px dashed ' + c.border : 'none' } },
+                      h('span', { style: { ...faint, width: 20, flexShrink: 0, fontFamily: '"Songti SC", serif' } }, String(index + 1).padStart(2, '0')),
+                      h('span', { style: { fontSize: 11.5, color: c.sub } }, scene.title + (scene.goal ? ' · ' + scene.goal : '')))
+                  }),
+                  plan && plan.brief && plan.brief.available ? h('div', { style: { ...faint, marginTop: 7, fontSize: 10.5 } }, '写前 brief：' + plan.brief.chars + ' 字 · rev ' + (plan.brief.revision ?? plan.revision)) : null))
+      }
+
       function deskView() {
         const stat = (label, value, color) => h('div', { style: { border: '1px solid ' + c.border, borderRadius: 10, padding: '8px 10px', minWidth: 0 } },
           h('div', { style: { ...faint, fontSize: 10 } }, label),
@@ -1432,6 +1553,7 @@ window.__ModuleLoader__.load({
                   h('div', { style: { fontSize: 9.5, color: c.faint } }, 'STEP ' + (index + 1)),
                   h('div', { style: { fontSize: 11, fontWeight: 600, marginTop: 2 } }, step.label),
                   h('div', { style: { fontSize: 9.5, color: step.done ? c.success : c.faint, marginTop: 2 } }, step.done ? '完成' : '待做'))))),
+            sceneComposer(),
             h('div', { style: { ...faint, margin: '16px 0 5px' } }, '收件箱'),
             pendingIds.length === 0 && conflictTotal === 0
               ? h('div', { style: faint }, '没有待处理事项。')

@@ -37,7 +37,8 @@
 - **记忆检索**：记忆页可按人物/物品/秘密搜索，命中结果可点开对应卡片。
 - **记忆漂移提示**：drift 时显示回查提醒，低保真卡片标「已褪色」。
 - **同人检查**：同人页显示本章 `verification.findings`（severity / message / 引文），没有检查时如实提示。
-- 测试 **167/167**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
+- **场景编排**：书桌新增「本章场景」编辑；`plan.save` 作者命令写 `.dsh-novel-kit/plans/<book>/<chapter>.json`，带 revision 冲突与 ≤1200 字写前 brief。
+- 测试 **169/169**；`npm run acceptance` **19/19**；`npm run acceptance:real` **11/11**。
 
 ## 0.1.14 — 2026-11-22
 
@@ -276,6 +277,7 @@ S0 只读层：只装 kit 也能读懂已有五本账，且绝不改文件。
 - npm 名字与 GitHub 仓库占位：只注册包名、声明 bundle 入口，不挂工具、面板或命令。
 - 目的：市场 PR 要求仓库满 1 天；先建仓，`0.1.0` 发布后即可提 PR。
 - 方案见 `docs/小说插件系列-dsh-novel-kit-整合包设计方案-2026-11-21.md`。
+
 
 
 
