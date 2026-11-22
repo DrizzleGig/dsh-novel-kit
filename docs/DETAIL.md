@@ -62,7 +62,7 @@ novel_chapter_finish({ session_id, segments, memory })  # 检查 → 事务落�
 
 ## 边界
 
-- 当前是 `0.2.0-dev.0`，真实 DSH 界面验收与写盘故障注入未完成；
+- 当前是 `0.3.0`，真实 DSH 界面验收与写盘故障注入未完成；
 - operation/canon 锁是单 Host 进程内锁；
 - 不做 `/cue`、`/fic` 命令读取；旧数据只读兼容不等于完整迁移；
 - 完整清单见 [LIMITS.md](LIMITS.md)，开发状态见 [DEV-STATUS.md](DEV-STATUS.md)。

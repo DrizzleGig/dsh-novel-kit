@@ -1,7 +1,24 @@
-﻿# dsh-novel-kit 0.2.0 开发状态（2026-11-22）
+# dsh-novel-kit 0.3.0 开发状态（2026-11-22）
 
-> 版本：`0.2.0`（未发布）｜基线：`0.1.14`｜设计：[v0.2.0 设计方案](../../docs/小说插件系列-dsh-novel-kit-v0.2.0-设计方案.md)
+> 版本：`0.3.0`（未发布）｜基线：`0.2.0`｜设计：[v0.3.0 UI 重做方案](/D:/Novel-gate/docs/小说插件系列-dsh-novel-kit-v0.3.0-UI重做-设计方案.md)
 > 这一页只写「已经能跑什么、还没做什么、怎么验证」，不替代 README 与 CHANGELOG。
+
+## 0.3.0 这一刀交付了什么
+
+### 界面：从「调试列表」做到「任务卡 + 工作台」
+
+- **NK_SKIN 视觉层**：一套从宿主 alias token 派生的设计 token（暖纸底 / 三级墨色 / 朱砂强调 / 三档圆角），暗亮同源；右栏与工作台共用。
+- **右栏重做**：头（印 / 书名 / 刷新）→ 下一笔卡（朱砂竖线，不再整块反色）→ 待处理 → 本章依据（条形 + 2×2 图例）→ 最近章节 → 五本账 → 固定底栏。删掉重复动作与重复书名下拉。
+- **工作台重做**：`NOVEL WORKBENCH` 头 + 中文状态胶囊 + 页签条（有情况才点红点）+ 主栏/300px 侧栏网格（<1080px 收单栏）。书桌 = hero 卡 + 四指标 + 章节流程 + 本章场景 + 收件箱 + 最近章节，侧栏 = 写作依据 / 五本账 / 本章检查。
+- **其余六域**：根容器换成 `nk-wb-body`，与书桌共用间距与滚动；内部明细行仍是旧 inline 样式（0.3.1 统一）。
+- **状态中文化**：`stateLabel()` 覆盖 idle/planning/writing/awaiting_author/checking/committing/completed/blocked。
+- **UI 快照验收**：`npm run ui:snapshot` 用最小 React 替身渲染同一份 client.js，数据走真实 Host 远端 + 真实账本，产出四张截图。
+
+### 评审确认的缺陷（已修）
+
+- **切书清稿**：`load(nextBook)` 检测切书 → 清空草稿/版本/保存提示，防止 A 书正文按 B 书版本号写回。
+- **未保存保护**：「返回任务卡」有未保存时先变色提醒（未保存 · 再点一次），保存成功自动解除。
+- **文档债**：0.2.0 的 `UI-V2.md` 写「四入口」，与七域不一致；0.3.0 设计文档取代其结构描述。
 
 ## 1. 这一刀交付了什么
 
@@ -113,6 +130,7 @@ npm run acceptance:load     # 8/8
 npm run acceptance          # 19/19
 npm run acceptance:real     # 11/11
 npm run check               # 通过
+npm run ui:snapshot         # 四张 UI 快照（light/dark × panel/workbench）
 ```
 
 新增测试：`settings.test.mjs`、`import-dual.test.mjs`、`context.test.mjs`；`chapter.test.mjs` 增加文风/同人 canon 用例；`takeover.test.mjs` 增加「无记录不默认恢复」。
@@ -154,9 +172,13 @@ npm run check               # 通过
 | `lib/engine/operations.js` / `author.js` | operationId 幂等、作者命令入口 |
 | `client.js` | 过渡面板（顶部开关/模式/导入）+ 可编辑工作台 |
 
-## 6. 下一刀建议
+## 6. 下一刀建议（v0.3.1）
 
-先做「canon 逐条接受/证据回查 + 会话完成结果纳入事务 + 统一收件箱（含页边批注）」三件；它们决定同人能不能顺畅开写、崩溃窗口是否真正闭合、以及任务卡是否从摘要变成可操作。写盘故障注入与真实 DSH UI 验收并行。每刀完成后更新本页与 CHANGELOG，并跑 `node --test` + 两个 acceptance。
+1. **统一收件箱走 Host 聚合**：`InboxItem{kind, book, target, severity, blockScope, revision, status, availableActions}`；右栏/书桌/完整收件箱共用一个结果，处理完并回报才移除。依赖：操作日志先持久化可重放 payload，否则不要上「通用重试」。
+2. **canon 逐条接受 / 证据回查**：按条目 diff，证据（sourceId/chapter/quote）随条目走，不要压成文本再重建。
+3. **会话完成结果进事务**：收尾事务把 session `completed` 与收据一并写，或用 receipt 重放补齐。
+4. **其余六域视图统一到卡片骨架**（正文/故事/记忆/风格/同人/资料）＋ 真实 DSH 亮色主题截图验收。
+5. **页边批注**与统一收件箱入口合并，不另起一套投递。
 
 
 

@@ -1,0 +1,384 @@
+// UI 快照验收：把 client.js 的 Panel / Workbench 真渲染成静态 HTML，再截成 PNG。
+//
+// 为什么要这个：客户端的视觉效果在 DSH 里只能靠重启 + 人眼看，改一次样式要等一轮。
+// 这里用「最小 React 替身」把同一份 client.js 渲染到浏览器里，数据取自真实账本
+// （collectSnapshot），所以看到的就是真实组件在真实数据下的样子，不是另画一套假稿。
+//
+// 用法：
+//   node scripts/ui-snapshot.mjs            # 生成 HTML + 截图（需要本机 Edge）
+//   node scripts/ui-snapshot.mjs --html     # 只生成 HTML，不截图
+//
+// 输出：docs/mockups/live/{panel,workbench}-{light,dark}.html / .png
+import { execFile } from 'node:child_process'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { collectSnapshot } from '../lib/host/snapshot.js'
+
+const here = path.dirname(fileURLToPath(import.meta.url))
+const repo = path.resolve(here, '..')
+const outDir = path.join(repo, 'docs', 'mockups', 'live')
+
+const WS_ROOT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'D:\\斗罗大陆'
+const BOOK = process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : '斗罗：开局炸毁冰火两仪眼'
+const HTML_ONLY = process.argv.includes('--html')
+
+// ── 最小 React 替身 ─────────────────────────────────────────────────────────
+// 只实现 client.js 用到的部分：createElement / useState / useMemo / useCallback /
+// useRef / useEffect。setState 会标脏并触发下一遍渲染，promise 微任务跑完后再渲染一遍，
+// 所以「加载中 → 就绪」的真实状态都能截到。
+
+function createReact() {
+  const stores = new Map()
+  const UNIT = Symbol('unit')
+  let dirty = false
+  let queue = []
+  let currentKey = ''
+  let cursor = 0
+
+  function slot() {
+    const store = stores.get(currentKey)
+    const index = cursor++
+    let entry = store.list[index]
+    if (!entry) { entry = {}; store.list[index] = entry }
+    return entry
+  }
+
+  // useCallback 每次渲染都会给出新函数，effect 的依赖数组里常有它。
+  // 快照工具里把「同槽位的函数」视作相等，否则 effect 会无限重跑。
+  function sameDeps(prev, next) {
+    if (!prev || !next || prev.length !== next.length) return false
+    for (let i = 0; i < prev.length; i++) {
+      if (prev[i] === next[i]) continue
+      if (typeof prev[i] === 'function' && typeof next[i] === 'function') continue
+      return false
+    }
+    return true
+  }
+
+  const React = {
+    createElement(type, props, ...children) {
+      const next = { ...(props || {}) }
+      const flat = children.flat(Infinity).filter((child) => child !== null && child !== undefined && child !== true && child !== false)
+      if (flat.length === 1) next.children = flat[0]
+      else if (flat.length > 1) next.children = flat
+      return { [UNIT]: true, type, props: next }
+    },
+    Fragment: 'Fragment',
+    useState(initial) {
+      const entry = slot()
+      if (!('value' in entry)) entry.value = typeof initial === 'function' ? initial() : initial
+      return [entry.value, (next) => {
+        const value = typeof next === 'function' ? next(entry.value) : next
+        if (!Object.is(value, entry.value)) { entry.value = value; dirty = true }
+      }]
+    },
+    useRef(initial) {
+      const entry = slot()
+      if (!('ref' in entry)) entry.ref = { current: initial }
+      return entry.ref
+    },
+    useMemo(factory, deps) {
+      const entry = slot()
+      if (!('value' in entry) || !sameDeps(entry.deps, deps)) { entry.value = factory(); entry.deps = deps || [] }
+      return entry.value
+    },
+    useCallback(fn, deps) {
+      const entry = slot()
+      if (!('value' in entry) || !sameDeps(entry.deps, deps)) { entry.value = fn; entry.deps = deps || [] }
+      return entry.value
+    },
+    useEffect(fn, deps) {
+      const entry = slot()
+      if (!('deps' in entry) || !sameDeps(entry.deps, deps)) { entry.deps = deps || []; queue.push(fn) }
+    },
+    useLayoutEffect(fn, deps) { React.useEffect(fn, deps) },
+  }
+
+  function walk(node, keyPath) {
+    if (node === null || node === undefined || node === false || node === true) return null
+    if (Array.isArray(node)) return node.map((child, index) => walk(child, keyPath + '.' + index)).filter((child) => child !== null)
+    if (typeof node === 'string' || typeof node === 'number') return node
+    if (typeof node !== 'object' || node[UNIT] !== true) return null
+    const { type, props } = node
+    if (typeof type === 'function') {
+      const prevKey = currentKey
+      const prevCursor = cursor
+      currentKey = keyPath
+      cursor = 0
+      if (!stores.has(keyPath)) stores.set(keyPath, { list: [] })
+      let out
+      try {
+        out = type(props)
+      } finally {
+        currentKey = prevKey
+        cursor = prevCursor
+      }
+      return walk(out, keyPath + '>')
+    }
+    return { [UNIT]: true, type, props, children: walk(props.children, keyPath + '>') }
+  }
+
+  // 真实的加载是异步的：effect 里 await 完才 setState，而且快照要走真实 fs。
+  // 所以每遍渲染后等一个小间隔，用「渲染结果连续两遍一致」当收敛条件。
+  async function render(element, rootKey = 'root') {
+    let tree = null
+    let previous = null
+    for (let pass = 0; pass < 30; pass++) {
+      dirty = false
+      queue = []
+      tree = walk(element, rootKey)
+      for (const fn of queue) fn()
+      const html = serialize(tree)
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      if (html === previous && !dirty) break
+      previous = html
+    }
+    return tree
+  }
+
+  return { React, render }
+}
+
+// ── 序列化：元素树 → HTML 字符串 ───────────────────────────────────────────
+const UNITLESS = new Set(['opacity', 'zIndex', 'fontWeight', 'lineHeight', 'flex', 'flexGrow', 'flexShrink', 'order', 'columnCount', 'zoom', 'aspectRatio', 'WebkitLineClamp'])
+const VOID = new Set(['input', 'br', 'hr', 'img', 'meta', 'link'])
+
+function cssName(key) {
+  return key.replace(/^Webkit/, '-webkit-').replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())
+}
+
+function styleText(style) {
+  if (!style || typeof style !== 'object') return ''
+  return Object.keys(style)
+    .filter((key) => style[key] !== null && style[key] !== undefined && style[key] !== false && style[key] !== '')
+    .map((key) => {
+      let value = style[key]
+      if (typeof value === 'number' && !UNITLESS.has(key)) value = value + 'px'
+      return cssName(key) + ':' + String(value)
+    })
+    .join(';')
+}
+
+function esc(text) {
+  return String(text).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))
+}
+
+function serialize(node) {
+  if (node === null || node === undefined || node === false || node === true) return ''
+  if (Array.isArray(node)) return node.map(serialize).join('')
+  if (typeof node === 'string' || typeof node === 'number') return esc(node)
+  const { type, props, children } = node
+  if (type === 'Fragment') return serialize(children)
+  const attrs = []
+  if (props) {
+    if (props.className) attrs.push(' class="' + esc(props.className) + '"')
+    if (props.id) attrs.push(' id="' + esc(props.id) + '"')
+    const style = styleText(props.style)
+    if (style) attrs.push(' style="' + esc(style) + '"')
+    if (props.title) attrs.push(' title="' + esc(props.title) + '"')
+    if (props.placeholder) attrs.push(' placeholder="' + esc(props.placeholder) + '"')
+    if (props.disabled) attrs.push(' disabled')
+    if (props.checked) attrs.push(' checked')
+    if (props.href) attrs.push(' href="' + esc(props.href) + '"')
+    if (props.src) attrs.push(' src="' + esc(props.src) + '"')
+    if (props.type) attrs.push(' type="' + esc(props.type) + '"')
+    if (props.value !== undefined && props.value !== null && typeof props.value !== 'object') attrs.push(' value="' + esc(props.value) + '"')
+  }
+  if (VOID.has(type)) return '<' + type + attrs.join('') + '>'
+  if (type === 'textarea') return '<textarea' + attrs.join('') + '>' + esc(props && props.value !== undefined && props.value !== null ? props.value : '') + '</textarea>'
+  return '<' + type + attrs.join('') + '>' + serialize(children) + '</' + type + '>'
+}
+
+// ── 从 client.js 里抠出真实样式表 ───────────────────────────────────────────
+function extractCss(source) {
+  const pull = (name) => {
+    const start = source.indexOf('const ' + name + ' = `')
+    if (start < 0) return ''
+    const from = start + ('const ' + name + ' = `').length
+    const end = source.indexOf('\n    `', from)
+    if (end < 0) throw new Error(name + ' 没有闭合')
+    return source.slice(from, end)
+  }
+  const base = pull('UI_CSS')
+  if (!base) throw new Error('client.js 里找不到 UI_CSS')
+  return base + '\n' + pull('NK_SKIN')
+}
+
+// ── 宿主主题替身（DSH 的 alias token 由宿主注入，这里给一套等价暖纸/墨夜）──
+const THEME = {
+  light: {
+    'bg-base': '#f6f2ea',
+    'bg-layer-1': '#fffdf9',
+    'border-l1': '#e4d9c7',
+    'label-primary': '#241d16',
+    'label-secondary': '#5b5145',
+    'label-tertiary': '#8d8172',
+    'label-primary-foreground': '#fff8ef',
+    'brand-primary': '#b5432d',
+    'interactive-bg-hover': 'rgba(181,67,45,.08)',
+    'state-error-primary': '#b3352b',
+    'state-warning-primary': '#9a6c1c',
+    'state-success-primary': '#2f6a5a',
+  },
+  dark: {
+    'bg-base': '#12100e',
+    'bg-layer-1': '#1b1714',
+    'border-l1': '#312a23',
+    'label-primary': '#f3ebdf',
+    'label-secondary': '#bcb0a0',
+    'label-tertiary': '#7e7365',
+    'label-primary-foreground': '#1b1714',
+    'brand-primary': '#d4603f',
+    'interactive-bg-hover': 'rgba(212,96,63,.12)',
+    'state-error-primary': '#e2685c',
+    'state-warning-primary': '#d79b3c',
+    'state-success-primary': '#5fa38f',
+  },
+}
+
+function themeCss(mode) {
+  const vars = THEME[mode]
+  const lines = Object.keys(vars).map((key) => '  --dsw-alias-' + key + ': ' + vars[key] + ';')
+  lines.push('  --dsw-font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;')
+  lines.push('  --dsw-font-mono: "Cascadia Mono", Consolas, monospace;')
+  return ':root {\n' + lines.join('\n') + '\n}'
+}
+
+function page({ title, css, body, width, height, mode }) {
+  return '<!doctype html>\n<html lang="zh-CN" data-nk="' + mode + '">\n<head>\n<meta charset="utf-8">\n<title>' + esc(title) + '</title>\n<style>\n'
+    + themeCss(mode) + '\n'
+    + '* { box-sizing: border-box; }\n'
+    + 'html, body { margin: 0; width: ' + width + 'px; height: ' + height + 'px; overflow: hidden; }\n'
+    + 'body { background: ' + (mode === 'dark' ? '#0b0a09' : '#efe9de') + '; color: var(--dsw-alias-label-primary); font-family: var(--dsw-font-family); -webkit-font-smoothing: antialiased; }\n'
+    + '#stage { width: ' + width + 'px; height: ' + height + 'px; overflow: hidden; background: var(--dsw-alias-bg-base); }\n'
+    + css + '\n'
+    + '</style>\n</head>\n<body><div id="stage">' + body + '</div></body>\n</html>'
+}
+
+// ── 主流程 ────────────────────────────────────────────────────────────────
+const source = await readFile(path.join(repo, 'client.js'), 'utf8')
+const UI_CSS = extractCss(source)
+const mini = createReact()
+
+globalThis.window = { __ModuleLoader__: { load(definition) { globalThis.__plugin = definition } } }
+globalThis.React = mini.React
+
+await import('../client.js')
+const plugin = globalThis.__plugin
+if (!plugin) throw new Error('client.js 没有调用 __ModuleLoader__.load')
+
+const registered = []
+const mod = plugin.factory((name) => {
+  if (name === 'react') return mini.React
+  throw new Error('require 只支持 react：' + name)
+})
+
+const snapshot = await collectSnapshot({ root: WS_ROOT, book: BOOK })
+
+// 真正的面板远端：不走 Service 构造器（需要真 Cordis 上下文），只借原型方法 + 自己的 ctx。
+// 这样快照读到的是真实账本、真实会话、真实建档逻辑，不是手写夹具。
+const { default: RemoteClass } = await import('../lib/host/remote.js')
+const gate = { isOn: () => true, isMasterOn: () => true, master: true }
+const hostCtx = {
+  agents: { get(id) { return { id, cwd: WS_ROOT, session: { id, cwd: WS_ROOT } } } },
+  typert: { register() {} },
+  get(key) {
+    if (key === 'workingDirectory') return { ensure: async () => WS_ROOT }
+    if (key === 'novelKitGate') return gate
+    if (key === 'pluginManager') return null
+    return null
+  },
+}
+const real = Object.create(RemoteClass.prototype)
+real.ctx = hostCtx
+
+const missing = []
+const remote = new Proxy({}, {
+  get(_target, prop) {
+    if (typeof prop !== 'string' || prop === 'then') return undefined
+    if (typeof real[prop] !== 'function') { missing.push(prop); return undefined }
+    return async (...args) => {
+      try {
+        // 真实宿主会按绑定/当前书解析 book；快照里没有会话上下文，这里补上默认书。
+        if (prop === 'getSnapshot' || prop === 'getPlan' || prop === 'getStyle' || prop === 'getCanon' || prop === 'getMemory' || prop === 'getDecisions') {
+          const request = { ...(args[1] || {}) }
+          if (!request.book) request.book = BOOK
+          args[1] = request
+        }
+        const value = await real[prop].apply(real, args)
+        return { ok: true, value }
+      } catch (error) {
+        return { ok: false, error: { code: 'host-error', message: String(error?.message ?? error) } }
+      }
+    }
+  },
+})
+
+const ctx = {
+  effect(fn) { const dispose = fn(); if (typeof dispose === 'function') dispose() },
+  get(key) { return key === 'remote.novelKitPanel' ? remote : null },
+  remote: { $mount: async () => undefined },
+  sidebarRightTabs: { register() { return () => {} } },
+  sidebarRight: { openTab() {} },
+  slots: {
+    inject(_name, fn) { return fn() },
+    register(config, Component) { registered.push({ config, Component }); return () => {} },
+  },
+}
+
+await mod.apply(ctx)
+await mkdir(outDir, { recursive: true })
+
+const targets = []
+for (const { config, Component } of registered) {
+  if (config.name === 'sidebar.right.pane.tab') {
+    targets.push({
+      file: 'panel', width: 384, height: 920,
+      element: mini.React.createElement(Component, { sessionId: 'snapshot-session', remote, layout: null }),
+    })
+  }
+  if (config.name === 'conversation.view') {
+    targets.push({
+      file: 'workbench', width: 1280, height: 880,
+      element: mini.React.createElement(Component, { sessionId: 'snapshot-session', remote, embedded: false }),
+    })
+  }
+}
+
+for (const target of targets) {
+  // 每个产物的根路径必须不同：hook 槽位按路径存，共用 'root' 会让两个组件串状态。
+  const tree = await mini.render(target.element, 'root:' + target.file)
+  const body = serialize(tree)
+  for (const mode of ['light', 'dark']) {
+    const html = page({
+      title: 'dsh-novel-kit · ' + target.file + ' · ' + mode,
+      css: UI_CSS, body, width: target.width, height: target.height, mode,
+    })
+    const htmlPath = path.join(outDir, target.file + '-' + mode + '.html')
+    await writeFile(htmlPath, html, 'utf8')
+    console.log('HTML ' + path.relative(repo, htmlPath))
+    if (HTML_ONLY) continue
+    const pngPath = path.join(outDir, target.file + '-' + mode + '.png')
+    await shot(htmlPath, pngPath, target.width, target.height)
+    console.log('PNG  ' + path.relative(repo, pngPath))
+  }
+}
+
+if (missing.size) console.log('\n没有夹具的读接口（面板会显示错误态）：' + Array.from(missing).join(', '))
+
+function shot(htmlPath, pngPath, width, height) {
+  const edge = process.env.NK_EDGE || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+  return new Promise((resolve, reject) => {
+    execFile(edge, [
+      '--headless=new', '--disable-gpu', '--hide-scrollbars', '--no-first-run',
+      '--force-device-scale-factor=2',
+      '--window-size=' + width + ',' + height,
+      '--screenshot=' + pngPath,
+      'file:///' + htmlPath.replace(/\\/g, '/'),
+    ], { timeout: 120000 }, (error, _stdout, stderr) => {
+      if (error) reject(new Error('Edge 截图失败：' + String(stderr || error.message).slice(0, 400)))
+      else resolve()
+    })
+  })
+}

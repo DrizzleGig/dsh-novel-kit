@@ -144,12 +144,196 @@ window.__ModuleLoader__.load({
     `
 
 
+    // ── v0.3 视觉层 ────────────────────────────────────────────────────────
+    // 旧 UI_CSS 是兼容底子（类名还在用），这一层把设计 token、字阶、间距、卡片、
+    // 工作台布局整套重写，覆盖在上面。所有颜色从宿主 alias token 派生，
+    // 用 color-mix 让同一份样式在暗色/亮色主题下都成立。
+    const NK_SKIN = `
+      .nk-panel, .nk-wb {
+        --nk-line: color-mix(in srgb, var(--dsw-alias-label-primary) 14%, transparent);
+        --nk-line-soft: color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent);
+        --nk-surface: color-mix(in srgb, var(--dsw-alias-label-primary) 4%, transparent);
+        --nk-surface-2: color-mix(in srgb, var(--dsw-alias-label-primary) 7%, transparent);
+        --nk-paper: color-mix(in srgb, var(--dsw-alias-bg-base) 93%, #eedfc9 7%);
+        --nk-accent: color-mix(in srgb, #b5432d 84%, var(--dsw-alias-label-primary));
+        --nk-accent-soft: color-mix(in srgb, #b5432d 13%, transparent);
+        --nk-accent-line: color-mix(in srgb, #b5432d 34%, transparent);
+        --nk-ink: var(--dsw-alias-label-primary);
+        --nk-ink-2: color-mix(in srgb, var(--dsw-alias-label-primary) 66%, transparent);
+        --nk-ink-3: color-mix(in srgb, var(--dsw-alias-label-primary) 44%, transparent);
+        --nk-r-sm: 8px; --nk-r: 11px; --nk-r-lg: 15px;
+        --nk-serif: "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif;
+        --nk-mono: var(--dsw-font-mono, "Cascadia Mono", Consolas, monospace);
+      }
+
+      /* ── 右栏：一个滚动的躯干 + 固定头尾 ── */
+      .nk-panel { gap: 0; padding: 0; background: var(--nk-paper); }
+      .nk-panel > * { flex: 0 0 auto; }
+      .nk-head { position: sticky; top: 0; z-index: 3; padding: 14px 16px 12px; gap: 11px;
+        background: color-mix(in srgb, var(--nk-paper) 88%, transparent); backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--nk-line-soft); }
+      .nk-seal { width: 34px; height: 34px; border-radius: 9px; border-width: 1.5px;
+        border-color: var(--nk-accent-line); color: var(--nk-accent); font-size: 19px;
+        background: var(--nk-accent-soft); }
+      .nk-title { font-size: 16.5px; letter-spacing: .01em; }
+      .nk-book { font-size: 11.5px; color: var(--nk-ink-3); margin-top: 2px; }
+      .nk-actions { gap: 6px; }
+      .nk-btn { height: 26px; padding: 0 10px; font-size: 11.5px; border-radius: var(--nk-r-sm);
+        border-color: var(--nk-line); background: transparent; color: var(--nk-ink-2); transition: background .15s, border-color .15s, color .15s; }
+      .nk-btn:hover { background: var(--nk-surface); border-color: var(--nk-line); color: var(--nk-ink); }
+      .nk-btn.primary { background: var(--nk-accent); border-color: var(--nk-accent); color: #fff8ef; }
+      .nk-btn.primary:hover { filter: brightness(1.06); }
+
+      /* 作品切换：做成一行轻量胶囊，不再占一整块 */
+      .nk-panel > .nk-select { width: auto; margin: 10px 16px 0; height: 30px; font-size: 12px;
+        background: var(--nk-surface); border-color: var(--nk-line-soft); border-radius: var(--nk-r-sm); }
+
+      .nk-panel > section, .nk-panel > div:not(.nk-head):not(.nk-foot) { margin-left: 16px; margin-right: 16px; }
+
+      /* ── 下一笔卡：抬高一层 + 朱砂竖线，不做整块反色 ── */
+      .nk-next { margin-top: 14px; padding: 15px 15px 14px; border-radius: var(--nk-r-lg);
+        background: var(--nk-surface); border: 1px solid var(--nk-line-soft); box-shadow: 0 1px 0 color-mix(in srgb, var(--dsw-alias-label-primary) 5%, transparent);
+        overflow: hidden; }
+      .nk-next::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px;
+        border-radius: 2px; background: var(--nk-accent); opacity: .85; }
+      .nk-next::after { display: none; }
+      .nk-eyebrow { color: var(--nk-accent); font-size: 9.5px; letter-spacing: .16em; }
+      .nk-next-title { font-size: 23px; line-height: 1.3; margin: 7px 0 5px; color: var(--nk-ink); }
+      .nk-next-copy { color: var(--nk-ink-2); font-size: 12px; line-height: 1.65; }
+      .nk-next-meta { margin-top: 11px; gap: 6px; flex-wrap: wrap; }
+      .nk-chip { height: 20px; font-size: 10px; padding: 0 7px; border-color: var(--nk-line-soft);
+        color: var(--nk-ink-3); background: var(--nk-surface); }
+      .nk-next .nk-chip { color: var(--nk-ink-2); border-color: var(--nk-accent-line); background: var(--nk-accent-soft); }
+      .nk-next-btn { height: 34px; margin-top: 13px; border-radius: var(--nk-r-sm); background: var(--nk-accent);
+        color: #fff8ef; font-size: 12.5px; letter-spacing: .01em; }
+      .nk-next-btn:disabled { background: var(--nk-surface-2); color: var(--nk-ink-3); }
+
+      /* ── 分区：卡片化，标题不再是一行 10px 灰字 ── */
+      .nk-section { margin-top: 18px; }
+      .nk-section-head { align-items: center; margin-bottom: 8px; }
+      .nk-section-title { font-family: var(--dsw-font-family, sans-serif); font-size: 11px; font-weight: 600;
+        letter-spacing: .14em; color: var(--nk-ink-3); text-transform: uppercase; }
+      .nk-meta { font-size: 11px; color: var(--nk-ink-3); font-variant-numeric: tabular-nums; }
+      .nk-inbox { background: var(--nk-surface); border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r); overflow: hidden; }
+      .nk-item { padding: 9px 11px; font-size: 12px; line-height: 1.55; border-bottom: 1px solid var(--nk-line-soft); }
+      .nk-item:last-child { border-bottom: 0; }
+      .nk-kind { width: 30px; font-size: 9.5px; letter-spacing: .06em; color: var(--nk-accent); }
+      .nk-kind.amber { color: var(--dsw-alias-state-warning-primary, #a87322); }
+      .nk-kind.jade { color: var(--dsw-alias-state-success-primary, #2f6a5a); }
+      .nk-item-main { color: var(--nk-ink-2); }
+
+      /* ── 四段依据：条形 + 2×2 图例 ── */
+      .nk-ebar { height: 6px; gap: 0; border-radius: 6px; background: var(--nk-surface-2); }
+      .nk-ebar i { border-radius: 0; }
+      .nk-elegend { margin-top: 9px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; font-size: 11px; }
+      .nk-elegend > * { display: flex; align-items: baseline; gap: 5px; color: var(--nk-ink-2); font-variant-numeric: tabular-nums; }
+      .nk-dot { width: 6px; height: 6px; margin-right: 0; }
+
+      /* ── 最近章节 ── */
+      .nk-recent { background: var(--nk-surface); border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r); overflow: hidden; }
+      .nk-recent-row { padding: 8px 11px; font-size: 12px; border-bottom: 1px solid var(--nk-line-soft); }
+      .nk-recent-row:last-child { border-bottom: 0; }
+      .nk-recent-row:hover { background: var(--nk-surface-2); }
+      .nk-recent-no { width: 30px; color: var(--nk-ink-3); font-variant-numeric: tabular-nums; }
+      .nk-recent-title { color: var(--nk-ink); }
+      .nk-recent-state { color: var(--nk-ink-3); font-size: 10px; }
+
+      /* ── 空态 / 底部固定主行动 ── */
+      .nk-panel .nk-book-pick { max-width: 210px; height: 22px; font-size: 11.5px; color: var(--nk-ink-3);
+        border: 1px solid transparent; background: transparent; padding: 0 4px; border-radius: 6px; font-family: inherit; cursor: pointer; }
+      .nk-panel .nk-book-pick:hover { border-color: var(--nk-line-soft); background: var(--nk-surface); }
+
+      .nk-empty { margin-top: 14px; padding: 14px; border-radius: var(--nk-r); border: 1px dashed var(--nk-line);
+        background: transparent; align-items: stretch; gap: 9px; }
+      .nk-foot { position: sticky; bottom: 0; margin-top: auto; padding: 12px 16px;
+        background: color-mix(in srgb, var(--nk-paper) 92%, transparent); backdrop-filter: blur(8px);
+        border-top: 1px solid var(--nk-line-soft); gap: 8px; }
+      .nk-foot .nk-btn { height: 34px; font-size: 12.5px; }
+      .nk-foot .nk-btn.primary { flex: 1.4; }
+      .nk-panel ::-webkit-scrollbar { width: 8px; }
+      .nk-panel ::-webkit-scrollbar-thumb { background: var(--nk-line); border-radius: 8px; }
+
+      /* ── 工作台 ── */
+      .nk-wb { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--nk-paper); color: var(--nk-ink); font-family: var(--dsw-font-family, sans-serif); }
+      .nk-wb-head { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--nk-line-soft); flex: 0 0 auto; }
+      .nk-wb-eyebrow { font-size: 9.5px; letter-spacing: .18em; color: var(--nk-ink-3); text-transform: uppercase; }
+      .nk-wb-title { font-family: var(--nk-serif); font-size: 21px; font-weight: 700; letter-spacing: -.01em; line-height: 1.25; }
+      .nk-wb-status { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px;
+        border: 1px solid var(--nk-line-soft); background: var(--nk-surface); font-size: 10.5px; color: var(--nk-ink-2); }
+      .nk-wb-status b { font-weight: 600; color: var(--nk-ink); }
+      .nk-wb-head-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+      .nk-wb-tabs { display: flex; gap: 4px; padding: 9px 22px; border-bottom: 1px solid var(--nk-line-soft); overflow-x: auto; flex: 0 0 auto; }
+      .nk-tab { appearance: none; border: 1px solid transparent; background: transparent; color: var(--nk-ink-3);
+        height: 26px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-family: inherit; cursor: pointer; white-space: nowrap;
+        transition: background .15s, color .15s, border-color .15s; }
+      .nk-tab:hover { background: var(--nk-surface); color: var(--nk-ink-2); }
+      .nk-tab.active { background: var(--nk-surface-2); border-color: var(--nk-line-soft); color: var(--nk-ink); font-weight: 600; }
+      .nk-tab-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--nk-accent); margin-left: 5px; vertical-align: 1px; }
+      .nk-wb-body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 22px 40px; }
+      .nk-wb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; max-width: 1280px; }
+      .nk-wb-grid.single { grid-template-columns: minmax(0, 1fr); max-width: 900px; }
+      .nk-wb-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+      @media (max-width: 1080px) { .nk-wb-grid { grid-template-columns: minmax(0, 1fr); } .nk-wb-aside { display: none; } }
+
+      .nk-card { background: var(--nk-surface); border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r-lg); padding: 15px 16px; }
+      .nk-card.flush { padding: 0; overflow: hidden; }
+      .nk-card.hero { background: linear-gradient(180deg, var(--nk-accent-soft), transparent 70%), var(--nk-surface); border-color: var(--nk-accent-line); }
+      .nk-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+      .nk-card-title { font-size: 11px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--nk-ink-3); }
+      .nk-card-head .nk-meta { margin-left: auto; }
+      .nk-h1 { font-family: var(--nk-serif); font-size: 26px; font-weight: 700; line-height: 1.3; letter-spacing: -.015em; }
+      .nk-h2 { font-family: var(--nk-serif); font-size: 17px; font-weight: 700; line-height: 1.4; }
+      .nk-h3 { font-size: 13px; font-weight: 600; }
+      .nk-body { font-size: 12.5px; line-height: 1.7; color: var(--nk-ink-2); }
+      .nk-tiny { font-size: 11px; line-height: 1.6; color: var(--nk-ink-3); }
+      .nk-num { font-variant-numeric: tabular-nums; }
+
+      .nk-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+      .nk-stat { border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r); padding: 10px 12px; background: var(--nk-surface); }
+      .nk-stat-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--nk-ink-3); }
+      .nk-stat-value { margin-top: 4px; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+      .nk-stat-value.accent { color: var(--nk-accent); }
+      .nk-stat-value.warn { color: var(--dsw-alias-state-warning-primary, #a87322); }
+
+      .nk-steps { display: flex; gap: 8px; }
+      .nk-step { flex: 1; min-width: 0; border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r); padding: 9px 10px; background: var(--nk-surface); }
+      .nk-step.done { border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary, #2f6a5a) 46%, transparent); background: color-mix(in srgb, var(--dsw-alias-state-success-primary, #2f6a5a) 8%, transparent); }
+      .nk-step.current { border-color: var(--nk-accent-line); background: var(--nk-accent-soft); }
+      .nk-step-no { font-size: 9.5px; letter-spacing: .12em; color: var(--nk-ink-3); }
+      .nk-step-label { font-size: 12px; font-weight: 600; margin-top: 3px; }
+      .nk-step-state { font-size: 10px; margin-top: 3px; color: var(--nk-ink-3); }
+
+      .nk-kv { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--nk-line-soft); font-size: 12px; }
+      .nk-kv:last-child { border-bottom: 0; }
+      .nk-kv-key { color: var(--nk-ink-3); }
+      .nk-kv-val { color: var(--nk-ink); font-variant-numeric: tabular-nums; text-align: right; }
+
+      .nk-empty-state { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 12px 14px; text-align: center; color: var(--nk-ink-3); }
+      .nk-empty-state .nk-glyph { font-family: var(--nk-serif); font-size: 30px; line-height: 1; color: var(--nk-accent); opacity: .5; }
+      .nk-skeleton { border-radius: var(--nk-r); background: linear-gradient(90deg, var(--nk-surface), var(--nk-surface-2), var(--nk-surface));
+        background-size: 200% 100%; animation: nk-shimmer 1.4s ease-in-out infinite; height: 56px; }
+      @keyframes nk-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+      @media (prefers-reduced-motion: reduce) { .nk-skeleton { animation: none; } }
+      .nk-wb :focus-visible, .nk-panel :focus-visible { outline: 2px solid var(--nk-accent-line); outline-offset: 1px; border-radius: var(--nk-r-sm); }
+    `
+
     function unwrap(rpc) {
       if (rpc && rpc.ok === false) {
         const reason = rpc.error ? (rpc.error.message || rpc.error.code) : '未知错误'
         throw new Error('面板读取失败：' + String(reason || ''))
       }
       return rpc && typeof rpc === 'object' && 'value' in rpc ? rpc.value : rpc
+    }
+
+    // 会话状态用中文：面板里混着 writing/committing 这种英文状态，读起来像调试信息。
+    const STATE_LABELS = {
+      idle: '待开始', planning: '计划中', writing: '写作中', awaiting_author: '等拍板',
+      checking: '检查中', committing: '提交中', completed: '已落账', blocked: '阻塞', ready: '就绪',
+    }
+
+    function stateLabel(state) {
+      if (!state) return '—'
+      return STATE_LABELS[state] || String(state)
     }
 
     /** 右栏与工作台共用同一套「下一笔」判断，避免两边给出不同主行动。 */
@@ -828,15 +1012,15 @@ window.__ModuleLoader__.load({
             h('div', { className: 'nk-seal' }, '小'),
             h('div', { className: 'grow', style: { minWidth: 0 } },
               h('div', { className: 'nk-title' }, '小说'),
-              h('div', { className: 'nk-book' }, panelBook)),
+              books.length > 1
+                ? h('select', {
+                    className: 'nk-book-pick',
+                    value: panelBook,
+                    onChange: function (event) { setBook(event.target.value); load(event.target.value) },
+                  }, books.map((name) => h('option', { key: name, value: name }, name)))
+                : h('div', { className: 'nk-book' }, panelBook)),
             h('div', { className: 'nk-actions' },
-              h('button', { className: 'nk-btn primary', onClick: openStudio }, '工作台'),
-              h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置'),
-              h('button', { className: 'nk-btn', onClick: function () { load() } }, state.phase === 'refreshing' ? '…' : '刷新'))),
-          books.length
-            ? h('select', { className: 'nk-select', value: panelBook, onChange: function (event) { setBook(event.target.value); load(event.target.value) } },
-                books.map((name) => h('option', { key: name, value: name }, name)))
-            : null,
+              h('button', { className: 'nk-btn', title: '重新读取账本', onClick: function () { load() } }, state.phase === 'refreshing' ? '…' : '刷新'))),
           h('section', { className: 'nk-next' },
             h('div', { className: 'nk-eyebrow' }, 'NEXT · 下一笔'),
             h('div', { className: 'nk-next-title' }, panelNext.title),
@@ -848,7 +1032,7 @@ window.__ModuleLoader__.load({
               panelPrimary.label, h('span', null, '→'))),
           action.message ? h('div', { style: { fontSize: 11, color: action.phase === 'error' ? c.error : c.sub } }, action.message) : null,
           h('section', { className: 'nk-section' },
-            h('div', { className: 'nk-section-head' }, h('div', { className: 'nk-section-title' }, '待处理'), h('div', { className: 'nk-meta' }, String(panelInbox.length))),
+            h('div', { className: 'nk-section-head' }, h('div', { className: 'nk-section-title' }, '待处理'), panelInbox.length ? h('div', { className: 'nk-meta' }, panelInbox.length + ' 条') : null),
             panelInbox.length === 0
               ? h('div', { className: 'nk-meta' }, '没有待处理事项。')
               : h('div', { className: 'nk-inbox' }, panelInbox.slice(0, 5).map(function (item, index) {
@@ -874,11 +1058,22 @@ window.__ModuleLoader__.load({
                   return h('div', { key: item.chapter, className: 'nk-recent-row' },
                     h('span', { className: 'nk-recent-no' }, 'CH.' + String(item.chapter).padStart(2, '0')),
                     h('span', { className: 'nk-recent-title' }, '第 ' + item.chapter + ' 章'),
-                    h('span', { className: 'nk-recent-state' }, item.state === 'completed' ? '已落账' : (item.state || '进行中')))
+                    h('span', { className: 'nk-recent-state' }, stateLabel(item.state)))
                 }))),
+          data && data.ledgers
+            ? h('section', { className: 'nk-section' },
+                h('div', { className: 'nk-section-head' },
+                  h('div', { className: 'nk-section-title' }, '五本账'),
+                  h('div', { className: 'nk-meta' }, data.master === false ? '总开关关' : '就绪')),
+                h('div', { className: 'nk-inbox' }, Object.entries(data.ledgers).map(function ([name, entry]) {
+                  return h('div', { key: name, className: 'nk-item', style: { alignItems: 'center' } },
+                    h('div', { className: 'nk-kind', style: { width: 44, color: entry ? undefined : c.faint } }, name),
+                    h('div', { className: 'nk-item-main', style: { marginLeft: 'auto', color: entry ? c.sub : c.faint, fontVariantNumeric: 'tabular-nums' } }, entry ? 'rev ' + (entry.revision ?? '-') : '没有这本账'))
+                })))
+            : null,
           h('div', { className: 'nk-foot' },
             h('button', { className: 'nk-btn primary', onClick: openStudio }, '打开工作台'),
-            h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置')))
+            h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置与详情')))
       }
 
       if (!settingsOpen && !details) return renderTask()
@@ -1166,13 +1361,26 @@ window.__ModuleLoader__.load({
       const [planMessage, setPlanMessage] = React.useState('')
       const [operationsData, setOperationsData] = React.useState(null)
       const [previewData, setPreviewData] = React.useState(null)
+      // 有未保存正文时，「返回任务卡」第一次点只给提醒，第二次才真走。
+      const [exitArm, setExitArm] = React.useState(false)
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
+      const bookRef = React.useRef(null)
       const load = React.useCallback(async function (nextBook) {
         if (!remote) {
           setState({ phase: 'error', data: null, error: '工作台读接口未就绪：请更新并重载 DSH。' })
           return
+        }
+        // 切书必须先把编辑器里的稿清掉：否则 A 书的正文会留在 B 书的编辑器里，
+        // 保存时按 B 书的版本号写，轻则串稿，重则把别人的章节覆盖掉。
+        const switching = Boolean(nextBook) && nextBook !== bookRef.current
+        if (switching) {
+          editVersionRef.current = 0
+          bookRef.current = nextBook
+          setDraftState({ text: '', version: 0, hash: null, chars: 0, loaded: false, dirty: false })
+          setSaveState({ phase: 'idle', message: '' })
+          setExitArm(false)
         }
         const requestId = requestRef.current + 1
         requestRef.current = requestId
@@ -1283,6 +1491,7 @@ window.__ModuleLoader__.load({
             loaded: true,
           }))
           setSaveState({ phase: 'saved', message: stillDirty ? '已保存提交版本；之后的新输入还没保存。' : '已保存 v' + (result.draft?.version ?? '?') })
+          if (!stillDirty) setExitArm(false)
           await load()
         } catch (error) {
           setSaveState({ phase: 'error', message: String(error?.message ?? error) })
@@ -1543,26 +1752,28 @@ window.__ModuleLoader__.load({
       }, [remote, sessionId, data, beatOption, beatNote, reloadBeat])
 
       const sectionLabel = { desk: '书桌', chapter: '正文', beat: '故事', fade: '记忆', voice: '风格', fanfic: '同人', data: '资料' }
+      // 页签上的小红点：有事要处理时才亮，不堆计数文字。
+      const sectionDot = {
+        beat: pendingIds.length + conflictTotal > 0,
+        fanfic: !!(data && data.canon && data.settings && data.settings.mode === 'fanfic' && !data.canon.ready),
+        data: !!(data && data.operations && Array.isArray(data.operations.items) && data.operations.items.some((item) => item.status === 'failed')),
+      }
       const sectionButton = (key) => h('button', {
         key,
         type: 'button',
+        className: 'nk-tab' + (section === key ? ' active' : ''),
         onClick: function () { setSection(key) },
-        style: {
-          appearance: 'none', border: '1px solid ' + (section === key ? c.brand : c.border),
-          background: section === key ? c.layer : 'transparent', color: section === key ? c.text : c.sub,
-          borderRadius: 999, padding: '3px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-        },
-      }, sectionLabel[key])
+      }, sectionLabel[key], sectionDot[key] ? h('span', { className: 'nk-tab-dot' }) : null)
 
       function sceneComposer() {
         const plan = planData
         const scenes = plan && Array.isArray(plan.scenes) ? plan.scenes : []
         const draft = planDraft
-        return h('section', { style: { border: '1px solid ' + c.border, borderRadius: 12, background: c.layer, padding: 13, marginTop: 14 } },
-          h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
-            h('div', { style: { fontSize: 14, fontWeight: 700 } }, '本章场景'),
-            h('span', { style: { ...faint, fontSize: 10 } }, plan && plan.available ? 'rev ' + plan.revision : '未建立'),
-            h('div', { style: { marginLeft: 'auto', display: 'flex', gap: 5 } },
+        return h('section', { className: 'nk-card' },
+          h('div', { className: 'nk-card-head' },
+            h('div', { className: 'nk-card-title' }, '本章场景'),
+            h('span', { className: 'nk-meta', style: { marginLeft: 0 } }, plan && plan.available ? 'rev ' + plan.revision : '未建立'),
+            h('div', { style: { marginLeft: 'auto', display: 'flex', gap: 6 } },
               planEditing
                 ? h('div', { style: { display: 'flex', gap: 5 } },
                     h('button', { className: 'nk-btn primary', disabled: planBusy, onClick: savePlanNow }, planBusy ? '保存中…' : '保存计划'),
@@ -1585,7 +1796,7 @@ window.__ModuleLoader__.load({
                 }),
                 h('button', { className: 'nk-btn', style: { marginTop: 6 }, onClick: addScene }, '+ 添加场景'))
             : scenes.length === 0
-              ? h('div', { style: { ...faint, marginTop: 7, fontSize: 11.5 } }, '还没有场景计划。先写 2–4 场：目标 / 冲突 / 转折 / 出口。')
+              ? h('div', { className: 'nk-tiny', style: { marginTop: 7 } }, '还没有场景计划。先写 2–4 场：目标 / 冲突 / 转折 / 出口。')
               : h('div', { style: { marginTop: 8 } },
                   scenes.map(function (scene, index) {
                     return h('div', { key: scene.id || index, style: { display: 'flex', gap: 8, padding: '5px 0', borderBottom: index < scenes.length - 1 ? '1px dashed ' + c.border : 'none' } },
@@ -1596,57 +1807,119 @@ window.__ModuleLoader__.load({
       }
 
       function deskView() {
-        const stat = (label, value, color) => h('div', { style: { border: '1px solid ' + c.border, borderRadius: 10, padding: '8px 10px', minWidth: 0 } },
-          h('div', { style: { ...faint, fontSize: 10 } }, label),
-          h('div', { style: { fontSize: 16, color: color || c.text, marginTop: 2 } }, value))
-        return h('div', { style: { padding: '18px 20px 28px', overflowY: 'auto' } },
-          h('div', { style: { maxWidth: 760 } },
-            h('div', { style: { padding: '18px 18px 16px', border: '1px solid ' + c.border, borderRadius: 16, background: c.layer, boxShadow: '0 2px 14px rgba(0,0,0,.05)' } },
-              h('div', { style: { ...faint, fontSize: 10.5, letterSpacing: '.12em' } }, 'NEXT · 下一笔'),
-              h('div', { style: { fontSize: 24, fontWeight: 700, margin: '7px 0 4px', letterSpacing: '-.02em' } }, nextAction.title),
-              h('div', { style: { color: c.sub, fontSize: 13, lineHeight: 1.7 } }, nextAction.detail),
-              h('div', { style: { display: 'flex', gap: 8, marginTop: 14 } },
-                h('button', { type: 'button', disabled: deskPrimary.disabled || !deskPrimary.action, onClick: deskPrimary.action || undefined, style: { appearance: 'none', border: 'none', background: deskPrimary.disabled ? c.border : c.brand, color: deskPrimary.disabled ? c.faint : c.onBrand, borderRadius: 9, padding: '9px 14px', fontSize: 12.5, fontWeight: 600, cursor: deskPrimary.disabled ? 'default' : 'pointer', fontFamily: 'inherit' } }, deskPrimary.label),
-                h('button', { type: 'button', onClick: function () { load() }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 9, padding: '9px 14px', fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' } }, '刷新'))),
-            saveState.message ? h('div', { style: { marginTop: 8, color: saveState.phase === 'error' ? c.error : c.sub, fontSize: 11.5 } }, saveState.message) : null,
-            h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 14 } },
-              stat('当前章', session ? '第 ' + session.chapter + ' 章' : '—'),
-              stat('状态', session ? session.state : '—', session && session.state === 'completed' ? c.success : c.text),
-              stat('字数', session && session.draft ? (session.draft.chars ?? '?') : '—'),
-              stat('待处理', String(pendingIds.length + conflictTotal), pendingIds.length + conflictTotal > 0 ? c.error : c.text)),
-            h('div', { style: { marginTop: 14, padding: 12, border: '1px solid ' + c.border, borderRadius: 12, background: c.base } },
-              h('div', { style: { ...faint, fontSize: 11, letterSpacing: '.04em', marginBottom: 8 } }, '章节流程'),
-              h('div', { style: { display: 'flex', gap: 6 } },
-                flowSteps.map((step, index) => h('div', { key: step.id, style: { flex: 1, padding: '8px 6px', borderRadius: 8, border: '1px solid ' + (step.done ? c.success : c.border), background: c.layer, textAlign: 'center' } },
-                  h('div', { style: { fontSize: 9.5, color: c.faint } }, 'STEP ' + (index + 1)),
-                  h('div', { style: { fontSize: 11, fontWeight: 600, marginTop: 2 } }, step.label),
-                  h('div', { style: { fontSize: 9.5, color: step.done ? c.success : c.faint, marginTop: 2 } }, step.done ? '完成' : '待做'))))),
-            sceneComposer(),
-            h('div', { style: { ...faint, margin: '16px 0 5px' } }, '收件箱'),
-            pendingIds.length === 0 && conflictTotal === 0
-              && !(data && data.canon && data.settings && data.settings.mode === 'fanfic' && !data.canon.ready)
-              && !(data && data.operations && (data.operations.items || []).some((item) => item.status === 'failed'))
-              ? h('div', { style: faint }, '没有待处理事项。')
-              : h('div', null,
-                  pendingIds.slice(0, 6).map((id) => h('div', { key: id, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
-                    h('span', { style: small }, '拍板 · ' + id),
-                    h('span', { style: { color: c.faint, fontSize: 11 } }, '待作者确认'))),
-                  (data && data.canon && data.settings && data.settings.mode === 'fanfic' && !data.canon.ready)
-                    ? h('div', { style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
-                        h('span', { style: small }, 'canon · 同人原著待确认'),
-                        h('span', { style: { color: c.warning, fontSize: 11 } }, data.canon.contractStatus || 'pending'))
-                    : null,
-                  (data && data.operations && Array.isArray(data.operations.items) ? data.operations.items : []).filter((item) => item.status === 'failed').slice(0, 3).map((operation) => h('div', { key: operation.operationId, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
-                    h('span', { style: small }, '失败 · ' + (operation.command || operation.operationId)),
-                    h('span', { style: { color: c.error, fontSize: 11 } }, operation.error?.message || '操作失败'))),
-                  (data.conflicts && data.conflicts.items ? data.conflicts.items : []).slice(0, 4).map((item, index) => h('div', { key: 'c' + index, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
-                    h('span', { style: small }, '冲突 · ' + (item.entity || '?') + ' · ' + (item.key || '?')),
-                    h('span', { style: { color: c.faint, fontSize: 11 } }, '只报告，不裁决')))),
-            h('div', { style: { ...faint, margin: '16px 0 5px' } }, '最近章节'),
-            (data && data.history && data.history.chapters ? data.history.chapters : []).slice(0, 8).map((item, index) => h('div', { key: index, style: { ...row, borderBottom: '1px dashed ' + c.border, padding: '5px 0' } },
-              h('span', { style: small }, '第 ' + item.chapter + ' 章'),
-              h('span', { style: { color: c.faint, fontSize: 11 } }, (item.state || '?') + (item.chars ? ' · ' + item.chars + ' 字' : '')))),
-          ))
+        const chapters = (data && data.history && Array.isArray(data.history.chapters)) ? data.history.chapters : []
+        const contexts = (data && data.contexts) || []
+        const ledgers = (data && data.ledgers) || {}
+        const operations = (data && data.operations && Array.isArray(data.operations.items)) ? data.operations.items : []
+        const canonPending = !!(data && data.canon && data.settings && data.settings.mode === 'fanfic' && !data.canon.ready)
+        const failedOps = operations.filter((item) => item.status === 'failed')
+        const inboxCount = pendingIds.length + conflictTotal + (canonPending ? 1 : 0) + failedOps.length
+
+        const stat = (label, value, tone) => h('div', { className: 'nk-stat' },
+          h('div', { className: 'nk-stat-label' }, label),
+          h('div', { className: 'nk-stat-value' + (tone ? ' ' + tone : '') }, value))
+
+        const inbox = inboxCount === 0
+          ? h('div', { className: 'nk-tiny', style: { padding: '2px 0 2px' } }, '没有待拍板、冲突或失败操作。')
+          : h('div', null,
+              pendingIds.slice(0, 6).map((id) => h('div', { key: id, className: 'nk-kv' },
+                h('span', { className: 'nk-kv-key' }, '拍板 · ' + id),
+                h('span', { className: 'nk-kv-val', style: { color: c.warning } }, '待作者确认'))),
+              canonPending
+                ? h('div', { className: 'nk-kv' },
+                    h('span', { className: 'nk-kv-key' }, 'canon · 同人原著待确认'),
+                    h('span', { className: 'nk-kv-val', style: { color: c.warning } }, data.canon.contractStatus || 'pending'))
+                : null,
+              failedOps.slice(0, 3).map((operation) => h('div', { key: operation.operationId, className: 'nk-kv' },
+                h('span', { className: 'nk-kv-key' }, '失败 · ' + (operation.command || operation.operationId)),
+                h('span', { className: 'nk-kv-val', style: { color: c.error } }, operation.error?.message || '操作失败'))),
+              (data && data.conflicts && data.conflicts.items ? data.conflicts.items : []).slice(0, 4).map((item, index) => h('div', { key: 'c' + index, className: 'nk-kv' },
+                h('span', { className: 'nk-kv-key' }, '冲突 · ' + (item.entity || '?') + ' · ' + (item.key || '?')),
+                h('span', { className: 'nk-kv-val' }, '只报告，不裁决'))))
+
+        return h('div', { className: 'nk-wb-body' },
+          h('div', { className: 'nk-wb-grid' },
+            h('div', { className: 'nk-wb-col' },
+              h('section', { className: 'nk-card hero' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title', style: { color: 'var(--nk-accent)' } }, 'NEXT · 下一笔'),
+                  h('span', { className: 'nk-meta' }, session ? '第 ' + session.chapter + ' 章 · ' + stateLabel(session.state) : '还没有章节会话')),
+                h('div', { className: 'nk-h1' }, nextAction.title),
+                h('div', { className: 'nk-body', style: { marginTop: 6 } }, nextAction.detail),
+                h('div', { style: { display: 'flex', gap: 8, marginTop: 15, alignItems: 'center', flexWrap: 'wrap' } },
+                  h('button', {
+                    type: 'button', className: 'nk-btn primary',
+                    style: { height: 34, padding: '0 16px', fontSize: 12.5, fontWeight: 600 },
+                    disabled: deskPrimary.disabled || !deskPrimary.action,
+                    onClick: deskPrimary.action || undefined,
+                  }, deskPrimary.label),
+                  h('button', { type: 'button', className: 'nk-btn', style: { height: 34, padding: '0 14px', fontSize: 12.5 }, onClick: function () { load() } }, '刷新'),
+                  saveState.message
+                    ? h('span', { className: 'nk-tiny', style: { color: saveState.phase === 'error' ? c.error : c.sub } }, saveState.message)
+                    : null)),
+
+              h('div', { className: 'nk-stats' },
+                stat('当前章', session ? '第 ' + session.chapter + ' 章' : '—'),
+                stat('状态', session ? stateLabel(session.state) : '—', session && session.state === 'completed' ? 'accent' : ''),
+                stat('字数', session && session.draft ? String(session.draft.chars ?? '—') : '—'),
+                stat('待处理', String(pendingIds.length + conflictTotal), pendingIds.length + conflictTotal > 0 ? 'warn' : '')),
+
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '章节流程'),
+                  h('span', { className: 'nk-meta' }, '计划 → 正文 → 检查 → 收尾')),
+                h('div', { className: 'nk-steps' }, flowSteps.map((step, index) => h('div', { key: step.id, className: 'nk-step' + (step.done ? ' done' : '') },
+                  h('div', { className: 'nk-step-no' }, 'STEP ' + (index + 1)),
+                  h('div', { className: 'nk-step-label' }, step.label),
+                  h('div', { className: 'nk-step-state' }, step.done ? '已完成' : '待做'))))),
+
+              sceneComposer(),
+
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '收件箱'),
+                  h('span', { className: 'nk-meta' }, inboxCount ? inboxCount + ' 条待处理' : '干净')),
+                inbox),
+
+              h('section', { className: 'nk-card flush' },
+                h('div', { className: 'nk-card-head', style: { padding: '14px 16px 0' } },
+                  h('div', { className: 'nk-card-title' }, '最近章节'),
+                  h('span', { className: 'nk-meta' }, chapters.length ? '共 ' + chapters.length + ' 章' : '还没有章节')),
+                chapters.length === 0
+                  ? h('div', { className: 'nk-empty-state' }, h('div', { className: 'nk-tiny' }, '写完第一章并收尾后会出现在这里。'))
+                  : h('div', { className: 'nk-recent' }, chapters.slice(0, 8).map((item, index) => h('div', { key: index, className: 'nk-recent-row' },
+                      h('span', { className: 'nk-recent-no' }, 'CH.' + String(item.chapter || index + 1).padStart(2, '0')),
+                      h('span', { className: 'nk-recent-title' }, '第 ' + item.chapter + ' 章'),
+                      h('span', { className: 'nk-recent-state' }, stateLabel(item.state) + (item.chars ? ' · ' + item.chars + ' 字' : ''))))))),
+
+            h('div', { className: 'nk-wb-col nk-wb-aside' },
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '写作依据')),
+                contexts.length === 0
+                  ? h('div', { className: 'nk-tiny' }, '还没有装配依据。开章后这里显示四段字数与 revision。')
+                  : contexts.map((segment) => h('div', { key: segment.component, className: 'nk-kv' },
+                      h('span', { className: 'nk-kv-key' }, segment.component),
+                      h('span', { className: 'nk-kv-val' }, segment.available
+                        ? (segment.chars || 0) + '/' + (segment.budgetChars ?? '?') + ' · rev ' + (segment.revision ?? '-')
+                        : '未接入')))),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '五本账')),
+                Object.entries(ledgers).map(function ([name, entry]) {
+                  return h('div', { key: name, className: 'nk-kv' },
+                    h('span', { className: 'nk-kv-key' }, name),
+                    h('span', { className: 'nk-kv-val' }, entry ? 'rev ' + (entry.revision ?? '-') : '无'))
+                })),
+              session && session.verification
+                ? h('section', { className: 'nk-card' },
+                    h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '本章检查')),
+                    h('div', { className: 'nk-kv' },
+                      h('span', { className: 'nk-kv-key' }, 'blocker'),
+                      h('span', { className: 'nk-kv-val', style: { color: session.verification.blockers ? c.error : c.sub } }, String(session.verification.blockers))),
+                    h('div', { className: 'nk-kv' },
+                      h('span', { className: 'nk-kv-key' }, 'warning'),
+                      h('span', { className: 'nk-kv-val', style: { color: session.verification.warnings ? c.warning : c.sub } }, String(session.verification.warnings))))
+                : null))
+        )
       }
 
       function beatView() {
@@ -1737,7 +2010,7 @@ window.__ModuleLoader__.load({
           (memory.threads || []).length === 0 ? h('div', { style: faint }, '没有未回收线索。') : (memory.threads || []).slice(0, 12).map((thread) => h('div', { key: thread.id, style: { ...row, borderBottom: '1px dashed ' + c.border } },
             h('span', { style: small }, thread.text), h('span', { style: { ...faint, fontSize: 10 } }, '第 ' + thread.chapter + ' 章'))))
 
-        return h('div', { style: { padding: '18px 20px 28px', overflowY: 'auto' } },
+        return h('div', { className: 'nk-wb-body' },
           h('div', { style: { maxWidth: 820 } },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
               h('div', { style: { fontSize: 20, fontWeight: 700 } }, '故事 / 拍板'),
@@ -1756,7 +2029,7 @@ window.__ModuleLoader__.load({
         const stat = (label, value) => h('div', { style: { border: '1px solid ' + c.border, borderRadius: 12, padding: '10px 12px', background: c.layer } },
           h('div', { style: { ...faint, fontSize: 10.5 } }, label),
           h('div', { style: { fontSize: 18, fontWeight: 700, marginTop: 2 } }, String(value)))
-        return h('div', { style: { padding: '18px 20px 28px', overflowY: 'auto' } },
+        return h('div', { className: 'nk-wb-body' },
           h('div', { style: { maxWidth: 780 } },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
               h('div', { style: { fontSize: 20, fontWeight: 700 } }, '长篇记忆'),
@@ -1820,7 +2093,7 @@ window.__ModuleLoader__.load({
         if (!materialData) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '加载文风…'))
         const style = materialData.style || {}
         const profiles = style.kitProfiles || []
-        return h('div', { style: { padding: '18px 20px 28px', overflowY: 'auto' } },
+        return h('div', { className: 'nk-wb-body' },
           h('div', { style: { maxWidth: 780 } },
             h('div', { style: { fontSize: 20, fontWeight: 700 } }, '风格工作室'),
             h('div', { style: { ...faint, marginTop: 2 } }, '先确认档案，再用于写作简报与决策提示。'),
@@ -1868,7 +2141,7 @@ window.__ModuleLoader__.load({
         const section = (title, items, render) => h('div', { style: { marginTop: 14 } },
           h('div', { style: { ...faint, marginBottom: 5 } }, title + ' · ' + items.length),
           items.length ? items.slice(0, 20).map(render) : h('div', { style: faint }, '暂无'))
-        return h('div', { style: { padding: '18px 20px 28px', overflowY: 'auto' } },
+        return h('div', { className: 'nk-wb-body' },
           h('div', { style: { maxWidth: 780 } },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
               h('div', { style: { fontSize: 20, fontWeight: 700 } }, canon.title || '同人原著'),
@@ -1909,7 +2182,7 @@ window.__ModuleLoader__.load({
           { id: 'verify', label: '检查', done: !!(session && session.verification) },
           { id: 'close', label: '收尾事务', done: !!(session && session.state === 'completed') },
         ]
-        return h('div', { style: { padding: '18px 20px 28px', overflowY: 'auto' } },
+        return h('div', { className: 'nk-wb-body' },
           h('div', { style: { maxWidth: 780 } },
             h('div', { style: { fontSize: 20, fontWeight: 700 } }, '编排 / 运行记录'),
             h('div', { style: { ...faint, marginTop: 2 } }, 'kit 的 runbook：计划 → 正文 → 检查 → 事务收尾；失败时从这里恢复。'),
@@ -1965,32 +2238,41 @@ window.__ModuleLoader__.load({
           ))
       }
 
-      return h('div', { style: { display: 'flex', flexDirection: 'column', height: '100%', background: c.base, color: c.text, fontSize: 13 } },
-        h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px 10px', borderBottom: '1px solid ' + c.border } },
-          h('div', { style: { minWidth: 0 } },
-            h('div', { style: { ...faint, fontSize: 9.5, letterSpacing: '.16em', textTransform: 'uppercase' } }, 'NOVEL WORKBENCH'),
-            h('div', { style: { fontSize: 17, fontWeight: 700, marginTop: 2, letterSpacing: '-.02em' } }, (data && data.book) || '小说工作台')),
-          h('span', { style: { color: data && data.session ? c.sub : c.faint, border: '1px solid ' + c.border, borderRadius: 999, padding: '3px 9px', fontSize: 11 } },
-            data && data.session ? '第 ' + data.session.chapter + ' 章 · ' + data.session.state : '无活动会话'),
-          h('span', { style: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 } },
+      return h('div', { className: 'nk-wb' },
+        h('div', { className: 'nk-wb-head' },
+          h('div', { style: { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 } },
+            h('div', { className: 'nk-wb-eyebrow' }, 'NOVEL WORKBENCH'),
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
+              h('div', { className: 'nk-wb-title' }, (data && data.book) || '小说工作台'),
+              data && data.session
+                ? h('span', { className: 'nk-wb-status' }, h('b', null, '第 ' + data.session.chapter + ' 章'), h('span', null, '·'), h('span', null, stateLabel(data.session.state)))
+                : h('span', { className: 'nk-wb-status' }, '无活动会话'))),
+          h('div', { className: 'nk-wb-head-actions' },
             books.length
               ? h('select', {
+                  className: 'nk-select',
                   value: book || (data && data.book) || '',
                   onChange: function (event) { setBook(event.target.value); load(event.target.value) },
-                  style: { fontSize: 12, padding: '5px 8px', borderRadius: 8, border: '1px solid ' + c.border, background: c.layer, color: c.text, fontFamily: 'inherit' },
+                  style: { width: 'auto', height: 30, margin: 0, fontSize: 12, padding: '0 8px' },
                 }, books.map((name) => h('option', { key: name, value: name }, name)))
               : null,
-            h('button', {
-              type: 'button',
-              onClick: function () { load() },
-              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-            }, state.phase === 'refreshing' ? '…' : '刷新'),
+            h('button', { type: 'button', className: 'nk-btn', onClick: function () { load() } }, state.phase === 'refreshing' ? '…' : '刷新'),
             embedded && onClose
-              ? h('button', { type: 'button', onClick: onClose, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' } }, '返回任务卡')
+              ? h('button', {
+                  type: 'button',
+                  className: 'nk-btn',
+                  title: draftState.dirty ? '正文还没保存' : '回到右栏任务卡',
+                  style: exitArm ? { borderColor: c.warning, color: c.warning } : undefined,
+                  onClick: function () {
+                    if (draftState.dirty && !exitArm) { setExitArm(true); return }
+                    setExitArm(false)
+                    onClose()
+                  },
+                }, exitArm ? '未保存 · 再点一次' : '返回任务卡')
               : null),
         ),
-        state.error ? h('div', { style: { color: c.error, padding: '8px 18px' } }, state.error) : null,
-        h('div', { style: { display: 'flex', gap: 6, padding: '8px 18px', borderBottom: '1px solid ' + c.border, background: c.layer } },
+        state.error ? h('div', { style: { color: c.error, padding: '8px 22px', fontSize: 12 } }, state.error) : null,
+        h('div', { className: 'nk-wb-tabs' },
           ['desk', 'chapter', 'beat', 'fade', 'voice', 'fanfic', 'data'].map(sectionButton)),
         section === 'chapter' ? h('div', { style: { display: 'flex', gap: 0, flex: 1, minHeight: 0 } },
           h('div', { style: { flex: 1, minWidth: 0, padding: '10px 14px', display: 'flex', flexDirection: 'column', minHeight: 0 } },
@@ -2125,7 +2407,7 @@ window.__ModuleLoader__.load({
           if (typeof document !== 'undefined' && !document.getElementById('dsh-novel-kit-ui-css')) {
             const tag = document.createElement('style')
             tag.id = 'dsh-novel-kit-ui-css'
-            tag.textContent = UI_CSS
+            tag.textContent = UI_CSS + '\n' + NK_SKIN
             document.head.appendChild(tag)
             ctx.effect(() => () => { try { tag.remove() } catch { /* ignore */ } })
           }
