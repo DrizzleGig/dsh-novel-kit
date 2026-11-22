@@ -42,7 +42,7 @@ function collectText(node, out = []) {
   return out
 }
 
-test('client.js：能装进宿主替身并渲染面板与工作台，不抛异常', async () => {
+test('client.js：能装进宿主替身并渲染小说工作台，不抛异常', async () => {
   const registered = []
   let plugin = null
   globalThis.window = {
@@ -66,8 +66,6 @@ test('client.js：能装进宿主替身并渲染面板与工作台，不抛异�
     effect(fn) { const dispose = fn(); if (typeof dispose === 'function') dispose() },
     get(key) { return key === 'remote.novelKitPanel' ? fakeRemote : null },
     remote: { $mount: async () => undefined },
-    sidebarRightTabs: { register() { return () => {} } },
-    sidebarRight: { openTab() {} },
     slots: {
       inject(_name, fn) { return fn() },
       register(config, Component) {
@@ -78,13 +76,12 @@ test('client.js：能装进宿主替身并渲染面板与工作台，不抛异�
   }
   await mod.apply(ctx)
 
-  assert.equal(registered.length, 4, '注册 panel / workbench / 两个 header 按钮')
-  for (const { config, Component } of registered) {
-    assert.equal(typeof Component, 'function', config.name + ' 组件是函数')
-    const tree = Component({ sessionId: 's-test', remote: fakeRemote, open: () => {} })
-    assert.ok(tree, config.name + ' 渲染出树')
-    const text = collectText(tree).join(' ')
-    assert.ok(text.length > 0, config.name + ' 渲染出文本')
-    if (config.name !== 'conversation.session.header.utilities') assert.match(text, /加载中|小说|章节|账本/, config.name + ' 首屏文案')
-  }
+  assert.equal(registered.length, 1, '只剩一个入口：conversation.view')
+  const { config, Component } = registered[0]
+  assert.equal(config.name, 'conversation.view')
+  assert.equal(typeof Component, 'function', config.name + ' 组件是函数')
+  const tree = Component({ sessionId: 's-test', remote: fakeRemote })
+  assert.ok(tree, config.name + ' 渲染出树')
+  const text = collectText(tree).join(' ')
+  assert.match(text, /小说工作台|加载|章节|书桌/, config.name + ' 首屏文案')
 })

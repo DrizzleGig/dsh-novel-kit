@@ -330,18 +330,27 @@ const ctx = {
 await mod.apply(ctx)
 await mkdir(outDir, { recursive: true })
 
+const PAGES = [
+  ['desk', '书桌'],
+  ['chapter', '正文'],
+  ['beat', '决策'],
+  ['fade', '记忆'],
+  ['voice', '风格工作室'],
+  ['fanfic', '同人'],
+  ['data', '资料与设置'],
+]
+
 const targets = []
 for (const { config, Component } of registered) {
-  if (config.name === 'sidebar.right.pane.tab') {
+  if (config.name !== 'conversation.view') continue
+  // 每一页各出一张：改哪页就能立刻看见哪页，不用来回点。
+  for (const [key, label] of PAGES) {
     targets.push({
-      file: 'panel', width: 384, height: 920,
-      element: mini.React.createElement(Component, { sessionId: 'snapshot-session', remote, layout: null }),
-    })
-  }
-  if (config.name === 'conversation.view') {
-    targets.push({
-      file: 'workbench', width: 1280, height: 880,
-      element: mini.React.createElement(Component, { sessionId: 'snapshot-session', remote, embedded: false }),
+      file: 'wb-' + key,
+      label,
+      width: 1440,
+      height: 900,
+      element: mini.React.createElement(Component, { sessionId: 'snapshot-session', remote, initialSection: key }),
     })
   }
 }

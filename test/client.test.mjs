@@ -1,4 +1,7 @@
-﻿// S2：客户端面板结构 + 只读契约对齐。
+// 客户端结构 + 只读契约对齐。
+//
+// 0.4.0 起只有**一个**界面入口：conversation.view「小说工作台」。
+// 右栏页签、会话头部按钮都已删除，这里用测试把「不能偷偷加回第二个入口」锁住。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -44,6 +47,7 @@ function fakeCtx() {
       inject(key, cb) { calls.injected.push(key); return cb() },
       register(options, component) { calls.registered.push({ options, component }); return () => {} },
     },
+    // 宿主仍然提供这两个服务；插件不该再用它们。
     sidebarRightTabs: {
       register(definition) { calls.tabs.push(definition); return () => {} },
     },
@@ -59,40 +63,45 @@ function fakeCtx() {
   return { ctx, calls, panel }
 }
 
-test('client：注册「小说」tab、面板与会话头入口，并挂载 panel remote', async () => {
+test('client：只注册一个界面入口——conversation.view「小说工作台」', async () => {
   const module = await loadClient()
   const { ctx, calls } = fakeCtx()
   await module.apply(ctx)
 
-  assert.equal(calls.mounted, 1)
-  assert.equal(calls.contract.package, 'dsh-novel-kit')
-  assert.equal(calls.tabs.length, 1)
-  assert.equal(calls.tabs[0].id, 'novel-kit')
-  assert.equal(calls.tabs[0].kind, 'novel-kit')
-  assert.equal(calls.tabs[0].title(), '小说')
+  assert.equal(calls.mounted, 1, '仍然挂载 panel remote')
+  assert.equal(calls.registered.length, 1, '只能有一个 slot 注册')
+  assert.equal(calls.injected.length, 1, '只注入 conversation.view')
+  assert.equal(calls.injected[0], 'conversation.view')
 
-  const pane = calls.registered.find(({ options }) => options.name === 'sidebar.right.pane.tab')
-  assert.ok(pane)
-  assert.equal(pane.options.key, 'novel-kit')
-  assert.equal(typeof pane.options.inject, 'function')
-  const props = pane.options.inject('session-1')
+  const view = calls.registered[0].options
+  assert.equal(view.name, 'conversation.view')
+  assert.equal(view.id, 'novel-kit.chapter')
+  assert.equal(view.label, '小说工作台')
+  assert.equal(typeof calls.registered[0].component, 'function')
+  const props = view.inject('session-1')
   assert.equal(props.sessionId, 'session-1')
   assert.equal(typeof props.remote.getSnapshot, 'function')
-
-  const header = calls.registered.find(({ options }) => options.name === 'conversation.session.header.utilities')
-  assert.ok(header)
-  header.options.inject('session-1').open()
-  assert.equal(calls.openedTab, 'novel-kit')
 })
 
-test('client：面板数据走 snapshot remote，不执行命令', async () => {
+test('client：不再注册右栏页签与会话头部按钮', async () => {
+  const module = await loadClient()
+  const { ctx, calls } = fakeCtx()
+  await module.apply(ctx)
+
+  assert.equal(calls.tabs.length, 0, '不该再注册 sidebarRightTabs')
+  assert.equal(calls.openedTab, null, '不该再有 openTab 之类的跳转')
+  const names = calls.registered.map(({ options }) => options.name)
+  assert.ok(!names.includes('sidebar.right.pane.tab'), '右栏「小说」页签必须删除')
+  assert.ok(!names.includes('conversation.session.header.utilities'), '头部「小说 / 工作台」按钮必须删除')
+})
+
+test('client：工作台数据走 snapshot remote，不执行命令', async () => {
   const module = await loadClient()
   const { ctx, calls, panel } = fakeCtx()
   let executed = 0
-  ctx.remote.commands = { execute: async () => { executed += 1; throw new Error('面板不应执行命令') } }
+  ctx.remote.commands = { execute: async () => { executed += 1; throw new Error('界面不应执行命令') } }
   await module.apply(ctx)
-  const pane = calls.registered.find(({ options }) => options.name === 'sidebar.right.pane.tab')
-  const face = pane.options.inject('session-1')
+  const face = calls.registered[0].options.inject('session-1')
   const snap = await face.remote.getSnapshot('session-1', { book: '书' })
   assert.equal(snap.ok, true)
   assert.equal(snap.value.workspace.beat[0], '书')
@@ -106,20 +115,12 @@ test('契约两侧一致：客户端内嵌的 descriptor 与 Host 相同', async
     assert.ok(client.includes(`method: '${descriptor.method}'`), `client.js 缺少 ${descriptor.method} 的 descriptor`)
   }
   assert.ok(client.includes('$mount(TYPERT_REMOTE)'))
-  assert.ok(!client.includes("commands.execute("), '面板不允许执行命令')
+  assert.ok(!client.includes('commands.execute('), '界面不允许执行命令')
 })
 
-test('client：注册 conversation.view 章节工作台', async () => {
-  const module = await loadClient()
-  const { ctx, calls } = fakeCtx()
-  await module.apply(ctx)
-  const view = calls.registered.find(({ options }) => options.name === 'conversation.view')
-  assert.ok(view, '要注册 conversation.view')
-  assert.equal(view.options.id, 'novel-kit.chapter')
-  assert.equal(view.options.label, '小说工作台')
-  assert.equal(typeof view.component, 'function')
-  const props = view.options.inject('session-1')
-  assert.equal(props.sessionId, 'session-1')
-  assert.equal(typeof props.remote.getSnapshot, 'function')
+test('client：源码里不再残留右栏面板与头部按钮', async () => {
+  const client = await readFile(path.join(here, '..', 'client.js'), 'utf8')
+  for (const marker of ['function Panel(', 'sidebar.right.pane.tab', 'sidebarRightTabs.register', 'conversation.session.header.utilities']) {
+    assert.ok(!client.includes(marker), `client.js 不该再包含 ${marker}`)
+  }
 })
-

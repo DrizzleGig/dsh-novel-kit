@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.0 — 2026-11-22
+
+一个插件只留一个界面（未发布）：
+
+- **唯一入口**：删除右栏「小说」页签、会话头部「小说 / 工作台」两个按钮；只保留 `conversation.view`「小说工作台」。`client.js` 因此从 177 KB 降到约 111 KB（右栏面板整块移除）。
+- **插件改名**：`locale/zh-CN.json` 的 name/title 改为「小说工作台」，`locale/en.json` 改为 `Novel Workbench`；市场简介同步。
+- **左竖栏 IA**：书桌 / 正文 / 决策 / 记忆 / 风格 / 同人 / 资料，主区只渲染当前页；每页有自己的页头（标题 + 一句说明 + 页内动作）。
+- **导入动线进工作台**：右栏删掉后，导入必须在新界面里闭环——
+  - 「风格工作室」顶部是「导入作品 · 学文笔」：填目录 → 浏览 `.txt/.md` → 选中一本 → 走 `importStyle`；
+  - 「同人」顶部是「导入原著 · 建 canon」：同一套选择器，走 `importCanon`；
+  - 无作品时提示先建书，导入绑定到当前作品。
+- **工作区设置**：总开关（`getSettings`/`setMaster`）、本项目模式（`setMode`，原创/同人）、新建作品（`createBook`）从右栏迁到「资料与设置」页；`/novel legacy` 接管提示保留。
+- **决策页改名**：「故事 → 地图」改为「决策 → 拍板记录」，与内容一致。
+- **测试更新**：`client.test.mjs` 改为锁「只能有一个入口」，新增「源码里不许残留右栏面板与头部按钮」的回归测试；`acceptance:load` 同步。测试 **170/170**。
+- 新增 `initialSection` 仅用于快照验收：`npm run ui:snapshot` 现在逐页出图（`wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`）。
+
 ## 0.3.0 — 2026-11-22
 
 UI 重做 + 对象绑定修复（未发布）：

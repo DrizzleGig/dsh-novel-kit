@@ -1,7 +1,35 @@
-# dsh-novel-kit 0.3.0 开发状态（2026-11-22）
+# dsh-novel-kit 0.4.0 开发状态（2026-11-22）
 
-> 版本：`0.3.0`（未发布）｜基线：`0.2.0`｜设计：[v0.3.0 UI 重做方案](/D:/Novel-gate/docs/小说插件系列-dsh-novel-kit-v0.3.0-UI重做-设计方案.md)
+> 版本：`0.4.0`（未发布）｜基线：`0.3.0`｜设计：[v0.4.0 单入口与作者动线](/D:/Novel-gate/docs/小说插件系列-dsh-novel-kit-v0.4.0-单入口与作者动线.md)
 > 这一页只写「已经能跑什么、还没做什么、怎么验证」，不替代 README 与 CHANGELOG。
+
+## 0.4.0 这一刀交付了什么
+
+### 一个插件一个界面
+
+- 删除右栏「小说」页签、会话头部「小说 / 工作台」两个按钮，只保留 `conversation.view`「小说工作台」；`client.js` 177 KB → 111 KB。
+- 插件名改「小说工作台」（zh）/ `Novel Workbench`（en）。
+- 测试锁死：`client.test.mjs` 断言只注册一个 slot，且源码不许残留 `sidebar.right.pane.tab` / `conversation.session.header.utilities` / `function Panel(`。
+
+### 左竖栏七页
+
+- 书桌 / 正文 / 决策 / 记忆 / 风格 / 同人 / 资料，主区只渲染当前页；每页 `pageHead(title, sub, actions)`。
+- 有情况才点红点（拍板+冲突 / canon 未确认 / 失败操作）。
+- 竖栏底部显示当前作品与「工作区设置」。
+
+### 导入动线进界面
+
+- 风格工作室顶部：目录 → 浏览 `.txt/.md` → 选一本 → `importStyle`；
+- 同人顶部：同一套选择器 → `importCanon`；
+- 无作品时提示先建书（导入绑定到当前作品）。
+
+### 右栏能力迁移
+
+- 总开关 `setMaster`、模式 `setMode`、新建作品 `createBook` 全部迁到「资料 · 工作区设置」；`/novel legacy` 提示保留。
+
+### 快照验收覆盖七页
+
+- `npm run ui:snapshot` 产出 `wb-{desk,chapter,beat,fade,voice,fanfic,data}-{light,dark}.png`（每页一张，改哪页看哪页）。
 
 ## 0.3.0 这一刀交付了什么
 

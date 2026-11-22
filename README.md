@@ -1,14 +1,14 @@
-# dsh-novel-kit · 小说整合包
+# dsh-novel-kit · 小说工作台
 
-> **一个包，写完一部长篇。** 章节引擎、四段写作依据、八个 `novel_*` 工具、右栏任务卡与七域小说工作台，都在一个 DSH 插件里。
+> **一个界面，写完一部长篇。** 书桌、正文、决策、记忆、风格工作室、同人、资料七页收在一个「小说工作台」里：章节引擎、四段写作依据、八个 `novel_*` 工具。
 >
-> 当前 `0.3.0`：三层开关、原创/同人模式、文风/世界观双导入、作者命令链、完整草稿与收尾事务；这一版把右栏与工作台重做成「任务卡 + 主栏/侧栏工作台」，并修掉切书串稿与未保存返回两个缺陷。
+> 当前 `0.4.0`：入口收敛成一个页面（右栏页签与会话头按钮已删除），导入作品的动线进了风格工作室与同人页，右栏的总开关/模式/新建作品迁到「资料 · 工作区设置」。
 
 [![stars](https://img.shields.io/github/stars/DrizzleGig/dsh-novel-kit)](https://github.com/DrizzleGig/dsh-novel-kit/stargazers)
 
-`0.3.0` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness
+`0.4.0` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness
 
-![右栏任务卡（暗色）](docs/mockups/live/panel-dark.png)
+![小说工作台 · 书桌](docs/mockups/live/wb-desk-dark.png)
 
 ## 为什么是整合包
 
@@ -20,7 +20,7 @@ AI 写长篇有三个绕不过去的问题：
 
 kit 把「事件 / 拍板 / 记忆 / 文风 / 同人世界观 / 编排」收进一个安装，在每次动笔前装配成四段依据，在收尾时把正文、剧情账、记忆卡放进一个可恢复事务。它不是五个插件拼在一起，而是**一条从导入、计划、拍板、写作、检查到落账的链**。
 
-## 0.3.0 核心能力
+## 0.4.0 核心能力
 
 ### 三层开关，先管住调用
 
@@ -92,7 +92,7 @@ novel_chapter_finish({ session_id, segments, memory })  # 检查 → 事务落�
   - 资料：四段依据、文风档案、canon 摘要。
 - **视觉**：暖纸底 + 三级墨色 + 朱砂强调，全部由宿主主题 token 用 `color-mix` 派生，暗色/亮色同一份样式；字阶与间距见 [v0.3.0 设计文档](/D:/Novel-gate/docs/小说插件系列-dsh-novel-kit-v0.3.0-UI重做-设计方案.md)。
 
-![小说工作台（暗色）](docs/mockups/live/workbench-dark.png)
+![小说工作台 · 决策页](docs/mockups/live/wb-beat-dark.png)
 
 ## 安装与启用
 
@@ -214,7 +214,7 @@ npm pack --dry-run          58 文件
 
 ## 边界与未完成
 
-- 这是 `0.3.0`，不是最终稳定版；
+- 这是 `0.4.0`，不是最终稳定版；
 - 真实 DSH 界面验收、写盘故障注入还没完成；
 - operation/canon 锁目前是单 Host 进程内锁，多进程同时写同一工作区未覆盖；
 - canon 逐条接受/证据回查、页边批注、文风规则/锚句编辑仍在后续；

@@ -314,6 +314,47 @@ window.__ModuleLoader__.load({
         background-size: 200% 100%; animation: nk-shimmer 1.4s ease-in-out infinite; height: 56px; }
       @keyframes nk-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
       @media (prefers-reduced-motion: reduce) { .nk-skeleton { animation: none; } }
+      /* ── 0.4.0：唯一入口 = 左竖栏 + 主区 ── */
+      .nk-wb { flex-direction: row; align-items: stretch; }
+      .nk-rail { width: 172px; flex: 0 0 172px; display: flex; flex-direction: column; gap: 2px; padding: 16px 10px 14px;
+        border-right: 1px solid var(--nk-line-soft); background: color-mix(in srgb, var(--nk-paper) 70%, transparent); }
+      .nk-rail-brand { display: flex; align-items: center; gap: 8px; padding: 0 6px 14px; }
+      .nk-rail-seal { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-family: var(--nk-serif);
+        font-size: 15px; font-weight: 700; color: var(--nk-accent); border: 1.5px solid var(--nk-accent-line); background: var(--nk-accent-soft); }
+      .nk-rail-name { font-size: 12.5px; font-weight: 600; letter-spacing: .02em; }
+      .nk-rail-item { appearance: none; border: 1px solid transparent; background: transparent; color: var(--nk-ink-2); font-family: inherit;
+        display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 10px; border-radius: 9px; font-size: 13px; cursor: pointer;
+        text-align: left; transition: background .14s, color .14s, border-color .14s; }
+      .nk-rail-item:hover { background: var(--nk-surface); color: var(--nk-ink); }
+      .nk-rail-item.active { background: var(--nk-surface-2); border-color: var(--nk-line-soft); color: var(--nk-ink); font-weight: 600; }
+      .nk-rail-glyph { width: 18px; text-align: center; font-family: var(--nk-serif); font-size: 14px; color: var(--nk-ink-3); }
+      .nk-rail-item.active .nk-rail-glyph { color: var(--nk-accent); }
+      .nk-rail-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--nk-accent); margin-left: auto; }
+      .nk-rail-foot { margin-top: auto; padding: 10px 6px 0; border-top: 1px solid var(--nk-line-soft); display: flex; flex-direction: column; gap: 6px; }
+      .nk-rail-hint { font-size: 10.5px; line-height: 1.5; color: var(--nk-ink-3); }
+      .nk-wb-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .nk-page-head { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 16px; }
+      .nk-page-head .nk-h2 { margin: 0; }
+      .nk-page-sub { font-size: 12px; color: var(--nk-ink-3); margin-top: 3px; }
+      .nk-page-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+      .nk-split { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 16px; align-items: start; }
+      .nk-split-list { display: flex; flex-direction: column; gap: 8px; }
+      @media (max-width: 1180px) { .nk-split { grid-template-columns: minmax(0, 1fr); } }
+      .nk-import-row { display: flex; gap: 8px; align-items: center; }
+      .nk-input { flex: 1; min-width: 0; height: 32px; border: 1px solid var(--nk-line); border-radius: var(--nk-r-sm);
+        background: var(--nk-surface); color: var(--nk-ink); padding: 0 10px; font-size: 12px; font-family: inherit; }
+      .nk-input::placeholder { color: var(--nk-ink-3); }
+      .nk-file-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--nk-r-sm);
+        border: 1px solid var(--nk-line-soft); background: var(--nk-surface); font-size: 12px; }
+      .nk-file-row:hover { border-color: var(--nk-line); }
+      .nk-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .nk-file-meta { color: var(--nk-ink-3); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+      .nk-band { display: grid; grid-template-columns: 84px 1fr 76px; gap: 8px; align-items: center; font-size: 11.5px; padding: 4px 0; }
+      .nk-band-track { position: relative; height: 5px; border-radius: 5px; background: var(--nk-surface-2); overflow: hidden; }
+      .nk-band-fill { position: absolute; height: 100%; border-radius: 5px; background: color-mix(in srgb, var(--nk-accent) 70%, transparent); }
+      .nk-band-val { text-align: right; color: var(--nk-ink-3); font-variant-numeric: tabular-nums; }
+      .nk-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 5px; font-size: 10.5px;
+        color: var(--nk-ink-2); background: var(--nk-surface-2); border: 1px solid var(--nk-line-soft); }
       .nk-wb :focus-visible, .nk-panel :focus-visible { outline: 2px solid var(--nk-accent-line); outline-offset: 1px; border-radius: var(--nk-r-sm); }
     `
 
@@ -363,980 +404,16 @@ window.__ModuleLoader__.load({
       return { kind: 'write', chapter, title: '写第 ' + session.chapter + ' 章', detail: '依据已装配，打开工作台的章节页开始写。' }
     }
 
-    function Panel(props) {
-      const { sessionId, remote, layout } = props
-      const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
-      const [book, setBook] = React.useState('')
-      const [mode, setMode] = React.useState('task')
-      const [pendingTakeover, setPendingTakeover] = React.useState(false)
-      const [pendingCanon, setPendingCanon] = React.useState(false)
-      const [details, setDetails] = React.useState(false)
-      const [settingsOpen, setSettingsOpen] = React.useState(false)
-      const [startPhase, setStartPhase] = React.useState('idle')
-      const [newBook, setNewBook] = React.useState('')
-      const [canonEdit, setCanonEdit] = React.useState(null)
-      const [action, setAction] = React.useState({ phase: 'idle', message: '' })
-      const [tab, setTab] = React.useState('overview')
-      const [tabData, setTabData] = React.useState({})
-      const [pendingDecision, setPendingDecision] = React.useState(null)
-      const [query, setQuery] = React.useState('')
-      const [importPath, setImportPath] = React.useState('')
-      const [searchHits, setSearchHits] = React.useState(null)
-
-      const openTab = React.useCallback(async function (name) {
-        setTab(name)
-        if (name === 'overview' || name === 'conflicts') return
-        try {
-          const activeBook = book || (state.data && state.data.book) || null
-          const pending = name === 'decisions'
-            ? remote.getDecisions(sessionId, { book: activeBook })
-            : name === 'memory'
-              ? remote.getMemory(sessionId, { book: activeBook, limit: 40, currentChapter: state.data && state.data.session ? state.data.session.chapter : null })
-              : name === 'style'
-                ? remote.getStyle(sessionId, { book: activeBook })
-                : remote.getCanon(sessionId, { book: activeBook })
-          const value = await Promise.resolve(pending).then(unwrap)
-          setTabData((prev) => ({ ...prev, [name]: value }))
-        } catch (error) {
-          setTabData((prev) => ({ ...prev, [name]: { error: String(error?.message ?? error) } }))
-        }
-      }, [remote, sessionId, book, state.data])
-
-      const runDecide = React.useCallback(async function (proposalId, option, action = 'adopt') {
-        const chapterSessionId = state.data && state.data.session ? state.data.session.id : null
-        if (!chapterSessionId) {
-          setAction({ phase: 'error', message: '没有活动章节会话，无法写拍板账' })
-          return
-        }
-        setPendingDecision(null)
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(remote.decide(sessionId, { chapterSessionId, proposalId, action, option })).then(unwrap)
-          setAction({
-            phase: 'done',
-            message: action === 'reject'
-              ? (result.idempotent ? '这条已经处理过' : '已拒绝这个提案')
-              : (result.written ? '已记录选择（设定生效以对应账本为准）' : (result.idempotent ? '这条已经拍过了' : '未写入')),
-          })
-          setTabData((prev) => { const next = { ...prev }; delete next.decisions; return next })
-          await openTab('decisions')
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, state.data, openTab])
-
-      const runSearch = React.useCallback(async function () {
-        const term = query.trim()
-        if (!term) { setSearchHits(null); return }
-        const activeBook = book || (state.data && state.data.book) || null
-        try {
-          const result = await Promise.resolve(remote.searchMemory(sessionId, { book: activeBook, query: term, limit: 40 })).then(unwrap)
-          setSearchHits(result)
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, book, state.data, query])
-
-      const runMemory = React.useCallback(async function (cardId, memoryAction) {
-        const activeBook = book || (state.data && state.data.book) || null
-        if (!activeBook) { setAction({ phase: 'error', message: '没有书，无法改记忆' }); return }
-        setAction({ phase: 'busy', message: '' })
-        try {
-          await Promise.resolve(remote.memoryAction(sessionId, { book: activeBook, cardId, action: memoryAction })).then(unwrap)
-          setAction({ phase: 'done', message: memoryAction === 'pin' ? '已钉住' : memoryAction === 'forget' ? '已遗忘' : '已恢复' })
-          setTabData((prev) => { const next = { ...prev }; delete next.memory; return next })
-          await openTab('memory')
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, book, state.data, openTab])
-
-      function renderTab() {
-        if (tab === 'conflicts') {
-          const conflictData = (state.data && state.data.conflicts) || { available: false, total: 0, items: [] }
-          if (!conflictData.available) return h('div', { style: faint }, '缺少 beat 或同人账本，无法比对')
-          if (!conflictData.total) return h('div', { style: faint }, '没有发现同键不同值的冲突')
-          return h('div', null,
-            h('div', { style: faint }, '冲突 ' + conflictData.total + ' 条（只报告，不裁决）'),
-            conflictData.items.map((item, index) => h('div', { key: index, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
-              h('div', { style: small }, item.entity + ' · ' + item.key),
-              h('div', { style: { color: c.sub, fontSize: 11 } }, 'beat：' + item.beat.value + '（ch' + (item.beat.chapter ?? '-') + (item.beat.decisionId ? ' · ' + item.beat.decisionId : '') + '）'),
-              h('div', { style: { color: c.faint, fontSize: 11 } }, '原著：' + item.fanfic.value + '（' + (item.fanfic.chapter ?? '-') + '）'),
-            )))
-        }        const value = tabData[tab]
-        if (!value) return h('div', { style: faint }, '加载中…')
-        if (value.error) return h('div', { style: { color: c.error, fontSize: 11.5 } }, value.error)
-        if (tab === 'decisions') {
-          if (!value.available) return h('div', { style: faint }, '没有 beat 账本与会话')
-          return h('div', null,
-            h('div', { style: faint }, '第 ' + value.chapter + ' 章 · 已拍板 ' + value.committed.length + ' · 待拍板 ' + value.pendingCount + ' · 未回收义务 ' + value.openObligations),
-            value.intent ? h('div', { style: small }, '意图：' + value.intent) : null,
-            value.proposals.length
-              ? h('div', { style: { marginTop: 4 } },
-                  value.styleHint ? h('div', { style: { ...faint, marginBottom: 3 } }, value.styleHint) : null,
-                  h('div', { style: faint }, '待拍板'),
-                  value.proposals.map((item) => h('div', { key: item.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
-                    h('div', { style: small }, item.title || item.id),
-                    item.options.length
-                      ? h('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 } },
-                          item.options.map((option, index) => h('button', {
-                            key: index,
-                            type: 'button',
-                            onClick: function () { setPendingDecision({ proposalId: item.id, option: option.label, action: 'adopt' }) },
-                            style: {
-                              appearance: 'none', border: '1px solid ' + (pendingDecision && pendingDecision.proposalId === item.id && pendingDecision.option === option.label ? c.brand : c.border),
-                              background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
-                            },
-                          }, option.label)))
-                      : null,
-                    item.options.map((option, index) => h('div', { key: 'i' + index, style: { color: c.faint, fontSize: 11 } },
-                      '· ' + option.label + (option.impact ? '：' + option.impact : '') + (option.styleFit ? ' · 文风 ' + option.styleFit + (option.styleWhy ? '（' + option.styleWhy + '）' : '') : ''))),
-                    h('button', {
-                      type: 'button',
-                      onClick: function () { setPendingDecision({ proposalId: item.id, option: '', action: 'reject' }) },
-                      style: { appearance: 'none', border: 'none', background: 'transparent', color: c.faint, padding: 0, marginTop: 2, fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' },
-                    }, '拒绝这个提案'),
-                    pendingDecision && pendingDecision.proposalId === item.id
-                      ? h('div', { style: { display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' } },
-                          h('span', { style: { color: c.faint, fontSize: 11 } }, pendingDecision.action === 'reject' ? '确认拒绝这个提案？' : '确认记录「' + pendingDecision.option + '」？'),
-                          h('button', {
-                            type: 'button',
-                            onClick: function () { runDecide(item.id, pendingDecision.option, pendingDecision.action) },
-                            style: { appearance: 'none', border: '1px solid ' + c.brand, background: 'transparent', color: c.text, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
-                          }, '确认'),
-                          h('button', {
-                            type: 'button',
-                            onClick: function () { setPendingDecision(null) },
-                            style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
-                          }, '取消'))
-                      : null,
-                  )))
-              : null,
-            value.committed.length
-              ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '已拍板'),
-                  value.committed.map((item) => h('div', { key: item.id, style: { padding: '3px 0', borderBottom: '1px solid ' + c.border } },
-                    h('div', { style: small }, item.title || item.id),
-                    h('div', { style: { color: c.faint, fontSize: 11 } }, item.change),
-                  )))
-              : null,
-          )
-        }
-        if (tab === 'memory') {
-          if (!value.available) return h('div', { style: faint }, '没有 fade 记忆账本')
-          const rows = searchHits
-            ? searchHits.hits.map((card) => h('div', { key: card.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
-                h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
-                  h('span', { style: faint }, 'ch' + card.chapter),
-                  h('span', { style: { color: c.sub, fontSize: 10.5 } }, '命中 · 重要度 ' + card.salience),
-                ),
-                h('div', { style: small }, card.gist),
-              ))
-            : value.cards.map((card) => h('div', { key: card.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
-                h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
-                  h('span', { style: faint }, 'ch' + card.chapter),
-                  h('span', { style: { color: c.sub, fontSize: 10.5 } }, card.layer + ' · 重要度 ' + card.salience + (typeof card.fidelity === 'number' ? ' · 准 ' + Math.round(card.fidelity * 100) + '%' : '')),
-                ),
-                h('div', { style: small }, card.gist),
-                h('div', { style: { display: 'flex', gap: 6, marginTop: 2 } },
-                  h('button', { type: 'button', onClick: function () { runMemory(card.id, 'pin') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '钉'),
-                  h('button', { type: 'button', onClick: function () { runMemory(card.id, 'forget') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '忘'),
-                  h('button', { type: 'button', onClick: function () { runMemory(card.id, 'restore') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '0 6px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '恢复'),
-                ),
-              ))
-          return h('div', null,
-            h('div', { style: { display: 'flex', gap: 6, marginBottom: 4 } },
-              h('input', {
-                value: query,
-                placeholder: '搜记忆（gist / 实体 / 引文）',
-                onChange: function (event) { setQuery(event.target.value) },
-                style: { flex: 1, minWidth: 0, fontSize: 11.5, padding: '2px 6px', borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text, fontFamily: 'inherit' },
-              }),
-              h('button', {
-                type: 'button',
-                onClick: function () { runSearch() },
-                style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
-              }, '搜'),
-            ),
-            h('div', { style: faint }, searchHits ? `命中 ${searchHits.total} 条（“${searchHits.query}”）` : `${value.total} 张卡 · rev ${value.revision}${value.drift ? ' · drift' : ''}`),
-            rows,
-            value.threads && value.threads.length
-              ? h('div', { style: { marginTop: 6 } }, h('div', { style: faint }, '未回收线索'),
-                  value.threads.slice(0, 8).map((thread, index) => h('div', { key: index, style: { color: c.sub, fontSize: 11.5 } }, '· ' + String(thread.text).slice(0, 60))))
-              : null,
-            value.entities && value.entities.length
-              ? h('div', { style: { marginTop: 6 } }, h('div', { style: faint }, '常出现人物'),
-                  h('div', { style: { color: c.sub, fontSize: 11.5 } }, value.entities.slice(0, 12).map((entity) => entity.name + '×' + entity.mentions).join('、')))
-              : null,
-          )
-        }
-        if (tab === 'style') {
-          if (!value.available) return h('div', { style: faint }, '没有 voice 书库')
-          return h('div', null,
-            value.profiles && value.profiles.length
-              ? h('div', null,
-                  h('div', { style: faint }, '档案'),
-                  value.profiles.map((item) => h('div', { key: item.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
-                    h('div', { style: small }, (item.name || item.id) + ' v' + (item.version || '?') + ' · ' + item.status),
-                    h('div', { style: { color: c.faint, fontSize: 11 } },
-                      Object.entries(item.bands || {}).map(([key, band]) => key + ' ' + band[0] + '–' + band[1]).join('；') || '（无 bands）'),
-                    item.avoid && item.avoid.length ? h('div', { style: { color: c.faint, fontSize: 11 } }, '避免：' + item.avoid.join('、')) : null,
-                  )))
-              : null,
-            value.kitProfiles && value.kitProfiles.length
-              ? h('div', { style: { marginTop: 8 } },
-                  h('div', { style: faint }, '导入的文风档案（kit）'),
-                  value.kitProfiles.map((item) => h('div', { key: item.id, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
-                    h('div', { style: small }, (item.name || item.id) + ' · ' + item.status),
-                    h('div', { style: { color: c.faint, fontSize: 11 } },
-                      Object.entries(item.bands || {}).map(([key, spec]) => {
-                        const band = Array.isArray(spec) ? spec : spec && Array.isArray(spec.band) ? spec.band : null
-                        return band ? key + ' ' + band[0] + '–' + band[1] : null
-                      }).filter(Boolean).join('；') || '（无 bands）'),
-                    item.status !== 'confirmed'
-                      ? h('button', {
-                          type: 'button',
-                          onClick: function () { runConfirmStyle(item) },
-                          style: { appearance: 'none', border: '1px solid ' + c.brand, background: 'transparent', color: c.text, borderRadius: 6, padding: '1px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit', marginTop: 3 },
-                        }, '确认文风')
-                      : null)))
-              : null,
-            h('div', { style: { ...faint, marginTop: 6 } }, `${value.works.length} 部 · ${value.chapters} 章 · ${value.chars} 字`),
-            value.works.map((work) => h('div', { key: work.workId, style: { padding: '4px 0', borderBottom: '1px solid ' + c.border } },
-              h('div', { style: small }, work.title || work.workId),
-              h('div', { style: faint }, `${work.chapters} 章 · ${work.chars} 字 · ${work.status || '未测量'}`),
-            )))
-        }
-        if (!value.available) return h('div', { style: faint }, '没有同人项目')
-        return h('div', null,
-          h('div', { style: faint }, '同人原著请用上方「写同人」导入；这里展示已绑定的契约。'),
-          h('div', { style: faint }, `${value.title || value.id} · 原著 ${value.sourceId || '-'} · rev ${value.revision}`),
-          value.source === 'kit'
-            ? h('div', { style: { marginTop: 3, color: value.canonReady ? c.success : c.error, fontSize: 11 } },
-                'canon：' + (value.canonReady ? '已确认，可开写' : (value.contractStatus || '待抽取')))
-            : null,
-          value.source === 'kit'
-            ? h('div', { style: { marginTop: 6 } },
-                canonEdit && canonEdit.open
-                  ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
-                      h('div', { style: faint }, '事实（每行：实体·键：值）'),
-                      h('textarea', { value: canonEdit.facts, onChange: function (event) { setCanonEdit((prev) => ({ ...prev, facts: event.target.value })) }, style: { minHeight: 52, fontSize: 10.5, fontFamily: 'var(--dsw-font-mono, monospace)', padding: 6, borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text } }),
-                      h('div', { style: faint }, '人物（每行：名字：角色）'),
-                      h('textarea', { value: canonEdit.characters, onChange: function (event) { setCanonEdit((prev) => ({ ...prev, characters: event.target.value })) }, style: { minHeight: 44, fontSize: 10.5, padding: 6, borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text } }),
-                      h('div', { style: faint }, '世界规则（每行一条）'),
-                      h('textarea', { value: canonEdit.rules, onChange: function (event) { setCanonEdit((prev) => ({ ...prev, rules: event.target.value })) }, style: { minHeight: 44, fontSize: 10.5, padding: 6, borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text } }),
-                      h('div', { style: faint }, '禁忌（每行一条）'),
-                      h('textarea', { value: canonEdit.forbidden, onChange: function (event) { setCanonEdit((prev) => ({ ...prev, forbidden: event.target.value })) }, style: { minHeight: 36, fontSize: 10.5, padding: 6, borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text } }),
-                      h('div', { style: { display: 'flex', gap: 6 } },
-                        h('button', { type: 'button', onClick: function () { runSaveCanon(value) }, style: { appearance: 'none', border: '1px solid ' + c.brand, background: c.layer, color: c.text, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '保存为待审阅'),
-                        h('button', { type: 'button', onClick: function () { setCanonEdit(null) }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '取消')))
-                  : h('button', {
-                      type: 'button',
-                      onClick: function () {
-                        setCanonEdit({
-                          open: true,
-                          book: book || (state.data && state.data.book) || '',
-                          sourceId: value.sourceId,
-                          revision: value.contractRevision ?? 0,
-                          facts: (value.facts || []).map((fact) => `${fact.entity ?? fact.subjectName ?? '?'}${fact.key ? '·' + fact.key : ''}：${fact.value ?? fact.object ?? ''}`).join('\n'),
-                          characters: (value.characters || []).map((person) => `${person.name ?? ''}${person.role ? '：' + person.role : ''}`).join('\n'),
-                          rules: (value.worldRules || []).map((rule) => (typeof rule === 'string' ? rule : rule?.text ?? '')).join('\n'),
-                          forbidden: (value.forbidden || []).map((item) => String(item)).join('\n'),
-                        })
-                      },
-                      style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' },
-                    }, '编辑契约'))
-            : null,
-          value.facts && value.facts.length
-            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '事实'),
-                value.facts.slice(0, 10).map((fact, index) => h('div', { key: index, style: small },
-                  `${fact.entity ?? fact.subjectName ?? '?'}${fact.key ? '·' + fact.key : ''}：${fact.value ?? fact.object ?? ''}`)))
-            : null,
-          value.worldRules && value.worldRules.length
-            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '世界规则'),
-                value.worldRules.slice(0, 10).map((rule, index) => h('div', { key: index, style: small }, '- ' + (typeof rule === 'string' ? rule : rule?.text ?? ''))))
-            : null,
-          value.forbidden.length
-            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '禁忌'), value.forbidden.map((text, index) => h('div', { key: index, style: small }, '- ' + text)))
-            : null,
-          value.addresses.length
-            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '称呼'),
-                value.addresses.slice(0, 20).map((row, index) => h('div', { key: index, style: small }, `${row.from}→${row.to}：${row.form}（${row.fromChapter} 起）`)))
-            : null,
-          value.characters && value.characters.length
-            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '人物'),
-                value.characters.slice(0, 12).map((person, index) => h('div', { key: index, style: small },
-                  person.name + (person.role ? ' · ' + person.role : '') + (person.aliases && person.aliases.length ? '（' + person.aliases.join('/') + '）' : ''))))
-            : null,
-          value.secrets && value.secrets.length
-            ? h('div', { style: { marginTop: 4 } }, h('div', { style: faint }, '秘密'),
-                value.secrets.slice(0, 8).map((secret, index) => h('div', { key: index, style: { color: c.faint, fontSize: 11 } },
-                  (secret.publicAtChapter ? secret.publicAtChapter + ' 起公开' : '未公开') + '：' + String(secret.what).slice(0, 40))))
-            : null,
-          value.source === 'kit' && !value.canonReady && ((value.facts && value.facts.length) || (value.worldRules && value.worldRules.length) || (value.characters && value.characters.length) || (value.secrets && value.secrets.length) || (value.addresses && value.addresses.length) || (value.forbidden && value.forbidden.length))
-            ? h('button', {
-                type: 'button',
-                onClick: function () { runConfirmCanon(value) },
-                style: { appearance: 'none', border: '1px solid ' + c.brand, background: 'transparent', color: c.text, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', marginTop: 6 },
-              }, '确认 canon（之后可开写）')
-            : null,
-        )
-      }
-
-      const requestRef = React.useRef(0)
-      const load = React.useCallback(async function (nextBook) {
-        if (!remote) {
-          setState({ phase: 'error', data: null, error: '面板读接口未就绪：请更新并重载 DSH。' })
-          return
-        }
-        const requestId = requestRef.current + 1
-        requestRef.current = requestId
-        setState((prev) => ({ phase: prev.data ? 'refreshing' : 'loading', data: prev.data, error: null }))
-        try {
-          const data = await Promise.resolve(remote.getSnapshot(sessionId, { book: nextBook || book || null })).then(unwrap)
-          const diag = await Promise.resolve(remote.getDiagnostics(sessionId)).then(unwrap).catch(() => null)
-          const operations = await Promise.resolve(remote.getOperations(sessionId, { limit: 20 })).then(unwrap).catch(() => null)
-          if (requestRef.current !== requestId) return
-          setSearchHits(null)
-          setTabData({})
-          setCanonEdit(null)
-          setState({ phase: 'ready', data: { ...data, operations }, diag, error: null })
-        } catch (error) {
-          if (requestRef.current !== requestId) return
-          setState({ phase: 'error', data: null, error: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, book])
-
-      const runTakeover = React.useCallback(async function (takeover) {
-        if (!remote) return
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(takeover ? remote.takeover(sessionId) : remote.restore(sessionId)).then(unwrap)
-          const results = Array.isArray(result?.results) ? result.results : []
-          const failed = results.filter((item) => !item.ok)
-          if (result?.ok === false && results.length === 0) {
-            setAction({ phase: 'error', message: result.message || result.code || '操作失败' })
-            await load()
-            return
-          }
-          setAction({
-            phase: failed.length ? 'error' : 'done',
-            message: failed.length
-              ? '部分失败：' + failed.map((item) => item.name + '（' + (item.application ?? '?') + '）').join('、')
-              : (takeover ? '已停用旧五件，由 kit 接管' : '已恢复旧五件'),
-          })
-          await load()
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, load])
-
-      const runMaster = React.useCallback(async function () {
-        if (!remote) return
-        const next = !(state.data && state.data.master)
-        setAction({ phase: 'busy', message: '' })
-        try {
-          await Promise.resolve(remote.setMaster(sessionId, { master: next })).then(unwrap)
-          setAction({ phase: 'done', message: next ? '小说能力总开关已开；本会话仍要 /novel on。' : '小说能力总开关已关：所有会话的 novel_* 工具都会消失。' })
-          await load()
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, state.data, load])
-
-      const runMode = React.useCallback(async function (mode) {
-        if (!remote) return
-        const activeBook = book || (state.data && state.data.book) || null
-        if (!activeBook) { setAction({ phase: 'error', message: '先选一本书，再切项目模式' }); return }
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(remote.setMode(sessionId, { book: activeBook, mode })).then(unwrap)
-          const next = result?.settings?.mode ?? mode
-          setAction({ phase: 'done', message: next === 'fanfic' ? '已切到同人模式；还需要绑定同人原著才能开写。' : '已切回原创模式；同人数据保留但不再注入。' })
-          await load()
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, book, state.data, load])
-
-      const runImportKind = React.useCallback(async function (kind, confirmed = false) {
-        if (!remote) return
-        const target = importPath.trim()
-        const activeBook = book || (state.data && state.data.book) || null
-        if (!target) { setAction({ phase: 'error', message: '先填作品 txt 的绝对路径' }); return }
-        if (!activeBook) { setAction({ phase: 'error', message: '先选一本书' }); return }
-        if (kind === 'canon' && !confirmed) {
-          setPendingCanon(true)
-          return
-        }
-        setPendingCanon(false)
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = kind === 'style'
-            ? await Promise.resolve(remote.importStyle(sessionId, { book: activeBook, file: target })).then(unwrap)
-            : await Promise.resolve(remote.importCanon(sessionId, { book: activeBook, file: target, confirmMode: true })).then(unwrap)
-          if (kind === 'style') {
-            setAction({ phase: 'done', message: '已生成文风档案：' + (result.profileId ?? '') + '（provisional）' })
-            setTabData((prev) => { const next = { ...prev }; delete next.style; return next })
-            await openTab('style')
-          } else {
-            setAction({ phase: 'done', message: '原著已绑定；世界契约待抽取，同人开写会被拦住。' })
-            setTabData((prev) => { const next = { ...prev }; delete next.canon; return next })
-            await openTab('canon')
-          }
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, book, state.data, importPath, openTab])
-
-      const runSaveCanon = React.useCallback(async function (canonValue) {
-        if (!remote || !canonValue || !canonValue.sourceId || !canonEdit) return
-        const activeBook = canonEdit.book || book || (state.data && state.data.book) || null
-        const targetSource = canonEdit.sourceId || canonValue.sourceId
-        if (!activeBook || !targetSource) { setAction({ phase: 'error', message: '先选一本书' }); return }
-        const lines = (text) => String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-        const facts = lines(canonEdit.facts).map((line) => {
-          const [left, ...rest] = line.split(/[：:]/)
-          const [entity, key] = left.split('·')
-          return { entity: (entity || '').trim(), key: (key || '').trim(), value: rest.join('：').trim() }
-        }).filter((item) => item.entity && item.value)
-        const characters = lines(canonEdit.characters).map((line) => {
-          const [name, ...rest] = line.split(/[：:]/)
-          return { name: (name || '').trim(), role: rest.join('：').trim() }
-        }).filter((item) => item.name)
-        const worldRules = lines(canonEdit.rules)
-        const forbidden = lines(canonEdit.forbidden)
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(remote.updateCanon(sessionId, {
-            book: activeBook,
-            sourceId: targetSource,
-            expectedRevision: canonEdit.revision ?? null,
-            patch: { facts, characters, worldRules, forbidden },
-          })).then(unwrap)
-          if (!result || result.ok === false) {
-            setAction({ phase: 'error', message: result?.message || result?.code || '保存 canon 失败' })
-            return
-          }
-          setAction({ phase: 'done', message: 'canon 已保存为待审阅；确认后才可开写。' })
-          setCanonEdit(null)
-          setTabData((prev) => { const next = { ...prev }; delete next.canon; return next })
-          await openTab('canon')
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, book, state.data, canonEdit, openTab])
-
-      const runConfirmCanon = React.useCallback(async function (canonValue) {
-        if (!remote || !canonValue || !canonValue.sourceId) return
-        const activeBook = book || (state.data && state.data.book) || null
-        if (!activeBook) { setAction({ phase: 'error', message: '先选一本书' }); return }
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(remote.confirmCanon(sessionId, {
-            book: activeBook, sourceId: canonValue.sourceId,
-            expectedRevision: canonValue.contractRevision ?? null,
-          })).then(unwrap)
-          if (!result || result.ok === false) {
-            setAction({ phase: 'error', message: result?.message || result?.code || '确认失败' })
-            return
-          }
-          setAction({ phase: 'done', message: 'canon 已确认；同人章节现在可以开写。' })
-          setTabData((prev) => { const next = { ...prev }; delete next.canon; return next })
-          await openTab('canon')
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, book, state.data, openTab])
-
-      const runConfirmStyle = React.useCallback(async function (profile) {        if (!remote || !profile || !profile.id) return
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(remote.confirmStyle(sessionId, {
-            profileId: profile.id, expectedRevision: profile.revision ?? null,
-          })).then(unwrap)
-          if (!result || result.ok === false) {
-            setAction({ phase: 'error', message: result?.message || result?.code || '确认文风失败' })
-            return
-          }
-          setAction({ phase: 'done', message: '文风档案已确认：' + (profile.name || profile.id || '') })
-          setTabData((prev) => { const next = { ...prev }; delete next.style; return next })
-          await openTab('style')
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, openTab])
-
-      const runCreateBook = React.useCallback(async function () {
-        const name = newBook.trim()
-        if (!name || !remote || typeof remote.createBook !== 'function') {
-          setAction({ phase: 'error', message: name ? '宿主还没加载建书接口；刷新或重启 DSH。' : '先输入作品名' })
-          return
-        }
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(remote.createBook(sessionId, { book: name, mode: 'original' })).then(unwrap)
-          if (!result || result.ok === false) {
-            setAction({ phase: 'error', message: result?.message || result?.code || '建书失败' })
-            return
-          }
-          setAction({ phase: 'done', message: '已创建《' + name + '》' })
-          setNewBook('')
-          setBook(name)
-          await load(name)
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, newBook, load])
-
-      const runStartChapter = React.useCallback(async function (bookName, chapterNo) {
-        if (!remote || typeof remote.startChapter !== 'function') {
-          setAction({ phase: 'error', message: '宿主还没加载开章接口；刷新或重启 DSH 后再试。' })
-          return
-        }
-        if (!bookName || !chapterNo) { setAction({ phase: 'error', message: '先选一本书' }); return }
-        setStartPhase('starting')
-        setAction({ phase: 'busy', message: '' })
-        try {
-          const result = await Promise.resolve(remote.startChapter(sessionId, { book: bookName, chapter: chapterNo })).then(unwrap)
-          if (!result || result.ok === false) {
-            setAction({ phase: 'error', message: result?.message || result?.code || '开章失败' })
-            setStartPhase('idle')
-            return
-          }
-          setAction({ phase: 'done', message: '第 ' + chapterNo + ' 章已装配；可以打开工作台开始写。' })
-          setStartPhase('idle')
-          await load()
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-          setStartPhase('idle')
-        }
-      }, [remote, sessionId, load])
-
-      const runResumeChapter = React.useCallback(async function () {
-        const active = state.data && state.data.session
-        if (!remote || !active) { setAction({ phase: 'error', message: '没有可恢复的章节会话' }); return }
-        setAction({ phase: 'busy', message: '正在恢复…' })
-        try {
-          const result = await Promise.resolve(remote.resumeChapter(sessionId, { chapterSessionId: active.id })).then(unwrap)
-          if (!result || result.ok === false) { setAction({ phase: 'error', message: result?.message || result?.code || '恢复失败' }); return }
-          setAction({ phase: 'done', message: '会话已恢复。' })
-          await load()
-        } catch (error) {
-          setAction({ phase: 'error', message: String(error?.message ?? error) })
-        }
-      }, [remote, sessionId, state.data, load])
-
-      const openStudio = React.useCallback(function () {
-        setMode('studio')
-        try { layout?.openRightbar?.(false, true) } catch { /* 不是所有布局都支持全屏 */ }
-      }, [layout])
-
-      React.useEffect(function () { load() }, [load])
-
-      const data = state.data
-      const books = (data && data.workspace && data.workspace.beat) || []
-      const panelSession = data && data.session ? data.session : null
-      const panelPending = panelSession && Array.isArray(panelSession.pendingDecisionIds) ? panelSession.pendingDecisionIds.length : 0
-      const panelLastChapter = data && data.history && Array.isArray(data.history.chapters) && data.history.chapters.length
-        ? Math.max(...data.history.chapters.map((item) => Number(item.chapter) || 0))
-        : 0
-      const panelNext = deriveNextAction({ session: panelSession, lastChapter: panelLastChapter })
-      const panelContexts = (data && data.contexts) || []
-      const panelBook = book || (data && data.book) || books[0] || ''
-      const nextChapter = panelNext.chapter
-      const panelPrimary = !panelBook
-        ? { label: '先选择一本书', action: null, disabled: true }        : panelNext.kind === 'decide'
-          ? { label: '去拍板（' + panelPending + '）', action: function () { setSettingsOpen(true); setDetails(true); openTab('decisions') }, disabled: false }
-          : panelNext.kind === 'resume'
-            ? { label: '恢复本章', action: function () { runResumeChapter() }, disabled: false }
-          : panelNext.kind === 'start'
-            ? { label: startPhase === 'starting' ? '正在装配…' : '开第 ' + nextChapter + ' 章', action: function () { runStartChapter(panelBook, nextChapter) }, disabled: startPhase === 'starting' }
-            : panelNext.kind === 'blockers'
-              ? { label: '查看检查详情', action: function () { setDetails(true); setSettingsOpen(true); openTab('overview') }, disabled: false }
-              : { label: '查看本章详情', action: function () { setDetails(true); setSettingsOpen(true); openTab('overview') }, disabled: false }
-      const panelInbox = []
-      if (panelSession) {
-        for (const id of (panelSession.pendingDecisionIds || [])) panelInbox.push({ kind: '拍板', text: String(id) })
-      }
-      if (data && data.conflicts && Array.isArray(data.conflicts.items)) {
-        for (const item of data.conflicts.items) panelInbox.push({ kind: '冲突', text: (item.entity || '?') + ' · ' + (item.key || '?') })
-      }
-      if (data && data.canon && !data.canon.ready && data.settings && data.settings.mode === 'fanfic') {
-        panelInbox.push({ kind: 'canon', text: '同人原著待确认（' + (data.canon.status || '?') + '）' })
-      }
-      if (data && data.operations && Array.isArray(data.operations.items)) {
-        for (const operation of data.operations.items.filter((item) => item.status === 'failed').slice(0, 3)) {
-          panelInbox.push({ kind: '失败', text: (operation.command || operation.operationId) + '：' + (operation.error?.message || '操作失败') })
-        }
-      }
-
-      if (mode === 'studio') {
-        return h(Workbench, { sessionId, remote, embedded: true, onClose: function () { setMode('task') } })
-      }
-
-      function renderTask() {
-        if (state.error) {
-          return h('div', { className: 'nk-panel' },
-            h('div', { className: 'nk-head' },
-              h('div', { className: 'nk-seal' }, '小'),
-              h('div', { className: 'grow', style: { minWidth: 0 } }, h('div', { className: 'nk-title' }, '小说'), h('div', { className: 'nk-book' }, '读取失败'))),
-            h('div', { className: 'nk-empty' },
-              h('div', { style: { color: c.error, fontSize: 12, lineHeight: 1.6 } }, state.error),
-              h('div', { style: { display: 'flex', gap: 6 } },
-                h('button', { className: 'nk-btn primary', onClick: function () { load() } }, '重试'),
-                h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置'))))
-        }
-        if (state.phase === 'loading' && !data) {
-          return h('div', { className: 'nk-panel' }, h('div', { className: 'nk-meta' }, '加载小说工作区…'))
-        }
-        const totalEvidence = panelContexts.reduce((sum, segment) => sum + Math.max(1, segment.chars || 1), 0) || 1
-        const colors = ['#b5432d', '#3f5f8a', '#2f6a5a', '#a87322']
-        const chapters = data && data.history && Array.isArray(data.history.chapters) ? data.history.chapters : []
-        if (!panelBook) {
-          return h('div', { className: 'nk-panel' },
-            h('div', { className: 'nk-head' },
-              h('div', { className: 'nk-seal' }, '小'),
-              h('div', { className: 'grow', style: { minWidth: 0 } },
-                h('div', { className: 'nk-title' }, '小说'),
-                h('div', { className: 'nk-book' }, '还没有作品')),
-              h('div', { className: 'nk-actions' }, h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置'))),
-            h('div', { className: 'nk-empty' },
-              h('div', { style: { fontSize: 10, letterSpacing: '.14em', color: c.faint } }, 'KIT-ONLY · 新建作品'),
-              h('div', { style: { fontSize: 13, lineHeight: 1.6, color: c.sub } }, '没有旧 beat/fade 也能开始：kit 会创建剧情账、记忆账与项目设置。'),
-              h('input', { value: newBook, placeholder: '作品名，例如：长夜行', onChange: function (event) { setNewBook(event.target.value) }, onKeyDown: function (event) { if (event.key === 'Enter') runCreateBook() } }),
-              h('button', { className: 'nk-next-btn', disabled: !newBook.trim(), onClick: function () { runCreateBook() } }, '新建并开始')),
-            action.message ? h('div', { style: { fontSize: 11, color: action.phase === 'error' ? c.error : c.sub } }, action.message) : null)
-        }
-        return h('div', { className: 'nk-panel' },
-          h('div', { className: 'nk-head' },
-            h('div', { className: 'nk-seal' }, '小'),
-            h('div', { className: 'grow', style: { minWidth: 0 } },
-              h('div', { className: 'nk-title' }, '小说'),
-              books.length > 1
-                ? h('select', {
-                    className: 'nk-book-pick',
-                    value: panelBook,
-                    onChange: function (event) { setBook(event.target.value); load(event.target.value) },
-                  }, books.map((name) => h('option', { key: name, value: name }, name)))
-                : h('div', { className: 'nk-book' }, panelBook)),
-            h('div', { className: 'nk-actions' },
-              h('button', { className: 'nk-btn', title: '重新读取账本', onClick: function () { load() } }, state.phase === 'refreshing' ? '…' : '刷新'))),
-          h('section', { className: 'nk-next' },
-            h('div', { className: 'nk-eyebrow' }, 'NEXT · 下一笔'),
-            h('div', { className: 'nk-next-title' }, panelNext.title),
-            h('div', { className: 'nk-next-copy' }, panelNext.detail),
-            h('div', { className: 'nk-next-meta' },
-              h('span', { className: 'nk-chip' }, '第 ' + (panelNext.chapter || 1) + ' 章'),
-              panelPending ? h('span', { className: 'nk-chip' }, panelPending + ' 个待拍板') : null),
-            h('button', { className: 'nk-next-btn', disabled: panelPrimary.disabled || !panelPrimary.action, onClick: panelPrimary.action || undefined },
-              panelPrimary.label, h('span', null, '→'))),
-          action.message ? h('div', { style: { fontSize: 11, color: action.phase === 'error' ? c.error : c.sub } }, action.message) : null,
-          h('section', { className: 'nk-section' },
-            h('div', { className: 'nk-section-head' }, h('div', { className: 'nk-section-title' }, '待处理'), panelInbox.length ? h('div', { className: 'nk-meta' }, panelInbox.length + ' 条') : null),
-            panelInbox.length === 0
-              ? h('div', { className: 'nk-meta' }, '没有待处理事项。')
-              : h('div', { className: 'nk-inbox' }, panelInbox.slice(0, 5).map(function (item, index) {
-                  return h('div', { key: index, className: 'nk-item' },
-                    h('div', { className: 'nk-kind ' + (item.kind === 'canon' ? 'amber' : item.kind === '冲突' ? 'jade' : '') }, item.kind),
-                    h('div', { className: 'nk-item-main' }, item.text))
-                }))),
-          panelContexts.length
-            ? h('section', { className: 'nk-section' },
-                h('div', { className: 'nk-section-head' }, h('div', { className: 'nk-section-title' }, '本章依据'), h('div', { className: 'nk-meta' }, panelContexts.reduce((sum, segment) => sum + (segment.chars || 0), 0) + ' 字')),
-                h('div', { className: 'nk-ebar' }, panelContexts.map(function (segment, index) {
-                  return h('i', { key: segment.component || index, style: { width: (Math.max(1, segment.chars || 1) / totalEvidence * 100) + '%', background: colors[index % colors.length], opacity: segment.available ? 1 : .25 } })
-                })),
-                h('div', { className: 'nk-elegend' }, panelContexts.map(function (segment, index) {
-                  return h('span', { key: segment.component }, h('i', { className: 'nk-dot', style: { background: colors[index % colors.length] } }), segment.component + ' ' + (segment.chars || 0))
-                })))
-            : null,
-          h('section', { className: 'nk-section' },
-            h('div', { className: 'nk-section-head' }, h('div', { className: 'nk-section-title' }, '最近章节'), h('div', { className: 'nk-meta' }, '共 ' + (chapters.length || 0) + ' 章')),
-            chapters.length === 0
-              ? h('div', { className: 'nk-meta' }, '还没有落账章节。')
-              : h('div', { className: 'nk-recent' }, chapters.slice(0, 4).map(function (item) {
-                  return h('div', { key: item.chapter, className: 'nk-recent-row' },
-                    h('span', { className: 'nk-recent-no' }, 'CH.' + String(item.chapter).padStart(2, '0')),
-                    h('span', { className: 'nk-recent-title' }, '第 ' + item.chapter + ' 章'),
-                    h('span', { className: 'nk-recent-state' }, stateLabel(item.state)))
-                }))),
-          data && data.ledgers
-            ? h('section', { className: 'nk-section' },
-                h('div', { className: 'nk-section-head' },
-                  h('div', { className: 'nk-section-title' }, '五本账'),
-                  h('div', { className: 'nk-meta' }, data.master === false ? '总开关关' : '就绪')),
-                h('div', { className: 'nk-inbox' }, Object.entries(data.ledgers).map(function ([name, entry]) {
-                  return h('div', { key: name, className: 'nk-item', style: { alignItems: 'center' } },
-                    h('div', { className: 'nk-kind', style: { width: 44, color: entry ? undefined : c.faint } }, name),
-                    h('div', { className: 'nk-item-main', style: { marginLeft: 'auto', color: entry ? c.sub : c.faint, fontVariantNumeric: 'tabular-nums' } }, entry ? 'rev ' + (entry.revision ?? '-') : '没有这本账'))
-                })))
-            : null,
-          h('div', { className: 'nk-foot' },
-            h('button', { className: 'nk-btn primary', onClick: openStudio }, '打开工作台'),
-            h('button', { className: 'nk-btn', onClick: function () { setSettingsOpen(true) } }, '设置与详情')))
-      }
-
-      if (!settingsOpen && !details) return renderTask()
-
-      return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 16px 28px', color: c.text, background: c.base, height: '100%', overflowY: 'auto', fontSize: 13 } },
-        h('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
-          h('div', { style: { width: 32, height: 32, flexShrink: 0, borderRadius: 10, background: c.brand, color: c.onBrand, display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 700, letterSpacing: '-.04em' } }, '小'),
-          h('div', { style: { minWidth: 0, flex: 1 } },
-            h('div', { style: { fontSize: 15, fontWeight: 700, letterSpacing: '-.01em' } }, '小说'),
-            h('div', { style: { ...faint, marginTop: 1 } }, panelBook || '还没有选择作品')),
-          h('div', { style: { display: 'flex', gap: 6 } },
-            h('button', {
-              type: 'button',
-              onClick: function () { setSettingsOpen(false); setDetails(false) },
-              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-            }, '返回'),
-            h('button', {
-              type: 'button',
-              onClick: openStudio,
-              style: { appearance: 'none', border: 'none', background: c.brand, color: c.onBrand, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-            }, '工作台'),
-            h('button', {
-              type: 'button',
-              title: '导入作品与项目设置',
-              onClick: function () { setSettingsOpen(true) },
-              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-            }, '导入'),
-            h('button', {
-              type: 'button',
-              title: '高级详情',
-              onClick: function () { const next = !details; setDetails(next); if (next) setSettingsOpen(true) },
-              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-            }, details ? '收起' : '详情'),
-            h('button', {
-              type: 'button',
-              onClick: function () { load() },
-              style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 8, padding: '5px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-            }, state.phase === 'refreshing' ? '…' : '刷新')),
-        ),
-        books.length
-          ? h('select', {
-              value: panelBook,
-              onChange: function (event) { setBook(event.target.value); load(event.target.value) },
-              style: { width: '100%', boxSizing: 'border-box', appearance: 'none', border: '1px solid ' + c.border, background: c.layer, color: c.text, borderRadius: 10, padding: '9px 11px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' },
-            }, books.map((name) => h('option', { key: name, value: name }, name)))
-          : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, padding: 14, border: '1px solid ' + c.border, borderRadius: 12, background: c.layer } },
-              h('div', { style: { ...faint, lineHeight: 1.6 } }, '这个工作区还没有书。先建一本，kit 会创建剧情账、记忆账与项目设置。'),
-              h('div', { style: { display: 'flex', gap: 8 } },
-                h('input', {
-                  value: newBook,
-                  placeholder: '作品名，例如：长夜行',
-                  onChange: function (event) { setNewBook(event.target.value) },
-                  onKeyDown: function (event) { if (event.key === 'Enter') runCreateBook() },
-                  style: { flex: 1, minWidth: 0, border: '1px solid ' + c.border, borderRadius: 9, background: c.base, color: c.text, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit' },
-                }),
-                h('button', {
-                  type: 'button',
-                  onClick: function () { runCreateBook() },
-                  style: { appearance: 'none', border: 'none', background: c.brand, color: c.onBrand, borderRadius: 9, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-                }, '新建作品'))),
-
-        state.error ? h('div', { style: { color: c.error, fontSize: 12 } }, state.error) : null,
-
-        data ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } },
-          settingsOpen ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, padding: 12, border: '1px solid ' + c.border, borderRadius: 12, background: c.layer } },
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-            h('span', { style: small }, '总开关'),
-              h('span', { style: { color: data.master ? c.success : c.faint, fontSize: 11.5 } }, data.master ? '开' : '关'),
-              h('button', {
-                type: 'button',
-                onClick: function () { runMaster() },
-                style: { marginLeft: 'auto', appearance: 'none', border: '1px solid ' + (data.master ? c.border : c.brand), background: 'transparent', color: data.master ? c.sub : c.text, borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' },
-              }, data.master ? '关闭' : '启用')),
-            h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-              h('span', { style: small }, '项目模式'),
-              ['original', 'fanfic'].map(function (mode) {
-                const active = ((data.settings && data.settings.mode) || 'original') === mode
-                return h('button', {
-                  key: mode,
-                  type: 'button',
-                  onClick: function () { runMode(mode) },
-                  style: {
-                    appearance: 'none', border: '1px solid ' + (active ? c.brand : c.border), background: active ? c.layer : 'transparent',
-                    color: active ? c.text : c.sub, borderRadius: 999, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
-                  },
-                }, mode === 'fanfic' ? '同人' : '原创')
-              }),
-              !(data.settings && data.settings.activeCanonSourceId)
-                ? h('span', { style: { ...faint, marginLeft: 'auto', fontSize: 10 } }, (data.settings && data.settings.mode) === 'fanfic' ? '待绑定原著' : '')
-                : null),
-          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 8, padding: '7px 9px', display: 'flex', flexDirection: 'column', gap: 6 } },
-            h('div', { style: faint }, '导入作品：两个入口'),
-            h('input', {
-              value: importPath,
-              placeholder: '作品 txt 的绝对路径（UTF-8）',
-              onChange: function (event) { setImportPath(event.target.value) },
-              style: { width: '100%', boxSizing: 'border-box', fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid ' + c.border, background: c.base, color: c.text, fontFamily: 'inherit' },
-            }),
-            pendingCanon
-              ? h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
-                  h('span', { style: { color: c.faint, fontSize: 10.5 } }, '这会切到同人模式并绑定世界观；确认？'),
-                  h('button', { type: 'button', onClick: function () { runImportKind('canon', true) }, style: { appearance: 'none', border: '1px solid ' + c.brand, background: 'transparent', color: c.text, borderRadius: 6, padding: '1px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '确认导入'),
-                  h('button', { type: 'button', onClick: function () { setPendingCanon(false) }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '1px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '取消'))
-              : h('div', { style: { display: 'flex', gap: 6 } },
-                  h('button', { type: 'button', onClick: function () { runImportKind('style') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '学文笔'),
-                  h('button', { type: 'button', onClick: function () { runImportKind('canon') }, style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit' } }, '写同人'))),
-          ) : null,
-          h('div', { style: { padding: '18px 16px 16px', border: '1px solid ' + c.border, borderRadius: 16, background: c.layer, boxShadow: '0 2px 14px rgba(0,0,0,.05)' } },
-            h('div', { style: { ...faint, fontSize: 10.5, letterSpacing: '.12em', textTransform: 'uppercase' } }, 'NEXT · 下一笔'),
-            h('div', { style: { fontSize: 22, fontWeight: 700, lineHeight: 1.35, margin: '7px 0 4px', letterSpacing: '-.02em' } }, panelNext.title),
-            h('div', { style: { color: c.sub, fontSize: 12.5, lineHeight: 1.65 } }, panelNext.detail),
-            h('button', {
-              type: 'button',
-              disabled: panelPrimary.disabled || !panelPrimary.action,
-              onClick: panelPrimary.action || undefined,
-              style: {
-                width: '100%', marginTop: 14, appearance: 'none', border: 'none',
-                background: panelPrimary.disabled ? c.border : c.brand, color: panelPrimary.disabled ? c.faint : c.onBrand,
-                borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: panelPrimary.disabled ? 'default' : 'pointer', fontFamily: 'inherit',
-              },
-            }, panelPrimary.label),
-            action.message ? h('div', { style: { marginTop: 8, fontSize: 11.5, lineHeight: 1.5, color: action.phase === 'error' ? c.error : c.sub } }, action.message) : null),
-          panelContexts.length
-            ? h('div', { style: { border: '1px solid ' + c.border, borderRadius: 12, padding: 12, background: c.base } },
-                h('div', { style: { ...faint, fontSize: 11, display: 'flex', justifyContent: 'space-between', letterSpacing: '.04em' } }, '本章依据', '四段 · ' + panelContexts.filter((item) => item.available).length + '/4'),
-                h('div', { style: { display: 'flex', gap: 2, height: 8, borderRadius: 8, overflow: 'hidden', marginTop: 8, background: c.border } },
-                  panelContexts.map(function (segment, index) {
-                    const colors = [c.brand, '#5b6ac4', '#2f7d6b', '#a96a22']
-                    return h('i', { key: segment.component || index, style: { flexGrow: Math.max(1, segment.chars || 1), background: colors[index % colors.length], opacity: segment.available ? 1 : 0.25 } })
-                  })),
-                h('div', { style: { display: 'flex', gap: 8, marginTop: 7, flexWrap: 'wrap' } },
-                  panelContexts.map(function (segment) {
-                    return h('span', { key: segment.component, style: { ...faint, fontSize: 10.5 } },
-                      segment.component + ' ' + (segment.chars ?? 0) + (segment.available ? '' : '·缺'))
-                  })))
-            : h('div', { style: { ...faint, fontSize: 12, padding: '2px 2px' } }, '还没有装配本章依据；开一章后显示四段预算。'),
-          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 12, padding: 12, background: c.base } },
-            h('div', { style: { ...faint, fontSize: 11, display: 'flex', justifyContent: 'space-between', letterSpacing: '.04em' } }, '收件箱', String(panelInbox.length)),
-            panelInbox.length === 0
-              ? h('div', { style: { color: c.faint, fontSize: 12, marginTop: 6 } }, '没有待处理事项。')
-              : panelInbox.slice(0, 4).map(function (item, index) {
-                  return h('div', { key: index, style: { display: 'flex', gap: 8, alignItems: 'baseline', marginTop: 7, fontSize: 12, lineHeight: 1.45 } },
-                    h('span', { style: { color: c.brand, fontSize: 10, fontWeight: 700, flexShrink: 0 } }, item.kind),
-                    h('span', { style: { color: c.sub } }, item.text))
-                })),
-          h('div', { style: { border: '1px solid ' + c.border, borderRadius: 12, padding: 12, background: c.base } },
-            h('div', { style: { ...faint, fontSize: 11, display: 'flex', justifyContent: 'space-between', letterSpacing: '.04em' } }, '最近章节', (data.history && data.history.total) || 0),
-            (data.history && data.history.chapters ? data.history.chapters : []).slice(0, 3).map(function (item, index) {
-              return h('div', { key: index, style: { display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 7, fontSize: 12, color: c.sub } },
-                h('span', null, '第 ' + item.chapter + ' 章 · ' + (item.state || '?')),
-                h('span', { style: { color: c.faint } }, item.chars ? item.chars + ' 字' : ''))
-            })),
-          h('button', {
-            type: 'button',
-            onClick: function () { setSettingsOpen(!settingsOpen) },
-            style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 10, padding: '9px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
-          }, settingsOpen ? '收起设置与详情' : '设置与详情'),
-          settingsOpen ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, padding: 12, border: '1px solid ' + c.border, borderRadius: 12, background: c.layer } },
-          h('div', { style: row },
-            h('span', { style: small }, '开关'),
-            h('span', { style: { color: data.driving ? c.success : c.faint } }, data.driving ? '本会话：开' : '本会话：关（/novel on）'),
-          ),
-          state.diag && state.diag.managed
-            ? h('div', { style: row },
-                h('span', { style: small }, '旧五件'),
-                h('span', { style: { color: state.diag.runningSiblings.length ? c.sub : c.faint } },
-                  state.diag.runningSiblings.length
-                    ? `${state.diag.runningSiblings.length} 个在跑（可停用，改由 kit 接管）`
-                    : '未运行'),
-              )
-            : null,
-          state.diag && state.diag.managed
-            ? h('div', { style: { ...row, borderBottom: 'none' } },
-                state.diag.takeoverNeeded
-                  ? (pendingTakeover
-                      ? h('span', { style: { display: 'flex', gap: 6 } },
-                          h('button', {
-                            type: 'button',
-                            onClick: function () { setPendingTakeover(false); runTakeover(true) },
-                            style: { appearance: 'none', border: '1px solid ' + c.error, background: 'transparent', color: c.error, borderRadius: 6, padding: '2px 8px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-                          }, '确认停用'),
-                          h('button', {
-                            type: 'button',
-                            onClick: function () { setPendingTakeover(false) },
-                            style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-                          }, '取消'))
-                      : h('button', {
-                          type: 'button',
-                          onClick: function () { setPendingTakeover(true) },
-                          style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-                        }, '停用旧五件（由 kit 接管）'))
-                  : ((state.diag.installedSiblings || []).length
-                      ? h('button', {
-                          type: 'button',
-                          onClick: function () { runTakeover(false) },
-                          style: { appearance: 'none', border: '1px solid ' + c.border, background: 'transparent', color: c.sub, borderRadius: 6, padding: '2px 8px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' },
-                        }, '恢复旧五件')
-                      : null))
-            : null,
-          action.message
-            ? h('div', { style: { fontSize: 11.5, color: action.phase === 'error' ? c.error : c.sub } }, action.message)
-            : null,
-          details
-            ? h('div', null,
-                h('div', { style: { display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' } },
-                  [['overview', '总览'], ['decisions', '拍板'], ['memory', '记忆'], ['style', '文风'], ['canon', '设定'], ['conflicts', '冲突']].map(function ([key, label]) {
-                    return h('button', {
-                      key: key,
-                      type: 'button',
-                      onClick: function () { openTab(key) },
-                      style: {
-                        appearance: 'none',
-                        border: '1px solid ' + (tab === key ? c.brand : c.border),
-                        background: tab === key ? c.layer : 'transparent',
-                        color: tab === key ? c.text : c.sub,
-                        borderRadius: 999, padding: '2px 10px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
-                      },
-                    }, label)
-                  })),
-                tab === 'overview' ? null : renderTab())
-            : null,
-          h('div', { style: row },
-            h('span', { style: small }, '会话'),
-            h('span', null, data.session ? `第 ${data.session.chapter} 章 · ${data.session.state}` : '无活动会话'),
-          ),
-          data.session && data.session.draft
-            ? h('div', { style: row }, h('span', { style: small }, '草稿'), h('span', null, `v${data.session.draft.version} · ${String(data.session.draft.hash).slice(0, 10)}`))
-            : null,
-          data.contexts && data.contexts.length
-            ? h('div', null,
-                h('div', { style: { ...faint, margin: '8px 0 2px' } }, '四段上下文'),
-                data.contexts.map(function (segment) {
-                  return h('div', { key: segment.component, style: { ...row, borderBottom: 'none', padding: '2px 0' } },
-                    h('span', { style: small }, segment.component),
-                    h('span', { style: { color: segment.available ? c.sub : c.faint } },
-                      segment.available ? `${segment.chars} / ${segment.budgetChars ?? '?'} 字 · rev ${segment.revision ?? '-'}` : '未接入'),
-                  )
-                }))
-            : null,
-          h('div', { style: { ...faint, margin: '8px 0 2px' } }, '账本'),
-          (data.ledgers ? Object.entries(data.ledgers) : []).map(function ([name, value]) {
-            return h('div', { key: name, style: { ...row, borderBottom: 'none', padding: '2px 0' } },
-              h('span', { style: small }, name),
-              h('span', { style: { color: value ? c.sub : c.faint } }, value ? `rev ${value.revision ?? '-'}` : '无'),
-            )
-          }),
-          data.issues && data.issues.length
-            ? h('div', { style: { color: c.error, fontSize: 11.5, marginTop: 6 } }, data.issues.map((issue) => issue.message).join('；'))
-            : null,
-          ) : null,
-        ) : null,
-      )
-    }
-
     // ── 小说工作台（conversation.view）：书桌/章节/故事/资料四入口 ──────────────
     function Workbench(props) {
-      const { sessionId, remote, embedded = false, onClose = null } = props
+      // initialSection 只给快照验收/深链用：正常打开永远从书桌起。
+      const { sessionId, remote, embedded = false, onClose = null, initialSection = 'desk' } = props
       const [state, setState] = React.useState({ phase: 'loading', data: null, diag: null, error: null })
       const [book, setBook] = React.useState('')
       const [draftState, setDraftState] = React.useState({ text: '', version: 0, hash: null, chars: 0, loaded: false, dirty: false })
       const [saveState, setSaveState] = React.useState({ phase: 'idle', message: '' })
       const [startPhase, setStartPhase] = React.useState('idle')
-      const [section, setSection] = React.useState('desk')
+      const [section, setSection] = React.useState(initialSection)
       const [storyData, setStoryData] = React.useState(null)
       const [materialData, setMaterialData] = React.useState(null)
       const [fadeData, setFadeData] = React.useState(null)
@@ -1363,6 +440,15 @@ window.__ModuleLoader__.load({
       const [previewData, setPreviewData] = React.useState(null)
       // 有未保存正文时，「返回任务卡」第一次点只给提醒，第二次才真走。
       const [exitArm, setExitArm] = React.useState(false)
+      // 导入动线：选目录 → 列文件 → 学文笔 / 建 canon。右栏删掉后，这是唯一的导入入口。
+      const [importDir, setImportDir] = React.useState('')
+      const [importFiles, setImportFiles] = React.useState(null)
+      const [importBusy, setImportBusy] = React.useState(false)
+      const [importMessage, setImportMessage] = React.useState('')
+      const [workSettings, setWorkSettings] = React.useState(null)
+      const [newBookName, setNewBookName] = React.useState('')
+      const [workBusy, setWorkBusy] = React.useState(false)
+      const [workMessage, setWorkMessage] = React.useState('')
 
       const requestRef = React.useRef(0)
       const editVersionRef = React.useRef(0)
@@ -1765,6 +851,187 @@ window.__ModuleLoader__.load({
         onClick: function () { setSection(key) },
       }, sectionLabel[key], sectionDot[key] ? h('span', { className: 'nk-tab-dot' }) : null)
 
+      const browseImport = React.useCallback(async function (dir) {
+        const target = String(dir || importDir || (data && data.root) || '').trim()
+        if (!remote || typeof remote.listSourceFiles !== 'function') { setImportMessage('宿主没有导入接口，先重载 DSH。'); return }
+        if (!target) { setImportMessage('先填一个目录，例如 D:\\我的小说'); return }
+        try {
+          const result = await Promise.resolve(remote.listSourceFiles(sessionId, { dir: target })).then(unwrap)
+          setImportDir(target)
+          setImportFiles(result && Array.isArray(result.files) ? result.files : [])
+          setImportMessage(result && result.ok === false ? (result.reason || '目录不可读') : '')
+        } catch (error) {
+          setImportFiles([])
+          setImportMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, importDir, data])
+
+      const runImport = React.useCallback(async function (kind, file) {
+        const method = kind === 'style' ? 'importStyle' : 'importCanon'
+        if (!remote || typeof remote[method] !== 'function') { setImportMessage('宿主没有 ' + method + ' 接口'); return }
+        if (!file || !file.path) return
+        setImportBusy(true)
+        setImportMessage(kind === 'style' ? '正在读这本作品、归纳文风…' : '正在切章、导入原著…')
+        try {
+          const result = await Promise.resolve(remote[method](sessionId, {
+            book: data && data.book ? data.book : undefined,
+            file: file.path,
+            title: String(file.name || '').replace(/\.[^.]+$/, ''),
+          })).then(unwrap)
+          const done = result && (result.message || result.code || result.status)
+          setImportMessage(done ? String(result.message || result.code || result.status) : '已导入：' + file.name)
+          setMaterialData(null)
+          await load()
+        } catch (error) {
+          setImportMessage(String(error?.message ?? error))
+        } finally {
+          setImportBusy(false)
+        }
+      }, [remote, sessionId, data, load])
+
+      /** 导入面板：风格工作室与同人共用，只有目标命令不同。 */
+      function importPanel(kind) {
+        const isStyle = kind === 'style'
+        const noBook = !(data && data.book)
+        return h('section', { className: 'nk-card' },
+          h('div', { className: 'nk-card-head' },
+            h('div', { className: 'nk-card-title' }, isStyle ? '导入作品 · 学文笔' : '导入原著 · 建 canon'),
+            h('span', { className: 'nk-meta' }, 'UTF-8 的 .txt / .md，≤ 64 MB')),
+          h('div', { className: 'nk-import-row' },
+            h('input', {
+              className: 'nk-input',
+              value: importDir,
+              placeholder: '放书的目录，例如 D:\\我的小说',
+              onChange: function (event) { setImportDir(event.target.value) },
+              onKeyDown: function (event) { if (event.key === 'Enter') browseImport(event.target.value) },
+            }),
+            h('button', { type: 'button', className: 'nk-btn', disabled: importBusy, onClick: function () { browseImport() } }, '浏览')),
+          importMessage ? h('div', { className: 'nk-tiny', style: { marginTop: 7 } }, importMessage) : null,
+          noBook ? h('div', { className: 'nk-tiny', style: { marginTop: 7, color: c.warning } }, '先建一本自己的作品，导入会绑定到它。') : null,
+          importFiles && importFiles.length
+            ? h('div', { style: { marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 } },
+                importFiles.slice(0, 12).map(function (file) {
+                  return h('div', { key: file.path, className: 'nk-file-row' },
+                    h('span', { className: 'nk-file-name' }, file.name),
+                    h('span', { className: 'nk-file-meta' }, Math.max(1, Math.round((file.bytes || 0) / 1024)) + ' KB'),
+                    h('button', {
+                      type: 'button', className: 'nk-btn primary', disabled: importBusy || noBook,
+                      onClick: function () { runImport(kind, file) },
+                    }, importBusy ? '…' : (isStyle ? '学这本' : '导入')))
+                }))
+            : importFiles
+              ? h('div', { className: 'nk-tiny', style: { marginTop: 9 } }, '这个目录里没有 .txt / .md。')
+              : null)
+      }
+
+      const loadWorkSettings = React.useCallback(async function () {
+        if (!remote || typeof remote.getSettings !== 'function') return
+        try {
+          const value = await Promise.resolve(remote.getSettings(sessionId, { book: data && data.book ? data.book : null })).then(unwrap)
+          setWorkSettings(value)
+        } catch (error) {
+          setWorkMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data])
+
+      React.useEffect(function () {
+        if (section === 'data' && !workSettings) loadWorkSettings()
+      }, [section, workSettings, loadWorkSettings])
+
+      const toggleMaster = React.useCallback(async function () {
+        if (!remote || typeof remote.setMaster !== 'function') { setWorkMessage('宿主没有总开关接口'); return }
+        setWorkBusy(true)
+        try {
+          const next = !(workSettings && workSettings.master)
+          await Promise.resolve(remote.setMaster(sessionId, { master: next })).then(unwrap)
+          setWorkMessage(next ? '小说能力已开启。' : '小说能力已关闭：工具不再注册，面板写入会被拒绝。')
+          await loadWorkSettings()
+          await load()
+        } catch (error) {
+          setWorkMessage(String(error?.message ?? error))
+        } finally {
+          setWorkBusy(false)
+        }
+      }, [remote, sessionId, workSettings, loadWorkSettings, load])
+
+      const chooseMode = React.useCallback(async function (mode) {
+        if (!remote || typeof remote.setMode !== 'function') { setWorkMessage('宿主没有模式接口'); return }
+        const target = data && data.book ? data.book : ''
+        if (!target) { setWorkMessage('先选一本作品再切换模式。'); return }
+        setWorkBusy(true)
+        try {
+          await Promise.resolve(remote.setMode(sessionId, { book: target, mode })).then(unwrap)
+          setWorkMessage('「' + target + '」已切到' + (mode === 'fanfic' ? '同人' : '原创') + '模式。')
+          await loadWorkSettings()
+          await load()
+        } catch (error) {
+          setWorkMessage(String(error?.message ?? error))
+        } finally {
+          setWorkBusy(false)
+        }
+      }, [remote, sessionId, data, loadWorkSettings, load])
+
+      const createBookNow = React.useCallback(async function () {
+        if (!remote || typeof remote.createBook !== 'function') { setWorkMessage('宿主没有建书接口'); return }
+        const name = newBookName.trim()
+        if (!name) return
+        setWorkBusy(true)
+        try {
+          await Promise.resolve(remote.createBook(sessionId, { book: name })).then(unwrap)
+          setWorkMessage('已新建作品「' + name + '」，账本与项目设置已就位。')
+          setNewBookName('')
+          setBook(name)
+          await load(name)
+          await loadWorkSettings()
+        } catch (error) {
+          setWorkMessage(String(error?.message ?? error))
+        } finally {
+          setWorkBusy(false)
+        }
+      }, [remote, sessionId, newBookName, load, loadWorkSettings])
+
+      /** 工作区设置：右栏删掉后，总开关/模式/新建作品必须在这里。 */
+      function workSettingsCard() {
+        const master = !!(workSettings && workSettings.master)
+        const projectMode = (workSettings && workSettings.project && workSettings.project.mode) || 'original'
+        return h('section', { className: 'nk-card' },
+          h('div', { className: 'nk-card-head' },
+            h('div', { className: 'nk-card-title' }, '工作区设置'),
+            h('span', { className: 'nk-meta' }, workSettings ? 'profile 级总开关' : '读取中…')),
+          h('div', { className: 'nk-kv' },
+            h('span', { className: 'nk-kv-key' }, '小说能力总开关'),
+            h('button', {
+              type: 'button', className: 'nk-btn' + (master ? ' primary' : ''), disabled: workBusy,
+              onClick: toggleMaster,
+            }, master ? '已开启 · 点此关闭' : '已关闭 · 点此开启')),
+          h('div', { className: 'nk-kv' },
+            h('span', { className: 'nk-kv-key' }, '本项目模式'),
+            h('div', { style: { display: 'flex', gap: 6 } },
+              ['original', 'fanfic'].map(function (mode) {
+                return h('button', {
+                  key: mode, type: 'button', className: 'nk-btn' + (projectMode === mode ? ' primary' : ''), disabled: workBusy,
+                  onClick: function () { chooseMode(mode) },
+                }, mode === 'original' ? '原创' : '同人')
+              }))),
+          h('div', { className: 'nk-import-row', style: { marginTop: 10 } },
+            h('input', {
+              className: 'nk-input', value: newBookName, placeholder: '新建作品名，例如：长夜行',
+              onChange: function (event) { setNewBookName(event.target.value) },
+              onKeyDown: function (event) { if (event.key === 'Enter') createBookNow() },
+            }),
+            h('button', { type: 'button', className: 'nk-btn', disabled: workBusy || !newBookName.trim(), onClick: createBookNow }, '新建作品')),
+          h('div', { className: 'nk-tiny', style: { marginTop: 9 } }, '旧五件账本：先运行 /novel legacy 接管，再卸载 beat / fade / voice / fanfic / conductor。'),
+          workMessage ? h('div', { className: 'nk-tiny', style: { marginTop: 6, color: c.sub } }, workMessage) : null)
+      }
+
+      /** 每个页面自己的标题条：标题 + 一句说明 + 页内动作。 */
+      function pageHead(title, sub, actions) {        return h('div', { className: 'nk-page-head' },
+          h('div', null,
+            h('div', { className: 'nk-h2' }, title),
+            sub ? h('div', { className: 'nk-page-sub' }, sub) : null),
+          actions ? h('div', { className: 'nk-page-actions' }, actions) : null)
+      }
+
       function sceneComposer() {
         const plan = planData
         const scenes = plan && Array.isArray(plan.scenes) ? plan.scenes : []
@@ -1838,6 +1105,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'nk-kv-val' }, '只报告，不裁决'))))
 
         return h('div', { className: 'nk-wb-body' },
+          pageHead('书桌', '当前作品、下一笔与本章待办。'),
           h('div', { className: 'nk-wb-grid' },
             h('div', { className: 'nk-wb-col' },
               h('section', { className: 'nk-card hero' },
@@ -2011,12 +1279,12 @@ window.__ModuleLoader__.load({
             h('span', { style: small }, thread.text), h('span', { style: { ...faint, fontSize: 10 } }, '第 ' + thread.chapter + ' 章'))))
 
         return h('div', { className: 'nk-wb-body' },
+          pageHead('决策', '待拍板的提案、已拍板的历史，以及改选留下的重写工单。'),
           h('div', { style: { maxWidth: 820 } },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
-              h('div', { style: { fontSize: 20, fontWeight: 700 } }, '故事 / 拍板'),
-              h('span', { style: faint }, 'beat rev ' + (data && data.ledgers && data.ledgers.beat ? data.ledgers.beat.revision : '-'))),
+              h('div', { style: { ...faint, fontSize: 10.5 } }, 'beat rev ' + (data && data.ledgers && data.ledgers.beat ? data.ledgers.beat.revision : '-'))),
             h('div', { style: { display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' } },
-              tab('map', '地图', committed.length + proposals.length), tab('timeline', '时间线', committed.length), tab('health', '体检')),
+              tab('map', '拍板记录', committed.length + proposals.length), tab('timeline', '时间线', committed.length), tab('health', '体检')),
             h('div', { style: { marginTop: 12 } }, beatTab === 'map' ? map : beatTab === 'timeline' ? timeline : health)))
       }
 
@@ -2030,10 +1298,10 @@ window.__ModuleLoader__.load({
           h('div', { style: { ...faint, fontSize: 10.5 } }, label),
           h('div', { style: { fontSize: 18, fontWeight: 700, marginTop: 2 } }, String(value)))
         return h('div', { className: 'nk-wb-body' },
+          pageHead('记忆', '收尾时沉淀的事件卡；近章重点记，旧事逐步淡。'),
           h('div', { style: { maxWidth: 780 } },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
-              h('div', { style: { fontSize: 20, fontWeight: 700 } }, '长篇记忆'),
-              h('span', { style: faint }, 'rev ' + (fadeData.revision ?? '-') + (fadeData.drift ? ' · drift' : ''))),
+              h('div', { style: { ...faint, fontSize: 10.5 } }, 'rev ' + (fadeData.revision ?? '-') + (fadeData.drift ? ' · 记忆账本漂移，写作前先回查旧卡' : ''))),
             fadeData.drift ? h('div', { style: { marginTop: 8, padding: '8px 10px', border: '1px solid ' + c.warning, borderRadius: 9, color: c.warning, fontSize: 11.5 } }, '记忆账本检测到漂移：下一章写作前先回查旧卡，或收尾时重新锚定原文。') : null,
             h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 12 } },
               stat('卡片', fadeData.total || cards.length), stat('未回收线索', threads.length), stat('人物', entities.length), stat('低保真', lowFidelity)),
@@ -2094,11 +1362,11 @@ window.__ModuleLoader__.load({
         const style = materialData.style || {}
         const profiles = style.kitProfiles || []
         return h('div', { className: 'nk-wb-body' },
+          pageHead('风格工作室', '导入一本你喜欢的作品，看它的句长、对话比例、用词与禁忌，再确认成写作档案。'),
+          importPanel('style'),
           h('div', { style: { maxWidth: 780 } },
-            h('div', { style: { fontSize: 20, fontWeight: 700 } }, '风格工作室'),
-            h('div', { style: { ...faint, marginTop: 2 } }, '先确认档案，再用于写作简报与决策提示。'),
             h('div', { style: { ...faint, margin: '16px 0 6px' } }, '文风档案'),
-            profiles.length === 0 ? h('div', { style: faint }, '还没有文风档案；在右栏「设置与详情 → 学文笔」导入。') : profiles.map((profile) => {
+            profiles.length === 0 ? h('div', { style: faint }, '还没有文风档案。导入一本作品后，这里会出现它的句子、节奏与用词分析。') : profiles.map((profile) => {
               const open = styleOpen === profile.id
               const ruleTexts = Array.isArray(profile.ruleTexts) ? profile.ruleTexts : []
               return h('div', {
@@ -2134,14 +1402,27 @@ window.__ModuleLoader__.load({
       }
 
       function fanficView() {
-        if (!materialData) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '加载同人资料…'))
+        if (!materialData) {
+          return h('div', { className: 'nk-wb-body' },
+            pageHead('同人', '导入原著，抽成事实、人物、规则与称呼；每条都要有原文证据。'),
+            h('div', { className: 'nk-skeleton', style: { height: 140 } }))
+        }
         const canon = materialData.canon || {}
-        if (!canon.available) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '没有绑定同人 canon；在右栏「设置与详情 → 写同人」导入。'))
+        if (!canon.available) {
+          return h('div', { className: 'nk-wb-body' },
+            pageHead('同人', '导入原著，抽成事实、人物、规则与称呼；每条都要有原文证据。'),
+            importPanel('canon'),
+            h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-empty-state' },
+                h('div', { className: 'nk-glyph' }, '原'),
+                h('div', { className: 'nk-tiny' }, '还没有绑定原著。导入后模型用 novel_canon 抽候选，你逐条确认才算生效。'))))
+        }
         const findings = (session && session.verification && Array.isArray(session.verification.findings)) ? session.verification.findings : []
         const section = (title, items, render) => h('div', { style: { marginTop: 14 } },
           h('div', { style: { ...faint, marginBottom: 5 } }, title + ' · ' + items.length),
           items.length ? items.slice(0, 20).map(render) : h('div', { style: faint }, '暂无'))
         return h('div', { className: 'nk-wb-body' },
+          pageHead('同人', '导入原著，抽成事实/人物/规则/称呼；每条都要有原文证据。'),
           h('div', { style: { maxWidth: 780 } },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8 } },
               h('div', { style: { fontSize: 20, fontWeight: 700 } }, canon.title || '同人原著'),
@@ -2183,6 +1464,7 @@ window.__ModuleLoader__.load({
           { id: 'close', label: '收尾事务', done: !!(session && session.state === 'completed') },
         ]
         return h('div', { className: 'nk-wb-body' },
+          pageHead('编排', '计划 → 正文 → 检查 → 收尾的 runbook 与运行记录。'),
           h('div', { style: { maxWidth: 780 } },
             h('div', { style: { fontSize: 20, fontWeight: 700 } }, '编排 / 运行记录'),
             h('div', { style: { ...faint, marginTop: 2 } }, 'kit 的 runbook：计划 → 正文 → 检查 → 事务收尾；失败时从这里恢复。'),
@@ -2205,7 +1487,9 @@ window.__ModuleLoader__.load({
         if (!materialData) return h('div', { style: { padding: 18 } }, h('span', { style: faint }, '加载资料…'))
         const style = materialData.style || {}
         const canon = materialData.canon || {}
-        return h('div', { style: { padding: '14px 18px', overflowY: 'auto' } },
+        return h('div', { className: 'nk-wb-body' },
+          pageHead('资料与设置', '来源库、本章依据、操作日志，以及总开关与模式。'),
+          workSettingsCard(),
           h('div', { style: { maxWidth: 760 } },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 } },
               h('div', { style: faint }, '本章依据'),
@@ -2238,43 +1522,17 @@ window.__ModuleLoader__.load({
           ))
       }
 
-      return h('div', { className: 'nk-wb' },
-        h('div', { className: 'nk-wb-head' },
-          h('div', { style: { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 } },
-            h('div', { className: 'nk-wb-eyebrow' }, 'NOVEL WORKBENCH'),
-            h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
-              h('div', { className: 'nk-wb-title' }, (data && data.book) || '小说工作台'),
-              data && data.session
-                ? h('span', { className: 'nk-wb-status' }, h('b', null, '第 ' + data.session.chapter + ' 章'), h('span', null, '·'), h('span', null, stateLabel(data.session.state)))
-                : h('span', { className: 'nk-wb-status' }, '无活动会话'))),
-          h('div', { className: 'nk-wb-head-actions' },
-            books.length
-              ? h('select', {
-                  className: 'nk-select',
-                  value: book || (data && data.book) || '',
-                  onChange: function (event) { setBook(event.target.value); load(event.target.value) },
-                  style: { width: 'auto', height: 30, margin: 0, fontSize: 12, padding: '0 8px' },
-                }, books.map((name) => h('option', { key: name, value: name }, name)))
-              : null,
-            h('button', { type: 'button', className: 'nk-btn', onClick: function () { load() } }, state.phase === 'refreshing' ? '…' : '刷新'),
-            embedded && onClose
-              ? h('button', {
-                  type: 'button',
-                  className: 'nk-btn',
-                  title: draftState.dirty ? '正文还没保存' : '回到右栏任务卡',
-                  style: exitArm ? { borderColor: c.warning, color: c.warning } : undefined,
-                  onClick: function () {
-                    if (draftState.dirty && !exitArm) { setExitArm(true); return }
-                    setExitArm(false)
-                    onClose()
-                  },
-                }, exitArm ? '未保存 · 再点一次' : '返回任务卡')
-              : null),
-        ),
-        state.error ? h('div', { style: { color: c.error, padding: '8px 22px', fontSize: 12 } }, state.error) : null,
-        h('div', { className: 'nk-wb-tabs' },
-          ['desk', 'chapter', 'beat', 'fade', 'voice', 'fanfic', 'data'].map(sectionButton)),
-        section === 'chapter' ? h('div', { style: { display: 'flex', gap: 0, flex: 1, minHeight: 0 } },
+      const RAIL = [
+        ['desk', '书桌', '案'],
+        ['chapter', '正文', '卷'],
+        ['beat', '决策', '判'],
+        ['fade', '记忆', '忆'],
+        ['voice', '风格', '风'],
+        ['fanfic', '同人', '同'],
+        ['data', '资料', '籍'],
+      ]
+
+      const pageView = section === 'chapter' ? h('div', { style: { display: 'flex', gap: 0, flex: 1, minHeight: 0 } },
           h('div', { style: { flex: 1, minWidth: 0, padding: '10px 14px', display: 'flex', flexDirection: 'column', minHeight: 0 } },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 } },
               h('span', { style: faint }, draft ? `正文 v${draft.version} · ${draftState.loaded ? draftState.chars : (draft.chars ?? '?')} 字` : '还没有正文草稿'),
@@ -2362,46 +1620,57 @@ window.__ModuleLoader__.load({
                     : null)
               : null,
           ),
-        ) : section === 'desk' ? deskView() : section === 'beat' ? beatView() : section === 'fade' ? fadeView() : section === 'voice' ? voiceView() : section === 'fanfic' ? fanficView() : dataView(),
-      )
-    }
+        )
+        : section === 'desk' ? deskView()
+        : section === 'beat' ? beatView()
+        : section === 'fade' ? fadeView()
+        : section === 'voice' ? voiceView()
+        : section === 'fanfic' ? fanficView()
+        : dataView()
 
-    function OpenButton(props) {      return h('button', {
-        type: 'button',
-        title: '小说：章节引擎 / 四段上下文 / 账本状态',
-        onClick: props.open,
-        style: {
-          appearance: 'none', border: '1px solid var(--dsw-alias-border-l1)', background: 'transparent',
-          color: 'var(--dsw-alias-label-secondary)', borderRadius: 6, padding: '2px 8px', fontSize: 12,
-          lineHeight: '18px', cursor: 'pointer', fontFamily: 'inherit',
-        },
-      }, LABEL)
-    }
-
-    function WorkbenchButton(props) {
-      return h('button', {
-        type: 'button',
-        title: '打开小说七域工作台',
-        onClick: function () {
-          // 宿主没有暴露 openView；先找主视图 tab，再退回按钮文本，最后退回右栏。
-          const tab = Array.from(document.querySelectorAll('[role="tab"]'))
-            .find((node) => String(node.textContent || '').trim() === '小说工作台')
-          if (tab) { tab.click(); return }
-          const button = Array.from(document.querySelectorAll('header button, nav button'))
-            .find((node) => String(node.textContent || '').trim() === '小说工作台')
-          if (button) { button.click(); return }
-          if (props.open) props.open()
-        },
-        style: {
-          appearance: 'none', border: '1px solid var(--dsw-alias-border-l1)', background: 'transparent',
-          color: 'var(--dsw-alias-label-secondary)', borderRadius: 6, padding: '2px 8px', fontSize: 12,
-          lineHeight: '18px', cursor: 'pointer', fontFamily: 'inherit',
-        },
-      }, '工作台')
+      // 唯一入口：左竖栏切页，主区只放当前页。没有页签条，也没有第二个面板。
+      return h('div', { className: 'nk-wb' },
+        h('nav', { className: 'nk-rail' },
+          h('div', { className: 'nk-rail-brand' },
+            h('div', { className: 'nk-rail-seal' }, '说'),
+            h('div', { className: 'nk-rail-name' }, '小说工作台')),
+          RAIL.map(function (item) {
+            const key = item[0]
+            return h('button', {
+              key,
+              type: 'button',
+              className: 'nk-rail-item' + (section === key ? ' active' : ''),
+              onClick: function () { setSection(key) },
+            }, h('span', { className: 'nk-rail-glyph' }, item[2]), item[1], sectionDot[key] ? h('span', { className: 'nk-rail-dot' }) : null)
+          }),
+          h('div', { className: 'nk-rail-foot' },
+            h('div', { className: 'nk-rail-hint' }, (book || (data && data.book)) ? (book || (data && data.book)) : '还没有选择作品'),
+            h('button', { type: 'button', className: 'nk-btn', onClick: function () { setSection('data') } }, '工作区设置'))),
+        h('div', { className: 'nk-wb-main' },
+          h('div', { className: 'nk-wb-head' },
+            h('div', { style: { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 } },
+              h('div', { className: 'nk-wb-eyebrow' }, 'NOVEL WORKBENCH'),
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
+                h('div', { className: 'nk-wb-title' }, (data && data.book) || '小说工作台'),
+                data && data.session
+                  ? h('span', { className: 'nk-wb-status' }, h('b', null, '第 ' + data.session.chapter + ' 章'), h('span', null, '·'), h('span', null, stateLabel(data.session.state)))
+                  : h('span', { className: 'nk-wb-status' }, '无活动会话'))),
+            h('div', { className: 'nk-wb-head-actions' },
+              books.length
+                ? h('select', {
+                    className: 'nk-select',
+                    value: book || (data && data.book) || '',
+                    onChange: function (event) { setBook(event.target.value); load(event.target.value) },
+                    style: { width: 'auto', height: 30, margin: 0, fontSize: 12, padding: '0 8px' },
+                  }, books.map((name) => h('option', { key: name, value: name }, name)))
+                : null,
+              h('button', { type: 'button', className: 'nk-btn', onClick: function () { load() } }, state.phase === 'refreshing' ? '…' : '刷新'))),
+          state.error ? h('div', { style: { color: c.error, padding: '8px 22px', fontSize: 12 } }, state.error) : null,
+          pageView))
     }
 
     return {
-      inject: ['slots', 'sidebarRight', 'sidebarRightTabs', 'remote'],
+      inject: ['slots', 'remote'],
       async apply(ctx) {
         try {
           if (typeof document !== 'undefined' && !document.getElementById('dsh-novel-kit-ui-css')) {
@@ -2424,24 +1693,8 @@ window.__ModuleLoader__.load({
           console.error('[novel-kit] panel remote mount 失败', error)
         }
 
-        ctx.effect(() => ctx.sidebarRightTabs.register({
-          id: TAB_ID,
-          kind: KIND,
-          title: () => LABEL,
-          icon: 'book',
-          guide: [{
-            title: () => '小说',
-            description: () => '章节引擎、四段上下文与五本账的只读总览。',
-          }],
-        }))
-
-        ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
-          name: 'sidebar.right.pane.tab',
-          key: TAB_ID,
-          inject: (sessionId) => ({ sessionId, remote: panelRemote, layout: ctx.get('layout') }),
-        }, Panel)))
-
-        // 小说工作台：会话级主视图（conversation.view），四入口 + 可编辑正文 + 依据/账本。
+        // 唯一入口：会话级主视图「小说工作台」。右栏页签与头部按钮已移除，
+        // 一个插件只留一个界面，能力全部收进工作台的左竖栏。
         ctx.effect(() => ctx.slots.inject('conversation.view', () => ctx.slots.register({
           name: 'conversation.view',
           id: 'novel-kit.chapter',
@@ -2449,27 +1702,6 @@ window.__ModuleLoader__.load({
           order: 20,
           inject: (sessionId) => ({ sessionId, remote: panelRemote }),
         }, Workbench)))
-
-        ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
-          name: 'conversation.session.header.utilities',
-          id: 'novel-kit-open',
-          order: 35,
-          inject: (sessionId) => ({
-            open: () => ctx.sidebarRight.openTab(KIND),
-            sessionId,
-          }),
-        }, OpenButton)))
-
-        ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
-          name: 'conversation.session.header.utilities',
-          id: 'novel-kit-workbench-open',
-          order: 36,
-          label: '工作台',
-          inject: (sessionId) => ({
-            open: () => ctx.sidebarRight.openTab(KIND),
-            sessionId,
-          }),
-        }, WorkbenchButton)))
       },
     }
   },

@@ -93,16 +93,14 @@ const ctx = {
   slots: { inject(_name, fn) { return fn() }, register(config, Component) { registered.push({ config, Component }); return () => {} } },
 }
 await mod.apply(ctx)
-check('侧栏 tab / 面板 / 工作台注册', () => {
-  const tab = registered.find((item) => item.kind === 'tab')
-  assert.ok(tab, '缺少 sidebarRightTabs 注册')
-  assert.equal(tab.definition.title(), '小说')
-  const pane = registered.find((item) => item.config?.name === 'sidebar.right.pane.tab')
-  assert.ok(pane, '缺少 sidebar.right.pane.tab')
+check('唯一入口：conversation.view 小说工作台', () => {
+  assert.equal(registered.length, 1, '只能注册一个界面入口')
+  assert.ok(!registered.some((item) => item.kind === 'tab'), '不该再注册右栏 page 签')
   const workbench = registered.find((item) => item.config?.name === 'conversation.view')
   assert.ok(workbench, '缺少 conversation.view 工作台')
   assert.equal(workbench.config.label, '小说工作台')
-  return 'tab + pane + workbench'
+  assert.equal(typeof workbench.Component, 'function')
+  return 'conversation.view only'
 })
 
 console.log(`\n${passed}/${passed + (process.exitCode ? 1 : 0)} 项通过`)
