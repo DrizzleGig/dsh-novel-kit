@@ -231,3 +231,8 @@
   border-radius: 0 var(--nk-r-sm) var(--nk-r-sm) 0; font-family: var(--nk-serif); font-size: 12.5px; line-height: 1.75; color: var(--nk-ink-2); }
 .nk-chipline { display: flex; flex-wrap: wrap; gap: 6px; }
 .nk-detail { display: flex; flex-direction: column; gap: 10px; }
+.nk-warnbar { display: flex; align-items: center; gap: 12px; margin: 10px 22px 0; padding: 10px 12px; flex-wrap: wrap;
+  border: 1px solid var(--nk-accent-line); background: var(--nk-accent-soft); border-radius: var(--nk-r);
+  font-size: 12.5px; color: var(--nk-ink); }
+.nk-warnbar-text { flex: 1; min-width: 220px; line-height: 1.6; }
+.nk-warnbar-actions { display: flex; gap: 8px; }

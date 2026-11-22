@@ -354,6 +354,11 @@ window.__ModuleLoader__.load({
         border-radius: 0 var(--nk-r-sm) var(--nk-r-sm) 0; font-family: var(--nk-serif); font-size: 12.5px; line-height: 1.75; color: var(--nk-ink-2); }
       .nk-chipline { display: flex; flex-wrap: wrap; gap: 6px; }
       .nk-detail { display: flex; flex-direction: column; gap: 10px; }
+      .nk-warnbar { display: flex; align-items: center; gap: 12px; margin: 10px 22px 0; padding: 10px 12px; flex-wrap: wrap;
+        border: 1px solid var(--nk-accent-line); background: var(--nk-accent-soft); border-radius: var(--nk-r);
+        font-size: 12.5px; color: var(--nk-ink); }
+      .nk-warnbar-text { flex: 1; min-width: 220px; line-height: 1.6; }
+      .nk-warnbar-actions { display: flex; gap: 8px; }
 /* NK:STYLE:END */
     `
 
@@ -462,6 +467,11 @@ window.__ModuleLoader__.load({
       const requestRef = React.useRef(0)
       // 正文编辑器的 DOM 句柄：检查项定位要把选区挪到那一句。
       const draftRef = React.useRef(null)
+      // 草稿归属：切书/换章后回来晚了的响应不能写进当前编辑器。
+      const draftTargetRef = React.useRef({ book: null, sessionId: null })
+      const saveInFlightRef = React.useRef(false)
+      // 有未保存正文时切书：先在这里停下，等作者选保存还是丢弃。
+      const [pendingBook, setPendingBook] = React.useState(null)
       const editVersionRef = React.useRef(0)
       const bookRef = React.useRef(null)
       const load = React.useCallback(async function (nextBook) {
@@ -510,8 +520,12 @@ window.__ModuleLoader__.load({
 
       const loadDraft = React.useCallback(async function (session) {
         if (!remote || !session || !session.id || typeof remote.getDraft !== 'function') return
+        const target = { book: (state.data && state.data.book) || bookRef.current || null, sessionId: session.id }
+        draftTargetRef.current = target
         try {
           const result = await Promise.resolve(remote.getDraft(sessionId, { chapterSessionId: session.id })).then(unwrap)
+          // 响应回来时目标已经变了（切书 / 换章 / 又发起了一次加载）：丢弃，不覆盖当前编辑器。
+          if (draftTargetRef.current.book !== target.book || draftTargetRef.current.sessionId !== target.sessionId) return
           if (result && result.draft) {
             editVersionRef.current = 0
             setDraftState({
@@ -525,7 +539,7 @@ window.__ModuleLoader__.load({
         } catch (error) {
           setSaveState({ phase: 'error', message: String(error?.message ?? error) })
         }
-      }, [remote, sessionId])
+      }, [remote, sessionId, state.data && state.data.book])
 
       const data = state.data
       const sessionKey = data && data.session ? data.session.id : null
@@ -590,8 +604,12 @@ window.__ModuleLoader__.load({
       }, [remote, sessionId, data && data.book, data && data.session && data.session.revision, section])
 
       const saveDraft = React.useCallback(async function () {
-        if (!remote || !data || !data.session || typeof remote.saveDraft !== 'function') return
-        if (!draftState.dirty) { setSaveState({ phase: 'idle', message: '没有未保存的修改' }); return }
+        if (!remote || !data || !data.session || typeof remote.saveDraft !== 'function') return false
+        // 按钮与 Ctrl+S 共用同一个互斥口：两次保存不能并行，否则版本号会互相踩。
+        if (saveInFlightRef.current) return false
+        if (!draftState.dirty) { setSaveState({ phase: 'idle', message: '没有未保存的修改' }); return false }
+        saveInFlightRef.current = true
+        const target = { book: data.book ?? null, sessionId: data.session.id }
         const submittedSeq = editVersionRef.current
         setSaveState({ phase: 'saving', message: '' })
         try {
@@ -604,7 +622,12 @@ window.__ModuleLoader__.load({
           if (!result || result.ok === false) {
             const message = result?.message || result?.code || '保存失败'
             setSaveState({ phase: 'error', message: result && result.code === 'draft-conflict' ? '远端草稿已更新；本地未保存，先复制或点「重新载入」。' : message })
-            return
+            return false
+          }
+          // 保存期间切了书/章：结果照实告诉作者，但不要把回包写进当前编辑器。
+          if (draftTargetRef.current.book !== target.book || draftTargetRef.current.sessionId !== target.sessionId) {
+            setSaveState({ phase: 'saved', message: '已保存；但期间切换了作品/章节，界面保持不变。' })
+            return true
           }
           const stillDirty = editVersionRef.current !== submittedSeq
           setDraftState((prev) => ({
@@ -618,10 +641,48 @@ window.__ModuleLoader__.load({
           setSaveState({ phase: 'saved', message: stillDirty ? '已保存提交版本；之后的新输入还没保存。' : '已保存 v' + (result.draft?.version ?? '?') })
           if (!stillDirty) setExitArm(false)
           await load()
+          return true
         } catch (error) {
           setSaveState({ phase: 'error', message: String(error?.message ?? error) })
+          return false
+        } finally {
+          saveInFlightRef.current = false
         }
       }, [remote, sessionId, data, draftState, loadDraft, load])
+
+      /** 真的切书：先清编辑器与草稿归属，再取新书快照。 */
+      const performBookSwitch = React.useCallback(function (nextBook) {
+        if (!nextBook) return
+        setPendingBook(null)
+        editVersionRef.current = 0
+        draftTargetRef.current = { book: nextBook, sessionId: null }
+        setDraftState({ text: '', version: 0, hash: null, chars: 0, loaded: false, dirty: false })
+        setSaveState({ phase: 'idle', message: '' })
+        setExitArm(false)
+        setBook(nextBook)
+        load(nextBook)
+      }, [load])
+
+      /** 切书入口：有未保存正文时先停住，让作者选保存还是丢弃。 */
+      const requestBookSwitch = React.useCallback(function (nextBook) {
+        const currentBook = book || (data && data.book) || ''
+        if (!nextBook || nextBook === currentBook) return
+        if (draftState.dirty) { setPendingBook(nextBook); return }
+        performBookSwitch(nextBook)
+      }, [book, data, draftState.dirty, performBookSwitch])
+
+      const saveAndSwitchBook = React.useCallback(async function () {
+        const target = pendingBook
+        if (!target) return
+        const ok = await saveDraft()
+        if (!ok) return
+        performBookSwitch(target)
+      }, [pendingBook, saveDraft, performBookSwitch])
+
+      const discardAndSwitchBook = React.useCallback(function () {
+        if (!pendingBook) return
+        performBookSwitch(pendingBook)
+      }, [pendingBook, performBookSwitch])
 
       const startChapterFromDesk = React.useCallback(async function (bookName, chapterNo) {
         if (!remote || typeof remote.startChapter !== 'function' || !bookName || !chapterNo) {
@@ -2240,12 +2301,25 @@ window.__ModuleLoader__.load({
                 ? h('select', {
                     className: 'nk-select',
                     value: book || (data && data.book) || '',
-                    onChange: function (event) { setBook(event.target.value); load(event.target.value) },
+                    onChange: function (event) { requestBookSwitch(event.target.value) },
                     style: { width: 'auto', height: 30, margin: 0, fontSize: 12, padding: '0 8px' },
                   }, books.map((name) => h('option', { key: name, value: name }, name)))
                 : null,
               h('button', { type: 'button', className: 'nk-btn', onClick: function () { load() } }, state.phase === 'refreshing' ? '…' : '刷新'))),
           state.error ? h('div', { style: { color: c.error, padding: '8px 22px', fontSize: 12 } }, state.error) : null,
+          pendingBook
+            ? h('div', { className: 'nk-warnbar' },
+                h('span', { className: 'nk-warnbar-text' },
+                  '「' + ((book || (data && data.book)) || '当前作品') + '」还有未保存的正文；切到「' + pendingBook + '」前先决定怎么处理。'),
+                h('div', { className: 'nk-warnbar-actions' },
+                  h('button', {
+                    type: 'button', className: 'nk-btn primary',
+                    disabled: saveState.phase === 'saving',
+                    onClick: function () { saveAndSwitchBook() },
+                  }, saveState.phase === 'saving' ? '保存中…' : '保存并切换'),
+                  h('button', { type: 'button', className: 'nk-btn', onClick: function () { discardAndSwitchBook() } }, '丢弃并切换'),
+                  h('button', { type: 'button', className: 'nk-btn', onClick: function () { setPendingBook(null) } }, '取消')))
+            : null,
           !state.data && state.phase === 'loading'
             ? h('div', { className: 'nk-wb-body' },
                 h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 720 } },
