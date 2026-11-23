@@ -4,7 +4,7 @@
 
 > 面向长篇连载与同人作者的写作工作台。它把章节计划、作者拍板、正文草稿、章节记忆、文风档案和原著依据放进同一流程：开章前整理可用资料，写后检查禁忌、称呼与已登记引文，再把正文和账本变更写入可恢复事务。模型可以提交候选，是否采纳、何时生效由作者决定。
 
-`0.5.1` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness · [更新日志](CHANGELOG.md)
+`0.5.2` · MIT · 需要 Node ≥ 20 的 DeepSeek Harness · [更新日志](CHANGELOG.md)
 
 ![小说工作台 · 书桌](docs/mockups/live/wb-desk-dark.png)
 
@@ -127,16 +127,12 @@ npm run ui:snapshot      # 七个页面 × 暗亮 出图
 
 ## 共同作者
 
-**MiyueWinter**：文案、测试、设计与开发。GitHub：[MiyueWinter](https://github.com/MiyueWinter)
+v0.5.2 共同作者：[MiyueWinter](https://github.com/MiyueWinter) —— 文案、测试、设计与开发。
 
 ## 喜欢它？
 
-如果「拍板」帮你在 AI 写作中掌握了关键剧情的决定权，欢迎在 GitHub 点亮 ⭐，也欢迎提交 Issue 或 PR：
-
-- ⭐ Star：[DrizzleGig/dsh-novel-kit](https://github.com/DrizzleGig/dsh-novel-kit/stargazers)
-- 🐞 Issue：[报告问题](https://github.com/DrizzleGig/dsh-novel-kit/issues)
-- 🔧 PR：[提交改动](https://github.com/DrizzleGig/dsh-novel-kit/pulls)
+如果「拍板」帮你在 AI 写作中掌握了关键剧情的决定权，也让长篇的设定和前文有处可查，欢迎在 [GitHub](https://github.com/DrizzleGig/dsh-novel-kit) 点亮 ⭐，也欢迎 [Issue](https://github.com/DrizzleGig/dsh-novel-kit/issues) 或 [PR](https://github.com/DrizzleGig/dsh-novel-kit/pulls)。
 
 ## 许可证
 
-MIT License，见 [LICENSE](LICENSE)。作者 **DrizzleGig**。
+MIT License，见 [LICENSE](LICENSE)。
