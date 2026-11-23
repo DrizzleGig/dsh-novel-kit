@@ -8,7 +8,7 @@
 
 ![小说工作台 · 书桌](docs/mockups/live/wb-desk-dark.png)
 
-## 为什么你会喜欢它
+## 它好在哪
 
 - **打开就知道该写什么**：书桌只给一个主行动——「下一笔」，其余信息在侧栏，不拿十张卡片淹没你。
 - **改稿不用满篇找**：禁忌词、与原著雷同、称呼不符这类问题，点「定位」直接选中那一句；不能定位的（比如文风区间）就老实写「全文级」。
@@ -125,6 +125,18 @@ npm run ui:snapshot      # 七个页面 × 暗亮 出图
 
 旧文风库与旧同人项目仍可兼容读取；要建立工作台自己的文风档案，请重新导入并确认；要启用原著设定，则需提交候选、逐条审阅并应用。
 
-## 许可
+## 共同作者
 
-MIT · 作者 **DrizzleGig** · 协作者 **MiyueWinter**
+**MiyueWinter**：文案、测试、设计与开发。GitHub：[MiyueWinter](https://github.com/MiyueWinter)
+
+## 喜欢它？
+
+如果「拍板」帮你在 AI 写作中掌握了关键剧情的决定权，欢迎在 GitHub 点亮 ⭐，也欢迎提交 Issue 或 PR：
+
+- ⭐ Star：[DrizzleGig/dsh-novel-kit](https://github.com/DrizzleGig/dsh-novel-kit/stargazers)
+- 🐞 Issue：[报告问题](https://github.com/DrizzleGig/dsh-novel-kit/issues)
+- 🔧 PR：[提交改动](https://github.com/DrizzleGig/dsh-novel-kit/pulls)
+
+## 许可证
+
+MIT License，见 [LICENSE](LICENSE)。作者 **DrizzleGig**。
