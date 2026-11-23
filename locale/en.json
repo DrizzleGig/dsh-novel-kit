@@ -1,9 +1,9 @@
 {
   "meta": {
-    "title": "Novel Workbench",
+    "title": "小说工作台",
     "detail": "docs/DETAIL.md",
-    "description": "Novel Workbench: write a long novel in one place — desk, manuscript, decisions, memory, style studio, canon and sources. Four context segments budgeted before you write; checks that jump to the exact sentence; every chapter committed in a recoverable transaction."
+    "description": "小说工作台 keeps writing, sources and review in one flow: chapter plans and author decisions, draft saving, chapter checks and recoverable commits; an imported sample becomes a style statistics profile, and canon candidates reach the manuscript only after the author reviews and applies them."
   },
-  "name": "Novel Workbench",
-  "description": "A workbench for long-form and fan fiction: plot decisions, world contract, long-term memory and voice style are assembled into four budgeted context segments before each chapter. One chain per chapter (plan → start → write → check → commit, resumable), per-entry canon review, drafts protected when switching books, and off by default so it never clutters your tool list."
+  "name": "小说工作台",
+  "description": "A writing workbench for long-form and fan fiction: chapter plans, author decisions, chapter memory, a style profile and canon sources. Sources are assembled before a chapter, drafts are checked for forbidden phrases, address misuse and registered quotations after writing, and both manuscript and ledger changes commit in a recoverable transaction."
 }
