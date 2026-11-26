@@ -6,6 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { collectSnapshot } from '../lib/host/snapshot.js'
 import { startChapter, writeChapter } from '../lib/engine/chapter.js'
+import { ensureBook } from '../lib/native/store.js'
 
 function workspace() {
   const root = mkdtempSync(path.join(os.tmpdir(), 'kit-snap-'))
@@ -40,6 +41,17 @@ test('快照：没有会话时也给出账本 revision 与四段占位', async (
   assert.deepEqual(snap.issues, [])
 })
 
+test('快照：原生书不扫描五件目录，kitBooks 可见', async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'kit-snap-native-'))
+  await ensureBook({ root, book: '原生书' })
+  const snap = await collectSnapshot({ root, book: '原生书' })
+  assert.deepEqual(snap.workspace.kitBooks, ['原生书'])
+  assert.deepEqual(snap.workspace.beat, [])
+  assert.equal(snap.ledgers.beat.revision, 0)
+  assert.equal(snap.ledgers.fade.revision, 0)
+  assert.equal(existsSync(path.join(root, '.dsh-novel-beat')), false)
+})
+
 test('快照：有活动会话时给出状态、草稿与四段摘要', async () => {
   const root = workspace()
   const { session } = await startChapter({ root, book: '书', chapter: 13 })
@@ -62,7 +74,7 @@ test('快照：缺账本记 issue，不抛错；开关状态按 agent 读', asyn
   assert.equal(existsSync(path.join(root, '.dsh-novel-kit')), false, '快照不能创建目录')
 })
 
-test('快照：真实书只读（不改任何账本文件）', { skip: !existsSync('D:\\斗罗大陆\\.dsh-novel-beat') }, async () => {
+test('快照：真实书只读（不改任何账本文件）', { skip: !existsSync('D:\\斗罗大陆\\.dsh-novel-beat\\斗罗：开局炸毁冰火两仪眼\\book.json') }, async () => {
   const root = 'D:\\斗罗大陆'
   const book = '斗罗：开局炸毁冰火两仪眼'
   const before = readFileSync(path.join(root, '.dsh-novel-beat', book, 'book.json'), 'utf8')

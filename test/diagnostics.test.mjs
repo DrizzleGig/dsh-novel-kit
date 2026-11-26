@@ -1,7 +1,11 @@
 // S2 前哨：旧五件/kit 装载诊断（纯函数 + 无管理器分支）。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { mkdtempSync } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { summarizeBundles, collectDiagnostics, SIBLINGS } from '../lib/host/diagnostics.js'
+import { ensureBook } from '../lib/native/store.js'
 
 const bundles = [
   {
@@ -49,20 +53,22 @@ test('summarizeBundles：只有 kit 时 takeoverNeeded=false', () => {
   assert.equal(SIBLINGS.length, 5)
 })
 
-test('collectDiagnostics：没有插件管理器时如实返回 managed:false', async () => {
-  const result = await collectDiagnostics({})
+test('collectDiagnostics：没有工作区时不再查询五件，managed:false', async () => {
+  const result = await collectDiagnostics({ pluginManager: { listBundles: async () => bundles, listPlugins: async () => plugins } })
   assert.equal(result.managed, false)
-  assert.match(result.reason, /pluginManager/)
+  assert.match(result.reason, /工作区/u)
 })
 
-test('collectDiagnostics：有管理器时合并两份清单', async () => {
+test('collectDiagnostics：只报告 kit 原生书，忽略 pluginManager', async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'kit-diag-'))
+  await ensureBook({ root, book: '诊断书' })
   const result = await collectDiagnostics({
-    pluginManager: {
-      listBundles: async () => bundles,
-      listPlugins: async () => plugins,
-    },
+    root,
+    pluginManager: { listBundles: async () => { throw new Error('不应查询五件') }, listPlugins: async () => { throw new Error('不应查询五件') } },
   })
   assert.equal(result.managed, true)
-  assert.equal(result.kit.running, true)
-  assert.deepEqual(result.runningSiblings, ['dsh-novel-beat'])
+  assert.equal(result.native, true)
+  assert.equal(result.books.length, 1)
+  assert.equal(result.books[0].displayName, '诊断书')
+  assert.equal(result.pluginManager, 'ignored')
 })

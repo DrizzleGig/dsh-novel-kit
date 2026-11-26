@@ -92,9 +92,13 @@ const build = node([path.join('scripts', 'build-client.mjs'), '--check'])
 if (build.ok) ok('产物与源文件一致')
 else fail('client.js 与源文件不一致：先跑 npm run build:client')
 
+const fullCheck = npm(['run', 'check'])
+if (fullCheck.ok) ok('npm run check 通过')
+else fail('npm run check 失败')
+
 // ── 3. 测试 ───────────────────────────────────────────────────────────────────
 section('单元与集成测试')
-const tests = node(['--test'], { quiet: true })
+const tests = node(['--require', './test/legacy-env.cjs', '--test'], { quiet: true })
 const passLine = (tests.out.match(/ℹ pass (\d+)/u) ?? [])[1]
 const failCount = (tests.out.match(/ℹ fail (\d+)/u) ?? [])[1]
 if (tests.ok && failCount === '0') ok(`测试 ${passLine ?? '?'} 条全过`)
@@ -102,7 +106,7 @@ else fail(`测试未全过（fail ${failCount ?? '?'}）`)
 
 // ── 4. 验收 ───────────────────────────────────────────────────────────────────
 section('合成验收')
-if (node([path.join('scripts', 'acceptance.mjs')], { quiet: true }).ok) ok('acceptance 通过')
+if (node([path.join('scripts', 'acceptance-native.mjs')], { quiet: true }).ok) ok('acceptance 通过')
 else fail('合成验收失败')
 
 section('加载链验收')
@@ -131,19 +135,21 @@ try {
 section('打包清单')
 const pack = npm(['pack', '--dry-run', '--json'], { allowFail: true })
 if (!pack.ok) {
-  console.log('  ⚠ npm pack 不可用，跳过清单检查')
+  fail('npm pack 不可用或失败')
 } else {
   let files = []
   try {
     const parsed = JSON.parse(pack.out.slice(pack.out.indexOf('[')))
     files = (parsed[0]?.files ?? []).map((item) => String(item.path).replace(/\\/gu, '/'))
   } catch {
-    console.log('  ⚠ 解析 npm pack 输出失败，跳过')
+    fail('解析 npm pack 输出失败')
   }
   if (files.length) {
     const missing = REQUIRED_PACK.filter((needle) => !files.includes(needle))
     if (missing.length === 0) ok(`打包 ${files.length} 个文件，必需文件齐全`)
     else fail('打包缺少：' + missing.join(', '))
+  } else {
+    fail('npm pack 没有返回文件清单')
   }
 }
 

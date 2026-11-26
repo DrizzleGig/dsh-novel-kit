@@ -20,8 +20,11 @@ const repo = path.resolve(here, '..')
 const outDir = path.join(repo, 'docs', 'mockups', 'live')
 
 const WS_ROOT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'D:\\斗罗大陆'
-const BOOK = process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : '斗罗：开局炸毁冰火两仪眼'
+const NO_BOOK = process.argv.includes('--no-book')
+const BOOK = NO_BOOK ? null : (process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : '斗罗：开局炸毁冰火两仪眼')
 const HTML_ONLY = process.argv.includes('--html')
+const SNAP_WIDTH = Number(process.env.NK_SNAPSHOT_WIDTH) || 1440
+const SNAP_HEIGHT = Number(process.env.NK_SNAPSHOT_HEIGHT) || 900
 
 // ── 最小 React 替身 ─────────────────────────────────────────────────────────
 // 只实现 client.js 用到的部分：createElement / useState / useMemo / useCallback /
@@ -266,7 +269,7 @@ const mod = plugin.factory((name) => {
   throw new Error('require 只支持 react：' + name)
 })
 
-const snapshot = await collectSnapshot({ root: WS_ROOT, book: BOOK })
+const snapshot = await collectSnapshot({ root: WS_ROOT, book: BOOK || undefined })
 
 // 真正的面板远端：不走 Service 构造器（需要真 Cordis 上下文），只借原型方法 + 自己的 ctx。
 // 这样快照读到的是真实账本、真实会话、真实建档逻辑，不是手写夹具。
@@ -299,7 +302,7 @@ const remote = new Proxy({}, {
             return {
               ok: true,
               value: {
-                available: true, id: BOOK, title: '原著', sourceId: demoSource, revision: 7,
+                available: true, id: BOOK || '示例', title: '原著', sourceId: demoSource, revision: 7,
                 canonReady: false, contractStatus: 'pending-review',
                 addresses: [
                   { from: '裴照', to: '沈砚', form: '沈大人', publicForm: '沈大人', privateForm: '阿砚', fromChapter: '12' },
@@ -321,7 +324,7 @@ const remote = new Proxy({}, {
             return {
               ok: true,
               value: {
-                available: true, book: BOOK, sourceId: demoSource, title: '原著', status: 'pending-review', canonReady: false,
+                available: true, book: BOOK || '示例', sourceId: demoSource, title: '原著', status: 'pending-review', canonReady: false,
                 revision: 21, contractRevision: 4, contentHash: 'demo',
                 pending: [
                   { changeId: 'chg_a1', collection: 'facts', operation: 'update', changeHash: 'a1', decision: 'pending', before: { subject: '裴照', value: '沈大人' }, after: { subject: '裴照', value: '阿砚' }, evidenceRefs: [] },
@@ -343,7 +346,7 @@ const remote = new Proxy({}, {
           return {
             ok: true,
             value: {
-              book: BOOK, total: 3, blocked: { start: true, finish: true },
+              book: BOOK || '示例', total: 3, blocked: { start: true, finish: true },
               items: [
                 { id: 'decision:p1', kind: 'decision', severity: 'blocker', blockScope: 'finish', title: '沈砚要不要现在叫出那个名字', summary: '叫出 / 继续装作不知道', target: { page: 'beat' }, actions: ['adopt', 'reject'], chapter: 12 },
                 { id: 'canon:contract', kind: 'canon', severity: 'blocker', blockScope: 'start', title: '同人原著还没确认', summary: '当前状态：pending-review', target: { page: 'fanfic' }, actions: ['confirm'], chapter: null },
@@ -356,7 +359,7 @@ const remote = new Proxy({}, {
         // NK_AUTOBOOK=1 时不补，用来验证客户端自己的「自动选书」是否真的生效。
         if (process.env.NK_AUTOBOOK !== '1' && (prop === 'getSnapshot' || prop === 'getPlan' || prop === 'getStyle' || prop === 'getCanon' || prop === 'getMemory' || prop === 'getDecisions')) {
           const request = { ...(args[1] || {}) }
-          if (!request.book) request.book = BOOK
+          if (!request.book && BOOK) request.book = BOOK
           args[1] = request
         }
         const value = await real[prop].apply(real, args)
@@ -415,11 +418,12 @@ for (const { config, Component } of registered) {
     let file = 'wb-' + key
     if (key === 'desk' && process.env.NK_INBOX_DEMO === '1') file = 'wb-inbox-demo'
     if (key === 'fanfic' && process.env.NK_CANON_DEMO === '1') file = 'wb-canon-demo'
+    if (SNAP_WIDTH !== 1440 || SNAP_HEIGHT !== 900) file += '-' + SNAP_WIDTH + 'x' + SNAP_HEIGHT
     targets.push({
       file,
       label,
-      width: 1440,
-      height: 900,
+      width: SNAP_WIDTH,
+      height: SNAP_HEIGHT,
       element: mini.React.createElement(Component, { sessionId: 'snapshot-session', remote, initialSection: key }),
     })
   }

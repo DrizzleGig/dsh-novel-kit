@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN" data-nk="dark">
+<head>
+<meta charset="utf-8">
+<title>dsh-novel-kit · wb-chapter-1280x900 · dark</title>
+<style>
+:root {
+  --dsw-alias-bg-base: #12100e;
+  --dsw-alias-bg-layer-1: #1b1714;
+  --dsw-alias-border-l1: #312a23;
+  --dsw-alias-label-primary: #f3ebdf;
+  --dsw-alias-label-secondary: #bcb0a0;
+  --dsw-alias-label-tertiary: #7e7365;
+  --dsw-alias-label-primary-foreground: #1b1714;
+  --dsw-alias-brand-primary: #d4603f;
+  --dsw-alias-interactive-bg-hover: rgba(212,96,63,.12);
+  --dsw-alias-state-error-primary: #e2685c;
+  --dsw-alias-state-warning-primary: #d79b3c;
+  --dsw-alias-state-success-primary: #5fa38f;
+  --dsw-font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --dsw-font-mono: "Cascadia Mono", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 1280px; height: 900px; overflow: hidden; }
+body { background: #0b0a09; color: var(--dsw-alias-label-primary); font-family: var(--dsw-font-family); -webkit-font-smoothing: antialiased; }
+#stage { width: 1280px; height: 900px; overflow: hidden; background: var(--dsw-alias-bg-base); }
+.nk-panel, .nk-wb {
+  --nk-line: color-mix(in srgb, var(--dsw-alias-label-primary) 14%, transparent);
+  --nk-line-soft: color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent);
+  --nk-surface: color-mix(in srgb, var(--dsw-alias-label-primary) 4%, transparent);
+  --nk-surface-2: color-mix(in srgb, var(--dsw-alias-label-primary) 7%, transparent);
+  --nk-paper: color-mix(in srgb, var(--dsw-alias-bg-base) 93%, #eedfc9 7%);
+  --nk-accent: color-mix(in srgb, #b5432d 84%, var(--dsw-alias-label-primary));
+  --nk-accent-soft: color-mix(in srgb, #b5432d 13%, transparent);
+  --nk-accent-line: color-mix(in srgb, #b5432d 34%, transparent);
+  --nk-ink: var(--dsw-alias-label-primary);
+  --nk-ink-2: color-mix(in srgb, var(--dsw-alias-label-primary) 66%, transparent);
+  --nk-ink-3: color-mix(in srgb, var(--dsw-alias-label-primary) 44%, transparent);
+  --nk-r-sm: 8px; --nk-r: 11px; --nk-r-lg: 15px;
+  --nk-serif: "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif;
+  --nk-mono: var(--dsw-font-mono, "Cascadia Mono", Consolas, monospace);
+}
+
+/* ── 右栏：一个滚动的躯干 + 固定头尾 ── */
+.nk-panel { gap: 0; padding: 0; background: var(--nk-paper); }
+.nk-panel > * { flex: 0 0 auto; }
+.nk-head { position: sticky; top: 0; z-index: 3; padding: 14px 16px 12px; gap: 11px;
+  background: color-mix(in srgb, var(--nk-paper) 88%, transparent); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--nk-line-soft); }
+.nk-seal { width: 34px; height: 34px; border-radius: 9px; border-width: 1.5px;
+  border-color: var(--nk-accent-line); color: var(--nk-accent); font-size: 19px;
+  background: var(--nk-accent-soft); }
+.nk-title { font-size: 16.5px; letter-spacing: .01em; }
+.nk-book { font-size: 11.5px; color: var(--nk-ink-3); margin-top: 2px; }
+.nk-actions { gap: 6px; }
+.nk-btn, .nk-select, .nk-input, .nk-tab, .nk-rowbtn, .nk-rail-item { font-family: inherit; }
+.nk-btn { appearance: none; border: 1px solid var(--nk-line); cursor: pointer; line-height: 1.2;
+  height: 26px; padding: 0 10px; font-size: 11.5px; border-radius: var(--nk-r-sm);
+  border-color: var(--nk-line); background: transparent; color: var(--nk-ink-2); transition: background .15s, border-color .15s, color .15s; }
+.nk-btn:hover { background: var(--nk-surface); border-color: var(--nk-line); color: var(--nk-ink); }
+.nk-btn.primary { background: var(--nk-accent); border-color: var(--nk-accent); color: #fff8ef; }
+.nk-btn.primary:hover { filter: brightness(1.06); }
+
+.nk-select { width: 100%; height: 34px; border: 1px solid var(--nk-line); border-radius: var(--nk-r-sm);
+  background: var(--nk-surface); color: var(--nk-ink); padding: 0 10px; font-size: 12px; cursor: pointer; }
+/* 作品切换：做成一行轻量胶囊，不再占一整块 */
+.nk-panel > .nk-select { width: auto; margin: 10px 16px 0; height: 30px; font-size: 12px;
+  background: var(--nk-surface); border-color: var(--nk-line-soft); border-radius: var(--nk-r-sm); }
+
+.nk-panel > section, .nk-panel > div:not(.nk-head):not(.nk-foot) { margin-left: 16px; margin-right: 16px; }
+
+/* ── 下一笔卡：抬高一层 + 朱砂竖线，不做整块反色 ── */
+.nk-next { margin-top: 14px; padding: 15px 15px 14px; border-radius: var(--nk-r-lg);
+  background: var(--nk-surface); border: 1px solid var(--nk-line-soft); box-shadow: 0 1px 0 color-mix(in srgb, var(--dsw-alias-label-primary) 5%, transparent);
+  overflow: hidden; }
+.nk-next::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px;
+  border-radius: 2px; background: var(--nk-accent); opacity: .85; }
+.nk-next::after { display: none; }
+.nk-eyebrow { color: var(--nk-accent); font-size: 9.5px; letter-spacing: .16em; }
+.nk-next-title { font-size: 23px; line-height: 1.3; margin: 7px 0 5px; color: var(--nk-ink); }
+.nk-next-copy { color: var(--nk-ink-2); font-size: 12px; line-height: 1.65; }
+.nk-next-meta { margin-top: 11px; gap: 6px; flex-wrap: wrap; }
+.nk-chip { height: 20px; font-size: 10px; padding: 0 7px; border-color: var(--nk-line-soft);
+  color: var(--nk-ink-3); background: var(--nk-surface); }
+.nk-next .nk-chip { color: var(--nk-ink-2); border-color: var(--nk-accent-line); background: var(--nk-accent-soft); }
+.nk-next-btn { height: 34px; margin-top: 13px; border-radius: var(--nk-r-sm); background: var(--nk-accent);
+  color: #fff8ef; font-size: 12.5px; letter-spacing: .01em; }
+.nk-next-btn:disabled { background: var(--nk-surface-2); color: var(--nk-ink-3); }
+
+/* ── 分区：卡片化，标题不再是一行 10px 灰字 ── */
+.nk-section { margin-top: 18px; }
+.nk-section-head { align-items: center; margin-bottom: 8px; }
+.nk-section-title { font-family: var(--dsw-font-family, sans-serif); font-size: 11px; font-weight: 600;
+  letter-spacing: .14em; color: var(--nk-ink-3); text-transform: uppercase; }
+.nk-meta { font-size: 11px; color: var(--nk-ink-3); font-variant-numeric: tabular-nums; }
+.nk-inbox { background: var(--nk-surface); border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r); overflow: hidden; }
+.nk-item { padding: 9px 11px; font-size: 12px; line-height: 1.55; border-bottom: 1px solid var(--nk-line-soft); }
+.nk-item:last-child { border-bottom: 0; }
+.nk-kind { width: 30px; font-size: 9.5px; letter-spacing: .06em; color: var(--nk-accent); }
+.nk-kind.amber { color: var(--dsw-alias-state-warning-primary, #a87322); }
+.nk-kind.jade { color: var(--dsw-alias-state-success-primary, #2f6a5a); }
+.nk-item-main { color: var(--nk-ink-2); }
+
+/* ── 四段依据：条形 + 2×2 图例 ── */
+.nk-ebar { height: 6px; gap: 0; border-radius: 6px; background: var(--nk-surface-2); }
+.nk-ebar i { border-radius: 0; }
+.nk-elegend { margin-top: 9px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; font-size: 11px; }
+.nk-elegend > * { display: flex; align-items: baseline; gap: 5px; color: var(--nk-ink-2); font-variant-numeric: tabular-nums; }
+.nk-dot { width: 6px; height: 6px; margin-right: 0; }
+
+/* ── 最近章节 ── */
+.nk-recent { background: var(--nk-surface); border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r); overflow: hidden; }
+.nk-recent-row { padding: 8px 11px; font-size: 12px; border-bottom: 1px solid var(--nk-line-soft); }
+.nk-recent-row:last-child { border-bottom: 0; }
+.nk-recent-row:hover { background: var(--nk-surface-2); }
+.nk-recent-no { width: 30px; color: var(--nk-ink-3); font-variant-numeric: tabular-nums; }
+.nk-recent-title { color: var(--nk-ink); }
+.nk-recent-state { color: var(--nk-ink-3); font-size: 10px; }
+
+/* ── 空态 / 底部固定主行动 ── */
+.nk-panel .nk-book-pick { max-width: 210px; height: 22px; font-size: 11.5px; color: var(--nk-ink-3);
+  border: 1px solid transparent; background: transparent; padding: 0 4px; border-radius: 6px; font-family: inherit; cursor: pointer; }
+.nk-panel .nk-book-pick:hover { border-color: var(--nk-line-soft); background: var(--nk-surface); }
+
+.nk-empty { margin-top: 14px; padding: 14px; border-radius: var(--nk-r); border: 1px dashed var(--nk-line);
+  background: transparent; align-items: stretch; gap: 9px; }
+.nk-foot { position: sticky; bottom: 0; margin-top: auto; padding: 12px 16px;
+  background: color-mix(in srgb, var(--nk-paper) 92%, transparent); backdrop-filter: blur(8px);
+  border-top: 1px solid var(--nk-line-soft); gap: 8px; }
+.nk-foot .nk-btn { height: 34px; font-size: 12.5px; }
+.nk-foot .nk-btn.primary { flex: 1.4; }
+.nk-panel ::-webkit-scrollbar { width: 8px; }
+.nk-panel ::-webkit-scrollbar-thumb { background: var(--nk-line); border-radius: 8px; }
+
+/* ── 工作台 ── */
+.nk-wb { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--nk-paper); color: var(--nk-ink); font-family: var(--dsw-font-family, sans-serif); }
+.nk-wb-head { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--nk-line-soft); flex: 0 0 auto; }
+.nk-wb-eyebrow { font-size: 9.5px; letter-spacing: .18em; color: var(--nk-ink-3); text-transform: uppercase; }
+.nk-wb-title { font-family: var(--nk-serif); font-size: 21px; font-weight: 700; letter-spacing: -.01em; line-height: 1.25; }
+.nk-wb-status { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px;
+  border: 1px solid var(--nk-line-soft); background: var(--nk-surface); font-size: 10.5px; color: var(--nk-ink-2); }
+.nk-wb-status b { font-weight: 600; color: var(--nk-ink); }
+.nk-wb-head-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.nk-wb-tabs { display: flex; gap: 4px; padding: 9px 22px; border-bottom: 1px solid var(--nk-line-soft); overflow-x: auto; flex: 0 0 auto; }
+.nk-tab { appearance: none; border: 1px solid transparent; background: transparent; color: var(--nk-ink-3);
+  height: 26px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-family: inherit; cursor: pointer; white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s; }
+.nk-tab:hover { background: var(--nk-surface); color: var(--nk-ink-2); }
+.nk-tab.active { background: var(--nk-surface-2); border-color: var(--nk-line-soft); color: var(--nk-ink); font-weight: 600; }
+.nk-tab-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--nk-accent); margin-left: 5px; vertical-align: 1px; }
+.nk-wb-body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 22px 40px; }
+.nk-wb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; max-width: 1280px; }
+.nk-wb-grid.single { grid-template-columns: minmax(0, 1fr); max-width: 900px; }
+.nk-wb-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (max-width: 1080px) { .nk-wb-grid { grid-template-columns: minmax(0, 1fr); } .nk-wb-aside { display: none; } }
+
+
+.nk-card { background: var(--nk-surface); border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r-lg); padding: 15px 16px; }
+.nk-card.flush { padding: 0; overflow: hidden; }
+.nk-card.hero { background: linear-gradient(180deg, var(--nk-accent-soft), transparent 70%), var(--nk-surface); border-color: var(--nk-accent-line); }
+.nk-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.nk-card-title { font-size: 11px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--nk-ink-3); }
+.nk-card-head .nk-meta { margin-left: auto; }
+.nk-h1 { font-family: var(--nk-serif); font-size: 26px; font-weight: 700; line-height: 1.3; letter-spacing: -.015em; }
+.nk-h2 { font-family: var(--nk-serif); font-size: 17px; font-weight: 700; line-height: 1.4; }
+.nk-h3 { font-size: 13px; font-weight: 600; }
+.nk-body { font-size: 12.5px; line-height: 1.7; color: var(--nk-ink-2); }
+.nk-tiny { font-size: 11px; line-height: 1.6; color: var(--nk-ink-3); }
+.nk-num { font-variant-numeric: tabular-nums; }
+
+.nk-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.nk-stat { border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r); padding: 10px 12px; background: var(--nk-surface); }
+.nk-stat-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--nk-ink-3); }
+.nk-stat-value { margin-top: 4px; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.nk-stat-value.accent { color: var(--nk-accent); }
+.nk-stat-value.warn { color: var(--dsw-alias-state-warning-primary, #a87322); }
+
+.nk-steps { display: flex; gap: 8px; }
+.nk-step { flex: 1; min-width: 0; border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r); padding: 9px 10px; background: var(--nk-surface); }
+.nk-step.done { border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary, #2f6a5a) 46%, transparent); background: color-mix(in srgb, var(--dsw-alias-state-success-primary, #2f6a5a) 8%, transparent); }
+.nk-step.current { border-color: var(--nk-accent-line); background: var(--nk-accent-soft); }
+.nk-step-no { font-size: 9.5px; letter-spacing: .12em; color: var(--nk-ink-3); }
+.nk-step-label { font-size: 12px; font-weight: 600; margin-top: 3px; }
+.nk-step-state { font-size: 10px; margin-top: 3px; color: var(--nk-ink-3); }
+
+.nk-kv { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--nk-line-soft); font-size: 12px; }
+.nk-kv:last-child { border-bottom: 0; }
+.nk-kv-key { color: var(--nk-ink-3); }
+.nk-kv-val { color: var(--nk-ink); font-variant-numeric: tabular-nums; text-align: right; }
+
+.nk-empty-state { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 12px 14px; text-align: center; color: var(--nk-ink-3); }
+.nk-empty-state .nk-glyph { font-family: var(--nk-serif); font-size: 30px; line-height: 1; color: var(--nk-accent); opacity: .5; }
+.nk-skeleton { border-radius: var(--nk-r); background: linear-gradient(90deg, var(--nk-surface), var(--nk-surface-2), var(--nk-surface));
+  background-size: 200% 100%; animation: nk-shimmer 1.4s ease-in-out infinite; height: 56px; }
+@keyframes nk-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .nk-skeleton { animation: none; } }
+/* ── 0.4.0：唯一入口 = 左竖栏 + 主区 ── */
+.nk-wb { flex-direction: row; align-items: stretch; }
+.nk-rail { width: 172px; flex: 0 0 172px; display: flex; flex-direction: column; gap: 2px; padding: 16px 10px 14px;
+  border-right: 1px solid var(--nk-line-soft); background: color-mix(in srgb, var(--nk-paper) 70%, transparent); }
+.nk-rail-brand { display: flex; align-items: center; gap: 8px; padding: 0 6px 14px; }
+.nk-rail-seal { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-family: var(--nk-serif);
+  font-size: 15px; font-weight: 700; color: var(--nk-accent); border: 1.5px solid var(--nk-accent-line); background: var(--nk-accent-soft); }
+.nk-rail-name { font-size: 12.5px; font-weight: 600; letter-spacing: .02em; }
+.nk-rail-item { appearance: none; border: 1px solid transparent; background: transparent; color: var(--nk-ink-2); font-family: inherit;
+  display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 10px; border-radius: 9px; font-size: 13px; cursor: pointer;
+  text-align: left; transition: background .14s, color .14s, border-color .14s; }
+.nk-rail-item:hover { background: var(--nk-surface); color: var(--nk-ink); }
+.nk-rail-item.active { background: var(--nk-surface-2); border-color: var(--nk-line-soft); color: var(--nk-ink); font-weight: 600; }
+.nk-rail-glyph { width: 18px; text-align: center; font-family: var(--nk-serif); font-size: 14px; color: var(--nk-ink-3); }
+.nk-rail-item.active .nk-rail-glyph { color: var(--nk-accent); }
+.nk-rail-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--nk-accent); margin-left: auto; }
+.nk-rail-foot { margin-top: auto; padding: 10px 6px 0; border-top: 1px solid var(--nk-line-soft); display: flex; flex-direction: column; gap: 6px; }
+.nk-rail-hint { font-size: 10.5px; line-height: 1.5; color: var(--nk-ink-3); }
+.nk-wb-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nk-page-head { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 16px; }
+.nk-page-head .nk-h2 { margin: 0; }
+.nk-page-sub { font-size: 12px; color: var(--nk-ink-3); margin-top: 3px; }
+.nk-page-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.nk-split { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.nk-split-list { display: flex; flex-direction: column; gap: 8px; }
+@media (max-width: 1180px) { .nk-split { grid-template-columns: minmax(0, 1fr); } }
+.nk-import-row { display: flex; gap: 8px; align-items: center; }
+.nk-input { flex: 1; min-width: 0; height: 32px; border: 1px solid var(--nk-line); border-radius: var(--nk-r-sm);
+  background: var(--nk-surface); color: var(--nk-ink); padding: 0 10px; font-size: 12px; font-family: inherit; }
+.nk-input::placeholder { color: var(--nk-ink-3); }
+.nk-file-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--nk-r-sm);
+  border: 1px solid var(--nk-line-soft); background: var(--nk-surface); font-size: 12px; }
+.nk-file-row:hover { border-color: var(--nk-line); }
+.nk-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nk-file-meta { color: var(--nk-ink-3); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.nk-band { display: grid; grid-template-columns: 84px 1fr 76px; gap: 8px; align-items: center; font-size: 11.5px; padding: 4px 0; }
+.nk-band-track { position: relative; height: 5px; border-radius: 5px; background: var(--nk-surface-2); overflow: hidden; }
+.nk-band-fill { position: absolute; height: 100%; border-radius: 5px; background: color-mix(in srgb, var(--nk-accent) 70%, transparent); }
+.nk-band-val { text-align: right; color: var(--nk-ink-3); font-variant-numeric: tabular-nums; }
+.nk-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 5px; font-size: 10.5px;
+  color: var(--nk-ink-2); background: var(--nk-surface-2); border: 1px solid var(--nk-line-soft); }
+.nk-wb :focus-visible, .nk-panel :focus-visible { outline: 2px solid var(--nk-accent-line); outline-offset: 1px; border-radius: var(--nk-r-sm); }
+
+/* ── 页面区块：提案 / 选项 / 记忆卡 / 台账行 ── */
+.nk-proposal { padding: 12px 0; border-bottom: 1px solid var(--nk-line-soft); }
+.nk-proposal:last-child { border-bottom: 0; }
+.nk-proposal-title { font-size: 13.5px; font-weight: 600; line-height: 1.5; }
+.nk-option { margin-top: 8px; padding: 9px 10px; border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r-sm); background: var(--nk-surface); }
+.nk-option-label { font-size: 12.5px; font-weight: 600; }
+.nk-option-foot { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.nk-rowbtn { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; appearance: none; background: transparent;
+  border: 0; border-bottom: 1px solid var(--nk-line-soft); color: var(--nk-ink); padding: 9px 12px; font-family: inherit; font-size: 12.5px; cursor: pointer; }
+.nk-rowbtn:last-child { border-bottom: 0; }
+.nk-rowbtn:hover { background: var(--nk-surface-2); }
+.nk-rowbtn.active { background: var(--nk-accent-soft); }
+.nk-rowbtn-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nk-badge { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; font-size: 10px;
+  background: var(--nk-surface-2); color: var(--nk-ink-3); border: 1px solid var(--nk-line-soft); }
+.nk-badge.accent { background: var(--nk-accent-soft); color: var(--nk-accent); border-color: var(--nk-accent-line); }
+.nk-badge.warn { color: var(--dsw-alias-state-warning-primary, #a87322); }
+.nk-quote { margin-top: 8px; padding: 9px 11px; border-left: 2px solid var(--nk-accent-line); background: var(--nk-surface);
+  border-radius: 0 var(--nk-r-sm) var(--nk-r-sm) 0; font-family: var(--nk-serif); font-size: 12.5px; line-height: 1.75; color: var(--nk-ink-2); }
+.nk-chipline { display: flex; flex-wrap: wrap; gap: 6px; }
+.nk-detail { display: flex; flex-direction: column; gap: 10px; }
+.nk-warnbar { display: flex; align-items: center; gap: 12px; margin: 10px 22px 0; padding: 10px 12px; flex-wrap: wrap;
+  border: 1px solid var(--nk-accent-line); background: var(--nk-accent-soft); border-radius: var(--nk-r);
+  font-size: 12.5px; color: var(--nk-ink); }
+.nk-warnbar-text { flex: 1; min-width: 220px; line-height: 1.6; }
+.nk-warnbar-actions { display: flex; gap: 8px; }
+/* 窄屏：侧栏改为顶部横向，主区占满宽度（420/900 宽度不再被 172px 侧栏挤坏）。 */
+@media (max-width: 720px) {
+  .nk-wb { flex-direction: column; }
+  .nk-rail { width: 100%; flex: 0 0 auto; flex-direction: row; align-items: center; gap: 4px; padding: 8px 10px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--nk-line-soft); }
+  .nk-rail-brand { padding: 0 8px 0 2px; flex: 0 0 auto; }
+  .nk-rail-name { display: none; }
+  .nk-rail-item { width: auto; flex: 0 0 auto; height: 32px; padding: 0 10px; border-radius: 8px; }
+  .nk-rail-glyph { width: 16px; font-size: 13px; }
+  .nk-rail-foot { display: none; }
+  .nk-wb-head { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+  .nk-wb-eyebrow { display: none; }
+  .nk-wb-title { font-size: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nk-wb-head-actions { margin-left: auto; }
+  .nk-wb-body { padding: 14px 14px 28px; }
+  .nk-wb-grid { gap: 12px; }
+  .nk-card { padding: 12px; }
+}
+
+</style>
+</head>
+<body><div id="stage"><div class="nk-wb"><nav class="nk-rail"><div class="nk-rail-brand"><div class="nk-rail-seal">说</div><div class="nk-rail-name">小说工作台</div></div><button class="nk-rail-item" type="button"><span class="nk-rail-glyph">案</span>书桌</button><button class="nk-rail-item active" type="button"><span class="nk-rail-glyph">卷</span>正文</button><button class="nk-rail-item" type="button"><span class="nk-rail-glyph">判</span>决策</button><button class="nk-rail-item" type="button"><span class="nk-rail-glyph">忆</span>记忆</button><button class="nk-rail-item" type="button"><span class="nk-rail-glyph">风</span>风格</button><button class="nk-rail-item" type="button"><span class="nk-rail-glyph">同</span>同人</button><button class="nk-rail-item" type="button"><span class="nk-rail-glyph">籍</span>资料</button><div class="nk-rail-foot"><div class="nk-rail-hint">原生验收书</div><button class="nk-btn" type="button">工作区设置</button></div></nav><div class="nk-wb-main"><div class="nk-wb-head"><div style="min-width:0px;display:flex;flex-direction:column;gap:3px"><div class="nk-wb-eyebrow">NOVEL WORKBENCH</div><div style="display:flex;align-items:center;gap:10px;min-width:0px"><div class="nk-wb-title">原生验收书</div><span class="nk-wb-status"><b>第 1 章</b><span>·</span><span>已落账</span></span></div></div><div class="nk-wb-head-actions"><select class="nk-select" style="width:auto;height:30px;margin:0px;font-size:12px;padding:0 8px" value="原生验收书"><option value="原生验收书">原生验收书</option></select><button class="nk-btn" type="button">刷新</button></div></div><div style="display:flex;gap:0px;flex:1;min-height:0px"><div style="width:200px;flex-shrink:0;border-right:1px solid var(--dsw-alias-border-l1);padding:14px 10px;overflow-y:auto"><div class="nk-card-title" style="padding:0 4px 8px">章节</div><button class="nk-rowbtn active" style="border-radius:8px;border-bottom:0px;padding:8px 10px" type="button"><span class="nk-rowbtn-title">第 1 章</span><span class="nk-meta">44 字</span></button><button class="nk-btn" style="width:100%;margin-top:8px" type="button">回书桌开新章</button></div><div style="flex:1;min-width:0px;padding:10px 14px;display:flex;flex-direction:column;min-height:0px"><div class="nk-page-head"><div><div class="nk-h2">正文</div><div class="nk-page-sub">这一章的完整草稿；保存后先前的检查结果作废，检查通过再收尾。</div></div></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--dsw-alias-label-tertiary);font-size:11px">正文 v1 · 44 字</span><span style="color:var(--dsw-alias-label-tertiary);font-size:11px">已保存</span><span style="margin-left:auto;color:var(--dsw-alias-label-secondary);font-size:11px"></span><button style="appearance:none;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit" type="button">重新载入</button><button style="appearance:none;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-tertiary);border-radius:6px;padding:3px 10px;font-size:11.5px;cursor:default;font-family:inherit" disabled type="button">保存草稿（Ctrl S）</button></div><textarea style="flex:1;width:100%;min-height:220px;resize:none;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:inherit;font-size:13px;line-height:1.8;padding:10px" placeholder="在这里写本章正文；保存后旧检查作废。" value="陈凡推门进来，屋里没有别人。
+
+“你来了。”唐昊说。
+
+他把那枚令牌放在桌上，没有解释。">陈凡推门进来，屋里没有别人。
+
+“你来了。”唐昊说。
+
+他把那枚令牌放在桌上，没有解释。</textarea></div><div style="width:260px;flex-shrink:0;border-left:1px solid var(--dsw-alias-border-l1);padding:10px 12px;overflow-y:auto"><div style="color:var(--dsw-alias-label-tertiary);font-size:11px;margin-bottom:4px">写作依据</div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:none"><span style="color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.5">beat</span><span style="color:var(--dsw-alias-label-secondary);font-size:11.5px">0/800 · rev 0</span></div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:none"><span style="color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.5">fanfic</span><span style="color:var(--dsw-alias-label-tertiary);font-size:11.5px">未接入</span></div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:none"><span style="color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.5">fade</span><span style="color:var(--dsw-alias-label-secondary);font-size:11.5px">22/1400 · rev 0</span></div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:none"><span style="color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.5">voice</span><span style="color:var(--dsw-alias-label-tertiary);font-size:11.5px">未接入</span></div><div style="color:var(--dsw-alias-label-tertiary);font-size:11px;margin:10px 0 4px">账本</div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:none"><span style="color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.5">beat</span><span style="color:var(--dsw-alias-label-secondary);font-size:11.5px">rev 1</span></div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:none"><span style="color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.5">fade</span><span style="color:var(--dsw-alias-label-secondary);font-size:11.5px">rev 0</span></div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:none"><span style="color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.5">voice</span><span style="color:var(--dsw-alias-label-tertiary);font-size:11.5px">无</span></div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:none"><span style="color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.5">fanfic</span><span style="color:var(--dsw-alias-label-tertiary);font-size:11.5px">无</span></div><div style="margin-top:8px"><div style="color:var(--dsw-alias-label-tertiary);font-size:11px">最近章节</div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:none"><span style="color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.5">第 1 章</span><span style="color:var(--dsw-alias-label-tertiary);font-size:11px">completed · 44 字</span></div></div><div style="margin-top:8px"><div style="color:var(--dsw-alias-label-tertiary);font-size:11px">正文文件</div><div style="color:var(--dsw-alias-label-secondary);font-size:11px;word-break:break-all">D:\Novel-gate\tmp\native-ui-fixture\正文\bk-cdc22b0f-a856-40d9-8380-c6bf60836e3f\第1章.md</div></div><div style="margin-top:8px"><div style="color:var(--dsw-alias-label-tertiary);font-size:11px">本章检查</div><div style="color:var(--dsw-alias-label-secondary);font-size:11.5px">blocker 0 · warning 0</div></div></div></div></div></div></div></body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "name": "openhongguo",
+      "version": "0.4.1",
+      "license": "Apache-2.0",
+      "upstream": "https://github.com/beilunyang/openhongguo",
+      "source": "npm:openhongguo@0.4.1",
+      "usedIn": ["lib/hongguo.mjs"],
+      "modified": false,
+      "notice": true,
+      "files": [
+        { "path": "LICENSE", "sha256": "c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c" },
+        { "path": "GO_LICENSE", "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad" },
+        { "path": "index.js", "sha256": "3b3c63c78de86ce95288ed6b20f2a39d34e4b476994ff4768151bb34e313ff0c" },
+        { "path": "dist/openhongguo.wasm", "sha256": "f99ac1d4e00b9c81d1c139b84c1aff9e7e4b15d3e558feafb9fdcdc91e9d41d2" },
+        { "path": "dist/wasm_exec.js", "sha256": "45ce9dfe7211247544ab6f4268eb8cb5b6f3d5ae602dc3b51447b7eada99c229" }
+      ]
+    }
+  ]
+}

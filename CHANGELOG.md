@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.7.0 — kit v2 独立工作台（2026-11-27）
+
+- 新增 `lib/native/`：`schema.js`（`kit.books`/`kit.book`/`kit.decisions`/`kit.memory`）、`store.js`（books.json + bookId + `正文/<bookId>/`）、`decisions.js`、`memory.js`、`import/legacy.js`（五件只读导入）。
+- 新增开发 CLI `scripts/kit-v2-import.mjs`：`preview` 只读扫描、`apply` 显式导入；只写 `.dsh-novel-kit/` 与 `正文/<bookId>/`，五件源文件不改。
+- S1 硬化：事务计划/镜像不可变（同 txId 拒绝覆盖）、显式 `beforeHash:null` 语义、`commit` 幂等、all-applied 补回执、`resumeTransaction` 续交 partial、`rollbackTransaction` 只撤 after；`chapter.finish/resume` 复用；`book.js` 坏账本不覆盖；`memory3d/context` 钉卡跨窗口、遗忘卡排除、去 18 卡硬截断；`lib/storage/locks.js` 工作区写锁接入 finish/decision/revise/memory/import。
+- S2 前半：`ensureBook` 建原生书（`books.json`/bookId/decisions/memory/`正文/<bookId>/`），不再建 `.dsh-novel-beat/-fade`；`readContext/chapter.start|finish|decideProposal|reviseDecision` 原生账路径；`readBeat/readFade` 原生优先；`snapshot`/`remote.getMemory/searchMemory`/`diagnostics` 原生适配；`client` 书列表优先 `kitBooks`；`/novel legacy` 改只读预览；`takeover/restore` 返回 v2 removed；`importSource` 停写 fanfic；`migrateKitBook` + CLI `migrate` 迁移 kit 0.5.x 自有数据；写锁接 finish/decision/revise。
+- 继承导入 UI/remote：`previewLegacy`/`importLegacy`/`migrateKitLegacy` + 资料页「继承导入」卡片（voice/fanfic 多候选下拉）；清理 `importSource`/`takeover`/`restore` 后当前 63 个方法，`build:client` 同源生成。
+- 0.7 决策 v3 起步：原生 `decideProposal` 同步写 `requests/answers/decision`，作者 adopt 才写 `answeredAt`；`decisionGate` 在 finish 校验回答凭据；`decisionLoop` 统计待答请求，决策页显示 gate/待答。
+- 0.7 记忆归档起步：原生 `archiveCard`/`restoreArchivedCard`，archive.objects + stub 可恢复，重复调用幂等。
+- 0.7 runbook 起步：`native/runs.js` 的 create/list/read/update/step 状态推进；只写 `.dsh-novel-kit/runs/`，不恢复五件调度；资料页「故事总控 runbook」卡可新建/完成 run。
+- 0.7 fade 曲线/巩固起步：`consolidation.js` 的 `retentionCurve`/`consolidationPlan`，`consolidateMemory` 只归档窗口外、非钉、低显著度卡。
+- 0.7 voice persona 起步：原生人物卡 `create/confirm/brief`，未确认不进入简报；存 `.dsh-novel-kit/personas/<bookId>/`；风格页「人物卡」区可确认提案。
+- 0.7 fanfic 媒体证据起步：导入 fanfic media 到 `.dsh-novel-kit/media/<bookId>/`，默认 unverified；`reviewMediaEvidence` 确认/拒绝后才进 brief。
+- 0.7 fanfic 媒体 UI：同人页「媒体证据」卡（状态/页码/引文，确认/拒绝），remote `getMedia`/`reviewMedia`。
+- 0.7 全书分析起步：`native/analysis.js` 汇总决策 gate/未答、记忆归档、媒体状态、人物卡、runbook；remote `getAnalysis`；资料页「全书分析」卡。
+- 0.8 媒体资料分类起步：`mediaFromLegacy` 保留 claimType/visibility/version/route；`mediaBrief` 分 facts/rumors/fiction/unclassified，只给 confirmed。
+- `acceptance:native` 扩展为四段：原生建书写章 → 五件导入后原生写章 → 备份校验 → 故事圣经；`backupVerified=true`。
+- 0.8 合成规模基准：`scripts/bench-native.mjs`（10000 卡/1000 决策/1000 媒体证据，40 轮）本机 p95：curve 2.5ms、analysis 7.2ms、bible 0.8ms。
+- 单本备份：`native/backup.js` 导出 kit 数据+正文+hash manifest，`refreshBackup` 增量刷新；CLI `backup --book --out`；不含五件目录。
+- 故事圣经导出：`native/bible.js` 汇总决策/记忆/已确认人物/媒体分类/runbook 为 Markdown，CLI `bible --book --out`。
+- 0.7 记忆归档 UI：`memoryAction` 增加 `archive`/`unarchive`；记忆页「归档」按钮与「已归档」恢复列表；`memoryView` 暴露 stub 摘要。
+- 0.7 voice 评分起步：`rateStyleProfile`/`readStyleRatingSummary` 追加作者/读者评分，不改规则，不输出跨作品总分；风格页 1–5 评分按钮 + remote `rateStyle`。
+- 删除旧 fanfic 写路径：`lib/engine/import.js`、`lib/host/takeover.js` 及对应旧测试；`listSourceFiles` 移到 `lib/engine/source-files.js`；补 `test/source-text.test.mjs`。
+- 七页组件级 UI 快照用原生夹具（`原生验收书`）重新生成到 `docs/mockups/live/`；资料页可见「继承导入」卡片；补 `max-width:720px` 响应式（420 侧栏顶部横排）与 `NK_SNAPSHOT_WIDTH` 多宽度快照。
+- 仍非重启 DSH 后的宿主截图。
+- 风格档案规则写侧：`updateStyleRule` 权重 0–5 / 确认状态、`addStyleCandidate` 学习候选、`readStyleHistory` 最近 50 条；简报只收 confirmed 并按权重排序；remote 新增 3 方法（52）。
+- `test/style-rules.test.mjs` 2 项（权重排序/拒绝/候选/历史/stale revision）。
+- 记忆总览健康/曲线：`memoryView` 增加 `curve`/`health`，总览显示低保真/窗口外/钉卡与最低保真 5 张；`test/memory-view-curve.test.mjs` 1 项。
+- 风格解绑：`unbindStyleProfile` 只从本书移除绑定、保留档案/评分/历史；remote `unbindStyle`（53）；`test/style-unbind.test.mjs` 1 项。
+- 风格重测：`remeasureStyle` 从原来源重算 metrics/bands，保留规则/评分/历史；remote `remeasureStyle`（54）；`test/style-remeasure.test.mjs` 1 项。
+- 章节历史：`chapterHistory` 带 `verification` 摘要，决策页「按章体检」显示 blocker/warning；`test/chapter-history.test.mjs` 1 项。
+- 风格档案移除：先解绑，再把 profile JSON 移到 `styles/trash/`，来源/评分不删；remote `removeStyleProfile`（55）。
+- 读者偏好备注：`setStyleReaderPreference` 只写 profile.readerPreference，不进规则简报；remote `saveStyleReader`（56）；测试 1 项。
+- 原生漫画/OCR：从 fanfic 本地漫画读取移植到 `lib/native/comic/`（CBZ/ZIP/图片目录、分格、Windows OCR），remote `listComicPages`/`getComicPage`/`ocrComicPages`（59）；测试 6 项；不共享 fanfic 运行时。
+- 原生红果/弹幕：从 fanfic 只读适配移植 `lib/native/hongguo/`（vendored openhongguo，Apache-2.0；search/series/episodes/danmaku），remote 4 方法（63）；红果 tab 可搜剧、看集、看弹幕；不读取播放地址/内容密钥。
+- 红果网络实测：真实搜索「庆余年」返回剧集；`series/episodes` 可读；`danmaku` 首窗 total 72、items 为空但 has_more=true；不读播放地址/密钥。
+- 红果安全边界：`safeHongguoClient` 只暴露 search/getSeries/listEpisodes/listDanmaku；测试 1 项。
+- 全量 `npm test` 264 项、261 过 / 3 跳过 / 0 失败；3 项跳过是真实书夹具显式 opt-out；生产默认关闭旧口径。`npm run check` 63 remote、client 同源。
+- Codex 终审修复：`acceptance` 切原生入口并删除断链旧脚本；voice/fanfic 旧读取加 LEGACY gate；profile 写锁+expectedRevision、settings bind/unbind/mode 锁；共享档案只解绑；切书清空证据/风格详情；`compileDecisionHint` 只收 confirmed 规则与确认档案的 policy；readerPreference 回传、counterExamples 保留；publish 检查失败拒发、窄屏 aside 不再隐藏、memory lowest 全量算。
+- 0.7.0 发布范围：四页分页、原生漫画/OCR、红果/弹幕、统一审阅、风格质量/评分/读者备注、七页工作台与底色。
+- 已知问题（0.7.1 继续）：真实 DSH 宿主逐页冒烟尚未完成；红果需网络；读者偏好目前是作者备注而非自动模型；Codex 复审记录见 `docs/kit-0.7.0-Codex终审-2026-11-27.md`。
+
 ## 0.5.2 — 2026-11-23
 
 README 结尾改成**句内链接**：

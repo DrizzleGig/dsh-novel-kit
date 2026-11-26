@@ -1,7 +1,7 @@
 // S1：宿主接线——总开关 master + /novel 会话开关 + 8 个工具按会话门控 + 项目模式。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { apply } from '../index.js'
@@ -119,7 +119,7 @@ test('工具执行前再查开关：准入后关 master 不会执行', async () 
   assert.equal(result.code, 'novel-disabled')
 })
 
-test('/novel legacy：扫描旧五件账本并就地接管为 kit 项目', async () => {
+test('/novel legacy：v2 只做只读预览，不再就地接管', async () => {
   const root = mkdtempSync(path.join(os.tmpdir(), 'kit-legacy-'))
   mkdirSync(path.join(root, '.dsh-novel-beat', '旧书'), { recursive: true })
   writeFileSync(path.join(root, '.dsh-novel-beat', '旧书', 'book.json'), JSON.stringify({ schemaVersion: 2, book: '旧书', chapters: {}, decisions: [], segments: [], audit: [], revision: 3 }))
@@ -129,9 +129,9 @@ test('/novel legacy：扫描旧五件账本并就地接管为 kit 项目', async
   await apply(ctx)
   const result = await commands[0].handler({ rawInput: 'legacy', session: { id: 's-legacy' } })
   assert.equal(result.kind, 'success')
-  assert.match(result.text, /已接管/)
-  const settings = JSON.parse(readFileSync(path.join(root, '.dsh-novel-kit', 'projects', '旧书', 'settings.json'), 'utf8'))
-  assert.equal(settings.mode, 'original')
+  assert.match(result.text, /继承导入/u)
+  assert.match(result.text, /不再“就地接管”/u)
+  assert.equal(existsSync(path.join(root, '.dsh-novel-kit', 'projects', '旧书', 'settings.json')), false)
 })
 
 test('/novel mode：写项目设置，非法模式拒绝', async () => {  const root = mkdtempSync(path.join(os.tmpdir(), 'kit-mode-'))

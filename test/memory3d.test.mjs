@@ -40,3 +40,18 @@ test('memory3d：窗口外的卡不参与', () => {
   const view = memory3d({ cards: [{ id: 'old', chapter: 1, gist: 'x' }] }, 50, { span: 40 })
   assert.equal(view.cards.length, 0)
 })
+
+test('memory3d：钉卡跨窗口仍取；遗忘卡不取；omittedIds 可见', () => {
+  const view = memory3d({
+    cards: [
+      { id: 'pinned-far', chapter: 1, gist: '钉住的身份', pinned: true },
+      { id: 'old', chapter: 1, gist: '普通旧事' },
+      { id: 'forgotten', chapter: 49, gist: '已忘', lifecycle: { status: 'forgotten' } },
+    ],
+  }, 50, { span: 40 })
+  const ids = view.cards.map((card) => card.id)
+  assert.ok(ids.includes('pinned-far'))
+  assert.ok(!ids.includes('old'))
+  assert.ok(!ids.includes('forgotten'))
+  assert.ok(view.omittedIds.includes('old'))
+})

@@ -3,6 +3,7 @@
 // 只读真实目录（复制），全部写入都在临时副本里。
 // 运行：node scripts/acceptance-real.mjs [书目录] [书名]
 import { cp, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { planChapter, decideProposal, startChapter, writeChapter, finishChapter, queryChapter } from '../lib/engine/chapter.js'
@@ -10,6 +11,10 @@ import { collectSnapshot } from '../lib/host/snapshot.js'
 
 const source = process.argv[2] ?? 'D:\\斗罗大陆'
 const book = process.argv[3] ?? '斗罗：开局炸毁冰火两仪眼'
+if (!existsSync(source) || !existsSync(path.join(source, '.dsh-novel-beat', book, 'book.json'))) {
+  console.log('SKIP 真实验收：没有可用的真实书副本（' + source + '）')
+  process.exit(0)
+}
 const results = []
 const check = (name, ok, detail = '') => {
   results.push({ name, ok })

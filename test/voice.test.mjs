@@ -49,7 +49,7 @@ test('voiceContext：有 confirmed 档案时给 bands 与规则，不超预算',
   assert.ok(ctx.chars <= 600 * 2)
 })
 
-test('真实档案：斗罗书库能解出 confirmed 档案与 bands', { skip: !existsSync('D:\\斗罗大陆\\.dsh-novel-voice') }, async () => {
+test('真实档案：斗罗书库能解出 confirmed 档案与 bands', { skip: !existsSync('D:\\斗罗大陆\\.dsh-novel-voice\\斗罗大陆\\profiles') }, async () => {
   const profiles = await readVoiceProfiles('D:\\斗罗大陆', '斗罗大陆')
   assert.ok(profiles.length >= 1)
   const confirmed = profiles.find((item) => item.status === 'confirmed')

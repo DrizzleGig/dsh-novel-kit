@@ -108,6 +108,17 @@
 
 /* ── 工作台 ── */
 .nk-wb { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--nk-paper); color: var(--nk-ink); font-family: var(--dsw-font-family, sans-serif); }
+.nk-wb.nk-tone-sepia { --nk-paper: #f4ead8; }
+.nk-wb.nk-tone-dark {
+  --nk-paper: #1e1d1b;
+  --nk-ink: #eee8de;
+  --nk-ink-2: #bdb6aa;
+  --nk-ink-3: #8c857a;
+  --nk-line: rgba(255, 255, 255, .18);
+  --nk-line-soft: rgba(255, 255, 255, .1);
+  --nk-surface: rgba(255, 255, 255, .06);
+  --nk-surface-2: rgba(255, 255, 255, .1);
+}
 .nk-wb-head { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--nk-line-soft); flex: 0 0 auto; }
 .nk-wb-eyebrow { font-size: 9.5px; letter-spacing: .18em; color: var(--nk-ink-3); text-transform: uppercase; }
 .nk-wb-title { font-family: var(--nk-serif); font-size: 21px; font-weight: 700; letter-spacing: -.01em; line-height: 1.25; }
@@ -123,10 +134,22 @@
 .nk-tab.active { background: var(--nk-surface-2); border-color: var(--nk-line-soft); color: var(--nk-ink); font-weight: 600; }
 .nk-tab-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--nk-accent); margin-left: 5px; vertical-align: 1px; }
 .nk-wb-body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 22px 40px; }
+.nk-wb-body.nk-dark {
+  background: #1e1d1b;
+  --nk-ink: #eee8de;
+  --nk-ink-2: #bdb6aa;
+  --nk-ink-3: #8c857a;
+  --nk-line: rgba(255, 255, 255, .18);
+  --nk-line-soft: rgba(255, 255, 255, .1);
+  --nk-surface: rgba(255, 255, 255, .06);
+  --nk-surface-2: rgba(255, 255, 255, .1);
+  --nk-paper: #1e1d1b;
+}
 .nk-wb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; max-width: 1280px; }
 .nk-wb-grid.single { grid-template-columns: minmax(0, 1fr); max-width: 900px; }
 .nk-wb-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-@media (max-width: 1080px) { .nk-wb-grid { grid-template-columns: minmax(0, 1fr); } .nk-wb-aside { display: none; } }
+@media (max-width: 1080px) { .nk-wb-grid { grid-template-columns: minmax(0, 1fr); } }
+
 
 .nk-card { background: var(--nk-surface); border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r-lg); padding: 15px 16px; }
 .nk-card.flush { padding: 0; overflow: hidden; }
@@ -236,3 +259,20 @@
   font-size: 12.5px; color: var(--nk-ink); }
 .nk-warnbar-text { flex: 1; min-width: 220px; line-height: 1.6; }
 .nk-warnbar-actions { display: flex; gap: 8px; }
+/* 窄屏：侧栏改为顶部横向，主区占满宽度（420/900 宽度不再被 172px 侧栏挤坏）。 */
+@media (max-width: 720px) {
+  .nk-wb { flex-direction: column; }
+  .nk-rail { width: 100%; flex: 0 0 auto; flex-direction: row; align-items: center; gap: 4px; padding: 8px 10px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--nk-line-soft); }
+  .nk-rail-brand { padding: 0 8px 0 2px; flex: 0 0 auto; }
+  .nk-rail-name { display: none; }
+  .nk-rail-item { width: auto; flex: 0 0 auto; height: 32px; padding: 0 10px; border-radius: 8px; }
+  .nk-rail-glyph { width: 16px; font-size: 13px; }
+  .nk-rail-foot { display: none; }
+  .nk-wb-head { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+  .nk-wb-eyebrow { display: none; }
+  .nk-wb-title { font-size: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nk-wb-head-actions { margin-left: auto; }
+  .nk-wb-body { padding: 14px 14px 28px; }
+  .nk-wb-grid { gap: 12px; }
+  .nk-card { padding: 12px; }
+}

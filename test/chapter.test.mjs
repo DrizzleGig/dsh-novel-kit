@@ -523,7 +523,7 @@ test('planChapter：文风档案给决策提示与候选标注，但不替作者
     id: profileId,
     name: '克制样本',
     version: 1,
-    status: 'provisional',
+    status: 'confirmed',
     sourceRef: { kind: 'style', sourceId: 'a'.repeat(64), sha256: 'a'.repeat(64) },
     identity: { summary: '冷叙述', keywords: [], avoid: ['手机'] },
     bands: {},

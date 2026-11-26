@@ -40,19 +40,24 @@ window.__ModuleLoader__.load({
       ['previewContext', true],
       ['resumeChapter', true],
       ['searchMemory', true],
-      ['importSource', true],
       ['listSourceFiles', true],
       ['decide', true],
       ['reviseDecision', true],
       ['savePlan', true],
       ['memoryAction', true],
-      ['takeover', false],
-      ['restore', false],
       ['getSettings', true],
       ['setMaster', true],
       ['setMode', true],
       ['importStyle', true],
       ['confirmStyle', true],
+      ['unbindStyle', true],
+      ['rateStyle', true],
+      ['remeasureStyle', true],
+      ['removeStyleProfile', true],
+      ['saveStyleReader', true],
+      ['updateStyleRule', true],
+      ['addStyleCandidate', true],
+      ['getStyleHistory', true],
       ['importCanon', true],
       ['listSources', true],
       ['listStyleProfiles', true],
@@ -67,6 +72,24 @@ window.__ModuleLoader__.load({
       ['getCanonQueue', true],
       ['reviewCanonChange', true],
       ['applyCanonChanges', true],
+      ['previewLegacy', false],
+      ['importLegacy', true],
+      ['migrateKitLegacy', true],
+      ['getMedia', true],
+      ['reviewMedia', true],
+      ['listComicPages', true],
+      ['getComicPage', true],
+      ['ocrComicPages', true],
+      ['hongguoSearch', true],
+      ['hongguoSeries', true],
+      ['hongguoEpisodes', true],
+      ['hongguoDanmaku', true],
+      ['getPersonas', true],
+      ['confirmPersona', true],
+      ['getRuns', true],
+      ['createRun', true],
+      ['updateRun', true],
+      ['getAnalysis', true],
     ]
 /* NK:REMOTE:END */
 
@@ -271,6 +294,17 @@ window.__ModuleLoader__.load({
 
       /* ── 工作台 ── */
       .nk-wb { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--nk-paper); color: var(--nk-ink); font-family: var(--dsw-font-family, sans-serif); }
+      .nk-wb.nk-tone-sepia { --nk-paper: #f4ead8; }
+      .nk-wb.nk-tone-dark {
+        --nk-paper: #1e1d1b;
+        --nk-ink: #eee8de;
+        --nk-ink-2: #bdb6aa;
+        --nk-ink-3: #8c857a;
+        --nk-line: rgba(255, 255, 255, .18);
+        --nk-line-soft: rgba(255, 255, 255, .1);
+        --nk-surface: rgba(255, 255, 255, .06);
+        --nk-surface-2: rgba(255, 255, 255, .1);
+      }
       .nk-wb-head { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--nk-line-soft); flex: 0 0 auto; }
       .nk-wb-eyebrow { font-size: 9.5px; letter-spacing: .18em; color: var(--nk-ink-3); text-transform: uppercase; }
       .nk-wb-title { font-family: var(--nk-serif); font-size: 21px; font-weight: 700; letter-spacing: -.01em; line-height: 1.25; }
@@ -286,10 +320,22 @@ window.__ModuleLoader__.load({
       .nk-tab.active { background: var(--nk-surface-2); border-color: var(--nk-line-soft); color: var(--nk-ink); font-weight: 600; }
       .nk-tab-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--nk-accent); margin-left: 5px; vertical-align: 1px; }
       .nk-wb-body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 22px 40px; }
+      .nk-wb-body.nk-dark {
+        background: #1e1d1b;
+        --nk-ink: #eee8de;
+        --nk-ink-2: #bdb6aa;
+        --nk-ink-3: #8c857a;
+        --nk-line: rgba(255, 255, 255, .18);
+        --nk-line-soft: rgba(255, 255, 255, .1);
+        --nk-surface: rgba(255, 255, 255, .06);
+        --nk-surface-2: rgba(255, 255, 255, .1);
+        --nk-paper: #1e1d1b;
+      }
       .nk-wb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; max-width: 1280px; }
       .nk-wb-grid.single { grid-template-columns: minmax(0, 1fr); max-width: 900px; }
       .nk-wb-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-      @media (max-width: 1080px) { .nk-wb-grid { grid-template-columns: minmax(0, 1fr); } .nk-wb-aside { display: none; } }
+      @media (max-width: 1080px) { .nk-wb-grid { grid-template-columns: minmax(0, 1fr); } }
+
 
       .nk-card { background: var(--nk-surface); border: 1px solid var(--nk-line-soft); border-radius: var(--nk-r-lg); padding: 15px 16px; }
       .nk-card.flush { padding: 0; overflow: hidden; }
@@ -399,6 +445,23 @@ window.__ModuleLoader__.load({
         font-size: 12.5px; color: var(--nk-ink); }
       .nk-warnbar-text { flex: 1; min-width: 220px; line-height: 1.6; }
       .nk-warnbar-actions { display: flex; gap: 8px; }
+      /* 窄屏：侧栏改为顶部横向，主区占满宽度（420/900 宽度不再被 172px 侧栏挤坏）。 */
+      @media (max-width: 720px) {
+        .nk-wb { flex-direction: column; }
+        .nk-rail { width: 100%; flex: 0 0 auto; flex-direction: row; align-items: center; gap: 4px; padding: 8px 10px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--nk-line-soft); }
+        .nk-rail-brand { padding: 0 8px 0 2px; flex: 0 0 auto; }
+        .nk-rail-name { display: none; }
+        .nk-rail-item { width: auto; flex: 0 0 auto; height: 32px; padding: 0 10px; border-radius: 8px; }
+        .nk-rail-glyph { width: 16px; font-size: 13px; }
+        .nk-rail-foot { display: none; }
+        .nk-wb-head { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+        .nk-wb-eyebrow { display: none; }
+        .nk-wb-title { font-size: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nk-wb-head-actions { margin-left: auto; }
+        .nk-wb-body { padding: 14px 14px 28px; }
+        .nk-wb-grid { gap: 12px; }
+        .nk-card { padding: 12px; }
+      }
 /* NK:STYLE:END */
     `
 
@@ -449,6 +512,83 @@ window.__ModuleLoader__.load({
     }
 
     // ── 小说工作台（conversation.view）：书桌/章节/故事/资料四入口 ──────────────
+    // ── 继承导入（资料页）：只读扫描五件/kit 0.5 数据，显式复制到 kit 原生 ──
+    function LegacyImportCard(props) {
+      const { remote, sessionId, book, onDone } = props
+      const [state, setState] = React.useState({ busy: false, preview: null, result: null, message: '', voicePick: '', fanficPick: '' })
+      if (!remote || !sessionId) return null
+      const run = async function (fn) {
+        setState(function (prev) { return { ...prev, busy: true, message: '' } })
+        try {
+          const value = await Promise.resolve(fn()).then(function (result) {
+            if (result && result.ok === false && result.code) throw new Error(result.message || result.code)
+            return result
+          })
+          setState(function (prev) {
+            const next = { ...prev, busy: false, ...(value && value.items ? { preview: value, voicePick: '', fanficPick: '' } : {}), ...(value && value.ok ? { result: value } : {}), message: '' }
+            return next
+          })
+          if (value && value.ok && onDone) onDone()
+        } catch (error) {
+          setState(function (prev) { return { ...prev, busy: false, message: String(error && error.message ? error.message : error) } })
+        }
+      }
+      const scan = function () { return run(function () { return remote.previewLegacy(sessionId) }) }
+      const importOne = function (item) {
+        const found = state.preview && state.preview.found ? state.preview.found : {}
+        const voice = state.voicePick || (Array.isArray(found.voice) && found.voice.length === 1 ? found.voice[0] : null)
+        const fanfic = state.fanficPick || (Array.isArray(found.fanfic) && found.fanfic.length === 1 ? found.fanfic[0] : null)
+        return run(function () { return remote.importLegacy(sessionId, { book: item.book, voice: voice, fanfic: fanfic }) })
+      }
+      const migrate = function (item) {
+        return run(function () { return remote.migrateKitLegacy(sessionId, { book: item.book }) })
+      }
+      const items = state.preview && Array.isArray(state.preview.items) ? state.preview.items : []
+      const found = state.preview && state.preview.found ? state.preview.found : {}
+      const choices = function (label, list, pick, onPick) {
+        return h('label', { className: 'nk-kv', style: { gap: 6 } },
+          h('span', { className: 'nk-kv-key' }, label),
+          h('select', {
+            className: 'nk-input', value: pick || '', onChange: function (event) { onPick(event.target.value) },
+          }, [h('option', { key: 'none', value: '' }, '不导入')].concat((Array.isArray(list) ? list : []).map(function (name) {
+            return h('option', { key: name, value: name }, name)
+          }))))
+      }
+      return h('section', { className: 'nk-card' },
+        h('div', { className: 'nk-card-head' },
+          h('div', { className: 'nk-card-title' }, '继承导入'),
+          h('button', { type: 'button', className: 'nk-btn', disabled: state.busy, onClick: scan }, state.busy ? '扫描中…' : '扫描旧数据')),
+        h('div', { className: 'nk-tiny', style: { marginBottom: 8 } },
+          'kit 不再与五件共享账本。这里只读扫描旧数据，显式复制到 kit 原生；源文件不改，导入后五件可卸载。再次导入是显式新快照。'),
+        (state.preview && ((found.voice && found.voice.length) || (found.fanfic && found.fanfic.length)))
+          ? h('div', { style: { marginBottom: 8 } },
+              (found.voice && found.voice.length) ? choices('voice 档案', found.voice, state.voicePick, function (value) { setState(function (prev) { return { ...prev, voicePick: value } }) }) : null,
+              (found.fanfic && found.fanfic.length) ? choices('fanfic 项目', found.fanfic, state.fanficPick, function (value) { setState(function (prev) { return { ...prev, fanficPick: value } }) }) : null)
+          : null,
+        state.message ? h('div', { className: 'nk-tiny', style: { color: 'var(--dsw-alias-state-error-primary)' } }, state.message) : null,
+        state.result
+          ? h('div', { className: 'nk-tiny', style: { color: 'var(--dsw-alias-state-success-primary)' } },
+              '已导入《' + (state.result.book || book || '') + '》：正文 ' + ((state.result.imported && state.result.imported.body) || 0) + ' 章，决策 ' + ((state.result.imported && state.result.imported.decisions) || 0) + '，记忆卡 ' + ((state.result.imported && state.result.imported.cards) || 0) + '。')
+          : null,
+        items.length === 0
+          ? inlineEmpty(state.preview ? '没有发现可继承的旧数据。' : '点「扫描旧数据」查看工作区里的五件/kit 0.5 数据。')
+          : items.slice(0, 12).map(function (item, index) {
+              const isKit = item.origin === 'kit-legacy-or-mixed'
+              return h('div', { key: 'legacy-' + index + '-' + item.book, className: 'nk-kv', style: { alignItems: 'flex-start', flexDirection: 'column', gap: 3 } },
+                h('div', { style: { display: 'flex', width: '100%', gap: 6, alignItems: 'center' } },
+                  h('span', { style: { fontSize: 12.5, fontWeight: 600 } }, item.book),
+                  h('span', { className: 'nk-badge' }, isKit ? 'kit 旧版/混合' : '五件'),
+                  h('button', {
+                    type: 'button', className: 'nk-btn', style: { marginLeft: 'auto' }, disabled: state.busy,
+                    onClick: function () { return isKit ? migrate(item) : importOne(item) },
+                  }, isKit ? '迁移' : '导入')),
+                h('div', { className: 'nk-tiny' },
+                  'beat ' + (item.beat ? item.beat.decisions + ' 决策 / ' + item.beat.segments + ' 段' : '无') +
+                  ' · fade ' + (item.fade ? item.fade.cards + ' 卡' : '无') +
+                  ' · 正文 ' + (item.body || 0) + ' 章' + (item.hasFanfic ? ' · 含同人项目' : '')))
+            }))
+    }
+
     function Workbench(props) {
       // initialSection 只给快照验收/深链用：正常打开永远从书桌起。
       const { sessionId, remote, embedded = false, onClose = null, initialSection = 'desk' } = props
@@ -458,20 +598,57 @@ window.__ModuleLoader__.load({
       const [saveState, setSaveState] = React.useState({ phase: 'idle', message: '' })
       const [startPhase, setStartPhase] = React.useState('idle')
       const [section, setSection] = React.useState(initialSection)
+      const [skinTone, setSkinTone] = React.useState(function () {
+        try { return localStorage.getItem('dsh-novel-kit.tone') || 'paper' } catch { return 'paper' }
+      })
+      React.useEffect(function () {
+        try { localStorage.setItem('dsh-novel-kit.tone', skinTone) } catch { /* ignore */ }
+      }, [skinTone])
       const [storyData, setStoryData] = React.useState(null)
       const [materialData, setMaterialData] = React.useState(null)
+      const [mediaData, setMediaData] = React.useState(null)
+      const [personaData, setPersonaData] = React.useState(null)
+      const [runsData, setRunsData] = React.useState(null)
+      const [analysisData, setAnalysisData] = React.useState(null)
       const [fadeData, setFadeData] = React.useState(null)
+      const [fadeTab, setFadeTab] = React.useState('overview')
       const [beatTab, setBeatTab] = React.useState('map')
       const [beatQuery, setBeatQuery] = React.useState('')
+      const [beatFilter, setBeatFilter] = React.useState('all')
+      const [beatPaper, setBeatPaper] = React.useState('default')
+      const [chapterFindings, setChapterFindings] = React.useState(null)
       const [beatEditing, setBeatEditing] = React.useState(null)
       const [beatOption, setBeatOption] = React.useState('')
       const [beatNote, setBeatNote] = React.useState('')
       const [beatMessage, setBeatMessage] = React.useState('')
       const [workOrder, setWorkOrder] = React.useState('')
       const [memoryOpen, setMemoryOpen] = React.useState(null)
+      const [memoryChapter, setMemoryChapter] = React.useState(null)
+      const [memoryLayer, setMemoryLayer] = React.useState(null)
       const [openDecisionId, setOpenDecisionId] = React.useState(null)
       const [styleOpen, setStyleOpen] = React.useState(null)
       const [styleBrief, setStyleBrief] = React.useState(null)
+      const [styleHistory, setStyleHistory] = React.useState(null)
+      const [candidateText, setCandidateText] = React.useState('')
+      const [readerDraft, setReaderDraft] = React.useState(null)
+      const [ruleEditId, setRuleEditId] = React.useState(null)
+      const [ruleEditText, setRuleEditText] = React.useState('')
+      const [styleEvidence, setStyleEvidence] = React.useState(null)
+      const [styleEvidencePage, setStyleEvidencePage] = React.useState(0)
+      const [voiceTab, setVoiceTab] = React.useState('style')
+      const [fanficTab, setFanficTab] = React.useState('canon')
+      const [canonChip, setCanonChip] = React.useState('characters')
+      const [mediaSourceFilter, setMediaSourceFilter] = React.useState(null)
+      const [mediaEvidenceOpen, setMediaEvidenceOpen] = React.useState(null)
+      const [comicReader, setComicReader] = React.useState(null)
+      const [hongguoQuery, setHongguoQuery] = React.useState('')
+      const [hongguoResults, setHongguoResults] = React.useState(null)
+      const [hongguoSeriesData, setHongguoSeriesData] = React.useState(null)
+      const [hongguoEpisodesData, setHongguoEpisodesData] = React.useState(null)
+      const [hongguoDanmakuData, setHongguoDanmakuData] = React.useState(null)
+      const [hongguoBusy, setHongguoBusy] = React.useState(false)
+      const [selectedCanonCharacter, setSelectedCanonCharacter] = React.useState(null)
+      const [conflictOpen, setConflictOpen] = React.useState(null)
       const [canonBusy, setCanonBusy] = React.useState(false)
       const [canonMessage, setCanonMessage] = React.useState('')
       // 称呼速查表的本地筛选（Codex：先在客户端筛，不新增接口）
@@ -481,8 +658,10 @@ window.__ModuleLoader__.load({
       // canon 审阅队列
       const [canonQueue, setCanonQueue] = React.useState(null)
       const [canonQueueBusy, setCanonQueueBusy] = React.useState(false)
+      const [reviewChange, setReviewChange] = React.useState(null)
       const [memoryQuery, setMemoryQuery] = React.useState('')
       const [memoryHits, setMemoryHits] = React.useState(null)
+      const [memoryExcerpt, setMemoryExcerpt] = React.useState(null)
       const [planData, setPlanData] = React.useState(null)
       const [planEditing, setPlanEditing] = React.useState(false)
       const [planDraft, setPlanDraft] = React.useState(null)
@@ -549,9 +728,10 @@ window.__ModuleLoader__.load({
       // 没有这一步，快照的 book/session 全是 null，七个页面会永远停在「加载…」。
       React.useEffect(function () {
         if (book) return
-        const found = (state.data && state.data.workspace && Array.isArray(state.data.workspace.beat) && state.data.workspace.beat.length)
-          ? state.data.workspace.beat[0]
-          : null
+        const found = (state.data && state.data.workspace && (
+          (Array.isArray(state.data.workspace.kitBooks) && state.data.workspace.kitBooks[0])
+          || (Array.isArray(state.data.workspace.beat) && state.data.workspace.beat[0])
+        )) || null
         if (!found) return
         bookRef.current = found
         setBook(found)
@@ -763,7 +943,7 @@ window.__ModuleLoader__.load({
       React.useEffect(function () {
         if (section !== 'fade' || !remote || !data || !data.book) return undefined
         let alive = true
-        Promise.resolve(remote.getMemory(sessionId, { book: data.book, limit: 80, currentChapter: data.session ? data.session.chapter : null }))
+        Promise.resolve(remote.getMemory(sessionId, { book: data.book, limit: 240, currentChapter: data.session ? data.session.chapter : null }))
           .then(unwrap)
           .then(function (memory) { if (alive) setFadeData(memory) })
           .catch(function () { if (alive) setFadeData(null) })
@@ -782,7 +962,59 @@ window.__ModuleLoader__.load({
         return function () { alive = false }
       }, [section, remote, sessionId, data])
 
-      const books = (data && data.workspace && data.workspace.beat) || []
+      React.useEffect(function () {
+        if (section !== 'fanfic' || !remote || !data || !data.book || typeof remote.getMedia !== 'function') return undefined
+        let alive = true
+        Promise.resolve(remote.getMedia(sessionId, { book: data.book })).then(unwrap).then(function (media) {
+          if (alive) setMediaData(media)
+        }).catch(function () { if (alive) setMediaData(null) })
+        return function () { alive = false }
+      }, [section, remote, sessionId, data])
+
+      React.useEffect(function () {
+        if (section !== 'voice' || !remote || !data || !data.book || typeof remote.getPersonas !== 'function') return undefined
+        let alive = true
+        Promise.resolve(remote.getPersonas(sessionId, { book: data.book })).then(unwrap).then(function (personas) {
+          if (alive) setPersonaData(personas)
+        }).catch(function () { if (alive) setPersonaData(null) })
+        return function () { alive = false }
+      }, [section, remote, sessionId, data])
+
+      React.useEffect(function () {
+        if (section !== 'data' || !remote || !data || !data.book || typeof remote.getRuns !== 'function') return undefined
+        let alive = true
+        Promise.resolve(remote.getRuns(sessionId, { book: data.book })).then(unwrap).then(function (runs) {
+          if (alive) setRunsData(runs)
+        }).catch(function () { if (alive) setRunsData(null) })
+        return function () { alive = false }
+      }, [section, remote, sessionId, data])
+
+      React.useEffect(function () {
+        bookRef.current = state.data && state.data.book ? state.data.book : null
+      }, [state.data && state.data.book])
+
+      React.useEffect(function () {
+        setMediaEvidenceOpen(null)
+        setMediaData(null)
+        setReviewChange(null)
+        setConflictOpen(null)
+        setSelectedCanonCharacter(null)
+        setStyleEvidence(null)
+        setStyleEvidencePage(0)
+        setStyleOpen(null)
+        setStyleHistory(null)
+      }, [data && data.book])
+
+      React.useEffect(function () {
+        if (!['data', 'fanfic'].includes(section) || !remote || !data || !data.book || typeof remote.getAnalysis !== 'function') return undefined
+        let alive = true
+        Promise.resolve(remote.getAnalysis(sessionId, { book: data.book })).then(unwrap).then(function (analysis) {
+          if (alive) setAnalysisData(analysis)
+        }).catch(function () { if (alive) setAnalysisData(null) })
+        return function () { alive = false }
+      }, [section, remote, sessionId, data])
+
+      const books = (data && data.workspace && ((data.workspace.kitBooks && data.workspace.kitBooks.length) ? data.workspace.kitBooks : data.workspace.beat)) || []
       const draft = data && data.session && data.session.draft
       const session = data && data.session ? data.session : null
       const pendingIds = session && Array.isArray(session.pendingDecisionIds) ? session.pendingDecisionIds : []
@@ -831,14 +1063,292 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, load])
 
+      const unbindStyleNow = React.useCallback(async function (profile) {
+        if (!remote || typeof remote.unbindStyle !== 'function' || !data || !data.book || !profile) return
+        try {
+          const result = await Promise.resolve(remote.unbindStyle(sessionId, { book: data.book, profileId: profile.id })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '解绑失败'); return }
+          setBeatMessage('已从本书解绑：' + (profile.name || profile.id) + '（档案文件保留）')
+          setMaterialData(null)
+          await load()
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data, load])
+
+      const removeStyleNow = React.useCallback(async function (profile) {
+        if (!remote || typeof remote.removeStyleProfile !== 'function' || !data || !data.book || !profile) return
+        try {
+          const result = await Promise.resolve(remote.removeStyleProfile(sessionId, { book: data.book, profileId: profile.id })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '移除失败'); return }
+          setBeatMessage(result.shared ? '这份档案还被别的书引用，已只从本书解绑。' : '档案已移到 styles/trash：' + (profile.name || profile.id))
+          setMaterialData(null)
+          await load()
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data, load])
+
+      const remeasureStyleNow = React.useCallback(async function (profile) {        if (!remote || typeof remote.remeasureStyle !== 'function' || !profile) return
+        try {
+          const result = await Promise.resolve(remote.remeasureStyle(sessionId, { profileId: profile.id })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '重测失败'); return }
+          setBeatMessage('已重测：' + (profile.name || profile.id) + ' · revision ' + result.revision)
+          setMaterialData(null)
+          await load()
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, load])
+
+      const rateStyleNow = React.useCallback(async function (profile, stars) {        if (!remote || !profile) return
+        try {
+          const result = await Promise.resolve(remote.rateStyle(sessionId, {
+            profileId: profile.id, stars, note: '',
+          })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '评分失败'); return }
+          setBeatMessage('已评分：' + (profile.name || profile.id) + ' · ' + stars + ' 分（' + result.summary.count + ' 条）')
+          setMaterialData(null)
+          await load()
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, load])
+
+      const reloadStyleData = React.useCallback(async function () {
+        if (!remote || !data || !data.book) return
+        const targetBook = data.book
+        const style = await Promise.resolve(remote.getStyle(sessionId, { book: data.book })).then(unwrap).catch(() => null)
+        if (bookRef.current !== targetBook) return
+        if (style) setMaterialData(function (prev) { return { ...(prev || {}), style } })
+      }, [remote, sessionId, data])
+
+      const updateStyleRuleNow = React.useCallback(async function (profile, rule, patch) {
+        if (!remote || typeof remote.updateStyleRule !== 'function' || !profile || !rule) return false
+        try {
+          const result = await Promise.resolve(remote.updateStyleRule(sessionId, {
+            profileId: profile.id, ruleId: rule.id, ...patch, expectedRevision: profile.revision ?? null,
+          })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '规则更新失败'); return false }
+          setBeatMessage('规则已更新：' + (rule.text || rule.id).slice(0, 18) + ' · revision ' + result.revision)
+          await reloadStyleData()
+          return true
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+          return false
+        }
+      }, [remote, sessionId, reloadStyleData])
+
+      const saveRuleTextNow = React.useCallback(async function (profile, rule) {
+        const text = ruleEditText.trim()
+        if (!text || !profile || !rule) return
+        const saved = await updateStyleRuleNow(profile, rule, { text })
+        if (!saved) return
+        setRuleEditId(null)
+        setRuleEditText('')
+      }, [ruleEditText, updateStyleRuleNow])
+
+      const showRuleEvidence = React.useCallback(function (rule) {
+        if (!rule) return
+        setStyleEvidence({ ruleId: rule.id, text: rule.text, evidence: Array.isArray(rule.evidence) ? rule.evidence : [], counterExamples: Array.isArray(rule.counterExamples) ? rule.counterExamples : [] })
+        setStyleEvidencePage(0)
+      }, [])
+
+      const loadStyleHistoryNow = React.useCallback(async function (profile) {        if (!remote || typeof remote.getStyleHistory !== 'function' || !profile) return
+        try {
+          const result = await Promise.resolve(remote.getStyleHistory(sessionId, { profileId: profile.id })).then(unwrap)
+          setStyleHistory(result)
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId])
+
+      const saveReaderPreferenceNow = React.useCallback(async function (profile) {
+        if (!remote || typeof remote.saveStyleReader !== 'function' || !profile) return
+        const text = readerDraft && readerDraft.profileId === profile.id ? readerDraft.text : (profile.readerPreference?.text || '')
+        try {
+          const result = await Promise.resolve(remote.saveStyleReader(sessionId, { profileId: profile.id, text, expectedRevision: profile.revision ?? null })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '读者偏好保存失败'); return }
+          setBeatMessage('读者偏好已保存：' + (profile.name || profile.id))
+          await reloadStyleData()
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, readerDraft, reloadStyleData])
+
+      const addCandidateNow = React.useCallback(async function (profile) {
+        if (!remote || typeof remote.addStyleCandidate !== 'function' || !profile) return
+        const text = candidateText.trim()
+        if (!text) return
+        try {
+          const result = await Promise.resolve(remote.addStyleCandidate(sessionId, { profileId: profile.id, text, expectedRevision: profile.revision ?? null })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '候选添加失败'); return }
+          setCandidateText('')
+          setBeatMessage(result.idempotent ? '这条候选已经存在。' : '已加入学习候选，确认后才进简报。')
+          await reloadStyleData()
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, candidateText, reloadStyleData])
+
+      const openComicSource = React.useCallback(async function (source) {
+        if (!remote || typeof remote.listComicPages !== 'function' || !source || !source.file) return
+        try {
+          const info = await Promise.resolve(remote.listComicPages(sessionId, { file: source.file })).then(unwrap)
+          if (!info || info.ok === false || !Array.isArray(info.pages)) { setCanonMessage(info?.message || '漫画目录读不出来'); return }
+          const page = await Promise.resolve(remote.getComicPage(sessionId, { file: source.file, index: 0 })).then(unwrap)
+          setComicReader({ file: source.file, title: source.title || source.id, pages: info.pages, index: 0, image: page, text: '', busy: false })
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId])
+
+      const loadComicPage = React.useCallback(async function (index) {
+        if (!comicReader || !remote) return
+        try {
+          const page = await Promise.resolve(remote.getComicPage(sessionId, { file: comicReader.file, index })).then(unwrap)
+          setComicReader({ ...comicReader, index, image: page, text: '' })
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        }
+      }, [comicReader, remote, sessionId])
+
+      const ocrComicPageNow = React.useCallback(async function () {
+        if (!comicReader || !remote || typeof remote.ocrComicPages !== 'function') return
+        setComicReader({ ...comicReader, busy: true })
+        try {
+          const result = await Promise.resolve(remote.ocrComicPages(sessionId, { file: comicReader.file, indices: [comicReader.index] })).then(unwrap)
+          const text = result && Array.isArray(result.pages) ? (result.pages[0]?.text || '') : ''
+          setComicReader({ ...comicReader, busy: false, text: text || '（这一页没有识别到文字）' })
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+          setComicReader({ ...comicReader, busy: false })
+        }
+      }, [comicReader, remote, sessionId])
+
+      const searchHongguoNow = React.useCallback(async function () {
+        if (!remote || typeof remote.hongguoSearch !== 'function') return
+        const query = hongguoQuery.trim()
+        if (!query) return
+        setHongguoBusy(true)
+        try {
+          const result = await Promise.resolve(remote.hongguoSearch(sessionId, { query })).then(unwrap)
+          const items = Array.isArray(result) ? result : (result?.items || result?.results || result?.data || [])
+          setHongguoResults(items)
+          setHongguoSeriesData(null)
+          setHongguoEpisodesData(null)
+          setHongguoDanmakuData(null)
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        } finally {
+          setHongguoBusy(false)
+        }
+      }, [remote, sessionId, hongguoQuery])
+
+      const openHongguoSeries = React.useCallback(async function (item) {
+        if (!remote || typeof remote.hongguoSeries !== 'function') return
+        const seriesId = item?.seriesId || item?.id || item?.series_id
+        if (!seriesId) return
+        setHongguoBusy(true)
+        try {
+          const series = await Promise.resolve(remote.hongguoSeries(sessionId, { seriesId })).then(unwrap)
+          const episodes = await Promise.resolve(remote.hongguoEpisodes(sessionId, { seriesId })).then(unwrap)
+          setHongguoSeriesData({ id: seriesId, item, series })
+          setHongguoEpisodesData(Array.isArray(episodes) ? episodes : (episodes?.episodes || episodes?.items || []))
+          setHongguoDanmakuData(null)
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        } finally {
+          setHongguoBusy(false)
+        }
+      }, [remote, sessionId])
+
+      const openHongguoEpisode = React.useCallback(async function (episode) {
+        if (!remote || typeof remote.hongguoDanmaku !== 'function' || !hongguoSeriesData) return
+        const episodeId = episode?.episodeId || episode?.id || episode?.episode_id
+        if (!episodeId) return
+        setHongguoBusy(true)
+        try {
+          const result = await Promise.resolve(remote.hongguoDanmaku(sessionId, { seriesId: hongguoSeriesData.id, episodeId })).then(unwrap)
+          setHongguoDanmakuData(Array.isArray(result) ? result : (result?.danmaku || result?.items || result?.data || []))
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        } finally {
+          setHongguoBusy(false)
+        }
+      }, [remote, sessionId, hongguoSeriesData])
+
+      const reviewMediaNow = React.useCallback(async function (item, status) {        if (!remote || !data || !data.book || !item) return
+        try {
+          const result = await Promise.resolve(remote.reviewMedia(sessionId, {
+            book: data.book, evidenceId: item.id, status, note: '',
+          })).then(unwrap)
+          if (!result || result.ok === false) { setCanonMessage(result?.message || result?.code || '媒体审阅失败'); return }
+          setCanonMessage('媒体证据已' + (status === 'confirmed' ? '确认' : '拒绝') + '：' + (item.id || ''))
+          const media = await Promise.resolve(remote.getMedia(sessionId, { book: data.book })).then(unwrap).catch(() => null)
+          if (media) setMediaData(media)
+        } catch (error) {
+          setCanonMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data])
+
+      const confirmPersonaNow = React.useCallback(async function (persona) {
+        if (!remote || !data || !data.book || !persona) return
+        try {
+          const result = await Promise.resolve(remote.confirmPersona(sessionId, {
+            book: data.book, personaId: persona.id,
+          })).then(unwrap)
+          if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '人物卡确认失败'); return }
+          setBeatMessage('人物卡已确认：' + (persona.name || persona.id))
+          const personas = await Promise.resolve(remote.getPersonas(sessionId, { book: data.book })).then(unwrap).catch(() => null)
+          if (personas) setPersonaData(personas)
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data])
+
       const canonSourceId = (materialData && materialData.canon && materialData.canon.sourceId) ? materialData.canon.sourceId : ''
+
+      const refreshRuns = React.useCallback(async function () {
+        if (!remote || !data || !data.book || typeof remote.getRuns !== 'function') return
+        const runs = await Promise.resolve(remote.getRuns(sessionId, { book: data.book })).then(unwrap).catch(() => null)
+        if (runs) setRunsData(runs)
+      }, [remote, sessionId, data])
+
+      const createRunNow = React.useCallback(async function () {
+        if (!remote || !data || !data.book) return
+        try {
+          const result = await Promise.resolve(remote.createRun(sessionId, { book: data.book, title: '第 ' + (session ? session.chapter : 1) + ' 章 run' })).then(unwrap)
+          if (!result || result.ok === false) { setWorkMessage(result?.message || result?.code || '建 run 失败'); return }
+          setWorkMessage('已建 run：' + result.run.runId)
+          await refreshRuns()
+        } catch (error) {
+          setWorkMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data, session, refreshRuns])
+
+      const updateRunNow = React.useCallback(async function (run, status) {
+        if (!remote || !data || !data.book || !run) return
+        try {
+          const result = await Promise.resolve(remote.updateRun(sessionId, {
+            book: data.book, runId: run.runId, status, expectedRevision: run.revision ?? null,
+          })).then(unwrap)
+          if (!result || result.ok === false) { setWorkMessage(result?.message || result?.code || '更新 run 失败'); return }
+          await refreshRuns()
+        } catch (error) {
+          setWorkMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data, refreshRuns])
 
       const loadCanonQueue = React.useCallback(async function () {
         if (!remote || typeof remote.getCanonQueue !== 'function' || !data || !data.book) return
+        const targetBook = data.book
         try {
-          const queue = await Promise.resolve(remote.getCanonQueue(sessionId, { book: data.book, sourceId: canonSourceId || undefined })).then(unwrap)
+          const queue = await Promise.resolve(remote.getCanonQueue(sessionId, { book: targetBook, sourceId: canonSourceId || undefined })).then(unwrap)
+          if (bookRef.current !== targetBook) return
           setCanonQueue(queue)
         } catch (error) {
+          if (bookRef.current !== targetBook) return
           setCanonQueue({ available: false, message: String(error?.message ?? error) })
         }
       }, [remote, sessionId, data && data.book, canonSourceId])
@@ -996,11 +1506,29 @@ window.__ModuleLoader__.load({
         }
       }, [remote, sessionId, data, memoryQuery])
 
+      const loadMemoryExcerpt = React.useCallback(async function (card) {
+        if (!remote || !data || !data.book || !card || typeof remote.getSourceExcerpt !== 'function') return
+        const sourceId = card.sourceId
+        const chapter = Number(card.sourceChapter ?? card.chapter)
+        if (!/^[a-f0-9]{64}$/u.test(String(sourceId ?? '')) || !Number.isInteger(chapter) || chapter < 1) {
+          setBeatMessage('这张卡没有可回查的原文 sourceId/章号。')
+          return
+        }
+        try {
+          const excerpt = await Promise.resolve(remote.getSourceExcerpt(sessionId, { book: data.book, sourceId, chapter, length: 1200 })).then(unwrap)
+          if (!excerpt || excerpt.ok === false) { setBeatMessage(excerpt?.message || excerpt?.code || '原文读不到'); return }
+          setMemoryExcerpt({ ...excerpt, cardId: card.id, quote: String(card.quote || '') })
+          setFadeTab('provenance')
+        } catch (error) {
+          setBeatMessage(String(error?.message ?? error))
+        }
+      }, [remote, sessionId, data])
+
       const actOnMemory = React.useCallback(async function (card, action) {        if (!remote || !data || !data.book || !card) return
         try {
           const result = await Promise.resolve(remote.memoryAction(sessionId, { book: data.book, cardId: card.id, action })).then(unwrap)
           if (!result || result.ok === false) { setBeatMessage(result?.message || result?.code || '记忆操作失败'); return }
-          const memory = await Promise.resolve(remote.getMemory(sessionId, { book: data.book, limit: 80, currentChapter: session ? session.chapter : null })).then(unwrap).catch(() => null)
+          const memory = await Promise.resolve(remote.getMemory(sessionId, { book: data.book, limit: 240, currentChapter: session ? session.chapter : null })).then(unwrap).catch(() => null)
           if (memory) setFadeData(memory)
         } catch (error) {
           setBeatMessage(String(error?.message ?? error))
@@ -1213,7 +1741,7 @@ window.__ModuleLoader__.load({
               onKeyDown: function (event) { if (event.key === 'Enter') createBookNow() },
             }),
             h('button', { type: 'button', className: 'nk-btn', disabled: workBusy || !newBookName.trim(), onClick: createBookNow }, '新建作品')),
-          h('div', { className: 'nk-tiny', style: { marginTop: 9 } }, '旧五件账本：先运行 /novel legacy 接管，再卸载 beat / fade / voice / fanfic / conductor。'),
+          h('div', { className: 'nk-tiny', style: { marginTop: 9 } }, '旧五件账本：在下方「继承导入」扫描并显式导入；源文件不改，导入后五件可卸载。'),
           workMessage ? h('div', { className: 'nk-tiny', style: { marginTop: 6, color: c.sub } }, workMessage) : null)
       }
 
@@ -1428,6 +1956,13 @@ window.__ModuleLoader__.load({
         const pending = view && Array.isArray(view.proposals) ? view.proposals : []
         const selected = committed.filter(function (item) { return item.id === openDecisionId })[0] || null
         const beatRev = data && data.ledgers && data.ledgers.beat ? data.ledgers.beat.revision : '—'
+        const beatTerm = beatQuery.trim().toLowerCase()
+        const matchesBeat = function (item) {
+          if (!beatTerm) return true
+          return [item.title, item.change, item.option, item.kind, item.status].filter(Boolean).join(' ').toLowerCase().includes(beatTerm)
+        }
+        const shownCommitted = committed.filter(matchesBeat)
+        const shownPending = pending.filter(matchesBeat)
 
         const proposalView = function (item) {
           return h('div', { key: item.id, className: 'nk-proposal' },
@@ -1505,28 +2040,122 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'nk-glyph' }, '判'),
                 h('div', { className: 'nk-tiny' }, '点左边一条已拍板的决策，看它的选项、影响与改选。')))
 
-        return h('div', { className: 'nk-wb-body' },
+        return h('div', { className: 'nk-wb-body' + (beatPaper === 'night' ? ' nk-dark' : ''), style: beatPaper === 'sepia' ? { background: '#f4ead8' } : undefined },
           pageHead('决策', '本章拍过什么、还欠什么；提案必须你点头才算数。',
             h('button', { type: 'button', className: 'nk-btn', onClick: function () { reloadBeat() } }, '刷新')),
           h('div', { className: 'nk-stats' },
             pageStat('本章已拍板', committed.length),
             pageStat('待你拍板', pending.length, pending.length ? 'warn' : ''),
             pageStat('未回收线索', view ? view.openObligations : '—'),
-            pageStat('beat 版本', beatRev)),
+            pageStat('beat 版本', beatRev),
+            pageStat('待答请求', view && view.loop ? view.loop.open : '—', view && view.loop && view.loop.open ? 'warn' : '')),
+          view && view.gate && view.gate.ok === false
+            ? h('div', { className: 'nk-warnbar' },
+                h('span', { className: 'nk-warnbar-text' }, '决策闸门：有 ' + view.gate.errors + ' 条 committed 决策缺少作者回答凭据，收尾会被拦住。'),
+                h('button', { type: 'button', className: 'nk-btn', onClick: function () { reloadBeat() } }, '刷新'))
+            : null,
           beatMessage ? h('div', { className: 'nk-tiny', style: { margin: '10px 0' } }, beatMessage) : null,
-          h('div', { className: 'nk-split' },
+          h('div', { className: 'nk-tabs', style: { marginBottom: 10 } },
+            [['map', '决策地图'], ['timeline', '时间线'], ['health', '体检']].map(function (item) {
+              return h('button', {
+                key: item[0], type: 'button', className: 'nk-tab' + (beatTab === item[0] ? ' active' : ''),
+                onClick: function () { setBeatTab(item[0]) },
+              }, item[1])
+            })),
+          beatTab === 'timeline'
+            ? h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '时间线'),
+                  h('span', { className: 'nk-meta' }, ((view && view.timeline) || []).length + ' 条')),
+                ((view && view.timeline) || []).length
+                  ? ((view && view.timeline) || []).map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv', style: { padding: '9px 0' } },
+                        h('span', { className: 'nk-kv-key', style: { flexShrink: 0 } }, 'CH.' + String(item.chapter || 0).padStart(2, '0')),
+                        h('span', { className: 'nk-kv-val' }, (item.title || '') + (item.option ? ' → ' + item.option : '')))
+                    })
+                  : inlineEmpty('还没有跨章决策。'))
+            : null,
+          beatTab === 'health'
+            ? h('div', { className: 'nk-wb-col', style: { gap: 12 } },
+                h('section', { className: 'nk-card' },
+                  h('div', { className: 'nk-card-head' },
+                    h('div', { className: 'nk-card-title' }, '决策闸门'),
+                    h('span', { className: 'nk-badge' + (view && view.gate && view.gate.ok === false ? ' warn' : ' accent') }, view && view.gate && view.gate.ok === false ? '有缺口' : '正常')),
+                  view && view.gate && view.gate.issues && view.gate.issues.length
+                    ? view.gate.issues.map(function (issue, index) {
+                        return h('div', { key: index, className: 'nk-tiny', style: { padding: '4px 0' } }, '· ' + (issue.code || 'issue') + '：' + (issue.message || ''))
+                      })
+                    : inlineEmpty('committed 决策都有作者回答凭据。')),
+                h('section', { className: 'nk-card' },
+                  h('div', { className: 'nk-card-head' },
+                    h('div', { className: 'nk-card-title' }, '本章检查'),
+                    h('span', { className: 'nk-meta' }, '收尾结果')),
+                  session && session.verification && Array.isArray(session.verification.findings) && session.verification.findings.length
+                    ? session.verification.findings.slice(0, 12).map(function (item, index) {
+                        return h('div', { key: index, className: 'nk-kv' },
+                          h('span', { className: 'nk-kv-key' }, item.severity || 'info'),
+                          h('span', { className: 'nk-kv-val' }, item.message || ''))
+                      })
+                    : inlineEmpty('本章还没有检查结果。')),
+                h('section', { className: 'nk-card' },
+                  h('div', { className: 'nk-card-head' },
+                    h('div', { className: 'nk-card-title' }, '按章体检'),
+                    h('span', { className: 'nk-meta' }, ((data && data.history && data.history.chapters) || []).length + ' 章')),
+                  (data && data.history && Array.isArray(data.history.chapters) && data.history.chapters.length)
+                    ? data.history.chapters.slice(0, 12).map(function (item) {
+                        const check = item.verification || {}
+                        return h('button', {
+                          key: item.chapter, type: 'button', className: 'nk-kv nk-rowbtn',
+                          onClick: function () { setChapterFindings(item) },
+                        },
+                          h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter).padStart(2, '0')),
+                          h('span', { className: 'nk-kv-val' }, (item.state || '') + ' · ' + (item.chars || 0) + ' 字 · blocker ' + (check.blockers || 0) + ' / warning ' + (check.warnings || 0)))
+                      })
+                    : inlineEmpty('还没有历史章节体检。'),
+                  chapterFindings && chapterFindings.verification && Array.isArray(chapterFindings.verification.findings) && chapterFindings.verification.findings.length
+                    ? h('div', { style: { marginTop: 6 } }, chapterFindings.verification.findings.slice(0, 12).map(function (item, index) {
+                        return h('div', { key: index, className: 'nk-tiny' }, '· ' + (item.severity || 'info') + '：' + (item.message || ''))
+                      }))
+                    : null),
+                h('section', { className: 'nk-card' },
+                  h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '统计')),
+                  h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, 'committed'), h('span', { className: 'nk-kv-val' }, String(committed.length))),
+                  h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, 'pending'), h('span', { className: 'nk-kv-val' }, String(pending.length))),
+                  h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '待答请求'), h('span', { className: 'nk-kv-val' }, String(view && view.loop ? view.loop.open : 0)))))
+            : null,
+          beatTab === 'map'
+            ? h('div', { className: 'nk-import-row', style: { margin: '8px 0', flexWrap: 'wrap', gap: 8 } },
+                h('input', {
+                  className: 'nk-input', style: { minWidth: 180 }, value: beatQuery, placeholder: '搜索决策、选项、影响',
+                  onChange: function (event) { setBeatQuery(event.target.value) },
+                }),
+                h('div', { className: 'nk-chipline', style: { flexShrink: 0, flexWrap: 'wrap', gap: 6 } },
+                  [['all', '全部'], ['committed', '已拍板'], ['pending', '待拍板']].map(function (item) {
+                    return h('button', {
+                      key: item[0], type: 'button', className: 'nk-btn' + (beatFilter === item[0] ? ' primary' : ''),
+                      onClick: function () { setBeatFilter(item[0]) },
+                    }, item[1])
+                  }),
+                  [['default', '纸白'], ['sepia', '米黄'], ['night', '深色']].map(function (item) {
+                    return h('button', {
+                      key: item[0], type: 'button', className: 'nk-btn' + (beatPaper === item[0] ? ' primary' : ''),
+                      onClick: function () { setBeatPaper(item[0]) },
+                    }, item[1])
+                  })))
+            : null,
+          h('div', { className: 'nk-split', style: beatTab === 'map' ? undefined : { display: 'none' } },
             h('div', { className: 'nk-split-list' },
-              h('section', { className: 'nk-card' },
+              h('section', { className: 'nk-card', style: beatFilter === 'committed' ? { display: 'none' } : undefined },
                 h('div', { className: 'nk-card-head' },
                   h('div', { className: 'nk-card-title' }, '待你拍板'),
-                  h('span', { className: 'nk-meta' }, pending.length + ' 条')),
-                pending.length ? pending.map(proposalView)
-                  : inlineEmpty('没有待拍板的提案。模型提出选项后会出现在这里，采纳或拒绝由你决定。')),
-              h('section', { className: 'nk-card flush' },
+                  h('span', { className: 'nk-meta' }, shownPending.length + ' 条')),
+                shownPending.length ? shownPending.map(proposalView)
+                  : inlineEmpty(beatTerm ? '没有匹配的待拍板提案。' : '没有待拍板的提案。模型提出选项后会出现在这里，采纳或拒绝由你决定。')),
+              h('section', { className: 'nk-card flush', style: beatFilter === 'pending' ? { display: 'none' } : undefined },
                 h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
                   h('div', { className: 'nk-card-title' }, '本章已拍板'),
-                  h('span', { className: 'nk-meta' }, committed.length + ' 条')),
-                committed.length ? committed.map(committedRow) : inlineEmpty('本章还没有拍过板。'))),
+                  h('span', { className: 'nk-meta' }, shownCommitted.length + ' 条')),
+                shownCommitted.length ? shownCommitted.map(committedRow) : inlineEmpty(beatTerm ? '没有匹配的已拍板决策。' : '本章还没有拍过板。'))),
             h('div', { className: 'nk-wb-col nk-wb-aside' },
               detail,
               h('section', { className: 'nk-card' },
@@ -1563,12 +2192,24 @@ window.__ModuleLoader__.load({
       function memoryPage() {
         const view = fadeData || null
         const cards = view && Array.isArray(view.cards) ? view.cards : []
+        const memoryChapters = [...new Set(cards.map(function (card) { return Number(card.chapter) }))].sort(function (a, b) { return a - b })
+        const memoryLayers = [...new Set(cards.map(function (card) { return card.layer || 'L2' }))].sort()
+        const visibleCards = cards
+          .filter(function (card) { return memoryChapter === null || Number(card.chapter) === Number(memoryChapter) })
+          .filter(function (card) { return memoryLayer === null || (card.layer || 'L2') === memoryLayer })
         const entities = view && Array.isArray(view.entities) ? view.entities : []
         const threads = view && Array.isArray(view.threads) ? view.threads : []
         const opened = cards.filter(function (item) { return item.id === memoryOpen })[0] || null
         const pinned = cards.filter(function (item) { return item.pinned }).length
+        const sourceIndex = new Map()
+        for (const card of cards) {
+          if (!card.sourceId) continue
+          if (!sourceIndex.has(card.sourceId)) sourceIndex.set(card.sourceId, new Set())
+          sourceIndex.get(card.sourceId).add(card.sourceChapter || card.chapter)
+        }
         const hits = Array.isArray(memoryHits) ? memoryHits : null
         const forgotten = cards.filter(function (card) { return card.status === 'forgotten' })
+        const archived = (view && view.archive && Array.isArray(view.archive.items)) ? view.archive.items : []
         const chapterMap = new Map()
         for (const card of cards) chapterMap.set(card.chapter, (chapterMap.get(card.chapter) || 0) + 1)
         const chapterCounts = Array.from(chapterMap.entries()).sort(function (a, b) { return a[0] - b[0] }).map(function (entry) { return { chapter: entry[0], count: entry[1] } })
@@ -1616,7 +2257,8 @@ window.__ModuleLoader__.load({
                 : null,
               h('div', { className: 'nk-option-foot', style: { marginTop: 10 } },
                 h('button', { type: 'button', className: 'nk-btn', onClick: function () { actOnMemory(opened, opened.pinned ? 'unpin' : 'pin') } }, opened.pinned ? '取消钉住' : '钉住'),
-                h('button', { type: 'button', className: 'nk-btn', onClick: function () { actOnMemory(opened, opened.status === 'forgotten' ? 'restore' : 'forget') } }, opened.status === 'forgotten' ? '恢复' : '遗忘')))
+                h('button', { type: 'button', className: 'nk-btn', onClick: function () { actOnMemory(opened, opened.status === 'forgotten' ? 'restore' : 'forget') } }, opened.status === 'forgotten' ? '恢复' : '遗忘'),
+                h('button', { type: 'button', className: 'nk-btn', onClick: function () { actOnMemory(opened, 'archive') } }, '归档')))
           : h('section', { className: 'nk-card' },
               h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '卡片详情')),
               h('div', { className: 'nk-empty-state' },
@@ -1625,19 +2267,105 @@ window.__ModuleLoader__.load({
 
         return h('div', { className: 'nk-wb-body' },
           pageHead('记忆', '近章重点记、旧事逐步淡；收尾时沉淀的卡片在这里，可以钉住或让它褪色。'),
-          h('div', { className: 'nk-stats' },
+          h('div', { className: 'nk-tabs', style: { marginBottom: 10 } },
+            [['overview', '总览'], ['memory', '记忆'], ['provenance', '溯源']].map(function (item) {
+              return h('button', {
+                key: item[0], type: 'button', className: 'nk-tab' + (fadeTab === item[0] ? ' active' : ''),
+                onClick: function () { setFadeTab(item[0]) },
+              }, item[1])
+            })),
+          fadeTab === 'overview'
+            ? h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '总览'),
+                  h('span', { className: 'nk-meta' }, view ? 'rev ' + (view.revision ?? 0) : '未接入')),
+                h('div', { className: 'nk-stats', style: { marginBottom: 10 } },
+                  pageStat('卡片', cards.length),
+                  pageStat('已钉住', pinned),
+                  pageStat('已归档', view && view.archive ? view.archive.count : 0),
+                  pageStat('未回收线索', threads.length, threads.length ? 'warn' : '')),
+                view && view.health
+                  ? h('div', { className: 'nk-kv' },
+                      h('span', { className: 'nk-kv-key' }, '健康'),
+                      h('span', { className: 'nk-kv-val' }, view.health.currentChapter ? '低保真 ' + view.health.lowFidelity + ' · 窗口外 ' + view.health.outOfWindow + ' · 钉卡 ' + view.health.pinned : '未计算（缺少当前章）'))
+                  : null,
+                view && Array.isArray(view.curve) && view.curve.length
+                  ? h('div', { style: { marginTop: 8 } },
+                      h('div', { className: 'nk-tiny', style: { marginBottom: 4 } }, '记忆曲线（保真度最低 5 张）'),
+                      (view && Array.isArray(view.lowest) ? view.lowest : view.curve.slice().sort(function (a, b) { return a.fidelity - b.fidelity }).slice(0, 5)).map(function (item) {
+                        return h('div', { key: item.id, className: 'nk-kv' },
+                          h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter).padStart(2, '0') + ' · ' + item.salience),
+                          h('span', { className: 'nk-kv-val' }, '保真 ' + item.fidelity + ' / 可达 ' + item.accessibility + (item.pinned ? ' · 钉' : '')))
+                      }))
+                  : null,
+                cards.length
+                  ? h('div', null,
+                      h('div', { className: 'nk-tiny', style: { marginTop: 10, marginBottom: 4 } }, '最近卡片'),
+                      cards.slice(-6).reverse().map(function (item) {
+                        return h('div', { key: item.id, className: 'nk-kv' },
+                          h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter).padStart(2, '0')),
+                          h('span', { className: 'nk-kv-val' }, item.gist || ''))
+                      }))
+                  : inlineEmpty('还没有记忆卡；写完一章收尾后会开始沉淀。'))
+            : null,
+          fadeTab === 'provenance'
+            ? h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '溯源'),
+                  h('span', { className: 'nk-meta' }, cards.length + ' 张卡的引文')),
+                sourceIndex.size
+                  ? h('div', { style: { marginBottom: 8 } }, Array.from(sourceIndex.entries()).map(function (entry) {
+                      return h('div', { key: entry[0], className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, entry[0].slice(0, 12) + '…'),
+                        h('span', { className: 'nk-kv-val' }, '章节 ' + Array.from(entry[1]).sort(function (a, b) { return a - b }).join(' / ')))
+                    }))
+                  : null,
+                cards.length
+                  ? cards.slice().sort(function (a, b) { return (a.chapter || 0) - (b.chapter || 0) }).slice(0, 30).map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv', style: { alignItems: 'flex-start', flexDirection: 'column', gap: 2 } },
+                        h('div', { style: { display: 'flex', gap: 6, alignItems: 'baseline', width: '100%' } },
+                          h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter).padStart(2, '0')),
+                          h('span', { className: 'nk-meta', style: { marginLeft: 'auto' } }, item.layer || 'L2')),
+                        h('div', { className: 'nk-tiny' }, item.gist || ''),
+                        item.quote ? h('div', { className: 'nk-quote', style: { margin: '2px 0 0' } }, item.quote) : null,
+                        item.sourceId ? h('button', { type: 'button', className: 'nk-btn', style: { marginTop: 4 }, onClick: function () { loadMemoryExcerpt(item) } }, '看原文') : null)
+                    })
+                  : inlineEmpty('没有可溯源的卡片。'),
+                memoryExcerpt
+                  ? h('div', { style: { marginTop: 8 } },
+                      (function () {
+                        const text = String(memoryExcerpt.text || '')
+                        const quote = String(memoryExcerpt.quote || '')
+                        const at = quote ? text.indexOf(quote) : -1
+                        if (at < 0) return null
+                        const start = Math.max(0, at - 80)
+                        const end = Math.min(text.length, at + quote.length + 80)
+                        return h('div', { className: 'nk-quote', style: { maxHeight: 140, overflowY: 'auto', whiteSpace: 'pre-wrap' } }, '切片：…' + text.slice(start, end) + '…')
+                      })(),
+                      h('div', { className: 'nk-quote', style: { maxHeight: 260, overflowY: 'auto', whiteSpace: 'pre-wrap', marginTop: 6 } }, memoryExcerpt.text || '（这一章读回来是空的）'))
+                  : null)
+            : null,
+          h('div', { className: 'nk-stats', style: fadeTab === 'memory' ? undefined : { display: 'none' } },
             pageStat('卡片', view ? view.total : '—'),
             pageStat('已钉住', pinned),
             pageStat('未回收线索', threads.length, threads.length ? 'warn' : ''),
             pageStat('记忆漂移', view && view.drift ? '有' : '无', view && view.drift ? 'warn' : '')),
-          h('div', { className: 'nk-import-row', style: { margin: '12px 0' } },
+          h('div', { className: 'nk-import-row', style: fadeTab === 'memory' ? { margin: '12px 0' } : { display: 'none' } },
             h('input', {
               className: 'nk-input', value: memoryQuery, placeholder: '按人物 / 物品 / 秘密搜记忆',
               onChange: function (event) { setMemoryQuery(event.target.value) },
               onKeyDown: function (event) { if (event.key === 'Enter') searchMemoryNow() },
             }),
+            h('select', {
+              className: 'nk-input', style: { maxWidth: 130 }, value: memoryChapter === null ? '' : String(memoryChapter),
+              onChange: function (event) { setMemoryChapter(event.target.value ? Number(event.target.value) : null) },
+            }, [h('option', { key: 'all', value: '' }, '全部章节')].concat(memoryChapters.map(function (chapter) { return h('option', { key: chapter, value: String(chapter) }, 'CH.' + String(chapter).padStart(2, '0')) }))),
+            h('select', {
+              className: 'nk-input', style: { maxWidth: 110 }, value: memoryLayer === null ? '' : memoryLayer,
+              onChange: function (event) { setMemoryLayer(event.target.value || null) },
+            }, [h('option', { key: 'all', value: '' }, '全部层')].concat(memoryLayers.map(function (layer) { return h('option', { key: layer, value: layer }, layer) }))),
             h('button', { type: 'button', className: 'nk-btn', onClick: function () { searchMemoryNow() } }, '搜记忆')),
-          hits
+          hits && fadeTab === 'memory'
             ? h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' },
                   h('div', { className: 'nk-card-title' }, '检索命中'),
@@ -1645,19 +2373,20 @@ window.__ModuleLoader__.load({
                 hits.length === 0
                   ? inlineEmpty('没有命中。换个词，或清空检索看全部卡片。')
                   : hits.slice(0, 12).map(function (item) {
-                      return h('div', { key: item.id, className: 'nk-kv' },
+                      return h('div', { key: item.id, className: 'nk-kv', style: { alignItems: 'center', gap: 6 } },
                         h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter).padStart(2, '0') + ' · ' + (item.layer || 'L2')),
-                        h('span', { className: 'nk-kv-val', style: { maxWidth: '60%' } }, item.gist || ''))
+                        h('span', { className: 'nk-kv-val', style: { maxWidth: '50%' } }, item.gist || ''),
+                        item.sourceId ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { loadMemoryExcerpt(item) } }, '看原文') : null)
                     }))
             : null,
-          h('div', { className: 'nk-split', style: { marginTop: hits ? 14 : 0 } },
+          h('div', { className: 'nk-split', style: fadeTab === 'memory' ? { marginTop: hits ? 14 : 0 } : { display: 'none' } },
             h('div', { className: 'nk-split-list' },
               h('section', { className: 'nk-card flush' },
                 h('div', { className: 'nk-card-head', style: { padding: '14px 14px 0' } },
                   h('div', { className: 'nk-card-title' }, '记忆卡'),
-                  h('span', { className: 'nk-meta' }, cards.length + ' 张')),
-                cards.length ? cards.slice(0, 40).map(cardRow)
-                  : inlineEmpty('这本书还没有记忆卡。每章收尾时会沉淀；先在「正文」页把第一章写完并收尾。'))),
+                  h('span', { className: 'nk-meta' }, visibleCards.length + ' 张')),
+                visibleCards.length ? visibleCards.slice(0, 40).map(cardRow)
+                  : inlineEmpty(memoryChapter === null ? '这本书还没有记忆卡。每章收尾时会沉淀；先在「正文」页把第一章写完并收尾。' : '这一章还没有记忆卡。'))),
             h('div', { className: 'nk-wb-col nk-wb-aside' },
               detail,
               h('section', { className: 'nk-card' },
@@ -1676,6 +2405,21 @@ window.__ModuleLoader__.load({
                     })
                   : inlineEmpty('本次载入的记忆中没有已遗忘卡。'),
                 h('div', { className: 'nk-tiny', style: { marginTop: 8 } }, '只统计本次载入范围，不代表全书遗忘率。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '已归档'),
+                  h('span', { className: 'nk-meta' }, archived.length ? archived.length + ' 张' : '无')),
+                archived.length
+                  ? archived.slice(0, 5).map(function (item) {
+                      return h('div', { key: item.cardId, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key', style: { flexShrink: 0 } }, 'CH.' + String(item.chapter || 0).padStart(2, '0')),
+                        h('span', { className: 'nk-kv-val', style: { maxWidth: '52%' } }, item.gist || ''),
+                        h('button', {
+                          type: 'button', className: 'nk-btn', style: { flexShrink: 0 },
+                          onClick: function () { actOnMemory({ id: item.cardId }, 'unarchive') },
+                        }, '恢复'))
+                    })
+                  : inlineEmpty('没有归档卡；巩固或手动归档后会出现在这里。')),
               h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' },
                   h('div', { className: 'nk-card-title' }, '按章分布'),
@@ -1717,10 +2461,22 @@ window.__ModuleLoader__.load({
       function stylePage() {
         const style = materialData && materialData.style ? materialData.style : {}
         const profiles = Array.isArray(style.kitProfiles) ? style.kitProfiles : []
+        const personas = personaData && Array.isArray(personaData.personas) ? personaData.personas : []
+        const confirmedPersonas = personas.filter(function (item) { return item.status === 'confirmed' }).length
         const works = Array.isArray(style.works) ? style.works : []
         const confirmed = profiles.filter(function (item) { return item.status === 'confirmed' }).length
+        const candidates = []
+        for (const profile of profiles) {
+          for (const rule of (Array.isArray(profile.rulesDetail) ? profile.rulesDetail : [])) {
+            if (rule.status === 'candidate') candidates.push({ profile, rule })
+          }
+        }
         // 绑定 ≠ 确认 ≠ 本章采用：这里只回答「本书绑了哪几份档案」。
         const boundIds = (data && data.settings && Array.isArray(data.settings.activeStyleProfileIds)) ? data.settings.activeStyleProfileIds : []
+        const candidateTarget = profiles.filter(function (item) { return boundIds.includes(item.id) })[0]
+          || profiles.filter(function (item) { return item.id === styleOpen })[0]
+          || profiles[0]
+          || null
         const boundProfiles = boundIds.map(function (id) {
           const found = profiles.filter(function (profile) { return profile.id === id })[0]
           if (!found) return { id, name: String(id).slice(0, 10) + '…', status: '档案暂不可读', version: null }
@@ -1749,6 +2505,9 @@ window.__ModuleLoader__.load({
         const profileCard = function (profile) {
           const open = styleOpen === profile.id
           const ruleTexts = Array.isArray(profile.ruleTexts) ? profile.ruleTexts : []
+          const ruleDetails = Array.isArray(profile.rulesDetail) ? profile.rulesDetail : []
+          const evidenceTotal = ruleDetails.reduce(function (sum, rule) { return sum + (Array.isArray(rule.evidence) ? rule.evidence.length : 0) }, 0)
+          const confirmedRules = ruleDetails.filter(function (rule) { return rule.status === 'confirmed' }).length
           const avoid = Array.isArray(profile.avoid) ? profile.avoid : []
           return h('section', { key: profile.id, className: 'nk-card' },
             h('div', { className: 'nk-card-head' },
@@ -1759,15 +2518,58 @@ window.__ModuleLoader__.load({
                 type: 'button', className: 'nk-btn', style: { marginLeft: 'auto' },
                 onClick: function () { setStyleOpen(open ? null : profile.id) },
               }, open ? '收起' : '展开')),
-            h('div', { className: 'nk-tiny', style: { marginBottom: 6 } }, (profile.rules ?? ruleTexts.length) + ' 条规则 · ' + avoid.length + ' 个避免词'),
+            h('div', { className: 'nk-tiny', style: { marginBottom: 6 } }, (profile.rules ?? ruleTexts.length) + ' 条规则 · ' + avoid.length + ' 个避免词' + (profile.ratings && profile.ratings.count ? ' · 总评 ' + profile.ratings.average + '（' + profile.ratings.count + ' 次）' : '') + (profile.ratings && profile.ratings.readerAverage ? ' · 读者 ' + profile.ratings.readerAverage : '')),
+            h('div', { className: 'nk-tiny', style: { marginBottom: 6 } }, '质量：确认规则 ' + confirmedRules + ' / ' + ruleDetails.length + ' · 证据 ' + evidenceTotal + ' 条'),
+            profile.quality
+              ? h('div', { className: 'nk-tiny', style: { marginBottom: 6 } },
+                  profile.quality.ok ? '自动验收：通过' : '自动验收：' + profile.quality.issues.map(function (code) {
+                    return ({ 'profile-unconfirmed': '档案未确认', 'no-confirmed-rules': '没有确认规则', 'candidate-rules': '有候选未确认', 'rules-without-evidence': '规则缺证据', 'missing-source': '缺来源' })[code] || code
+                  }).join(' / '))
+              : null,
             bandRows(profile),
             open
               ? h('div', { style: { marginTop: 10 } },
-                  ruleTexts.length
-                    ? h('div', null, ruleTexts.slice(0, 8).map(function (text, index) {
-                        return h('div', { key: index, className: 'nk-tiny', style: { lineHeight: 1.7 } }, '· ' + text)
+                  ruleDetails.length
+                    ? h('div', null, ruleDetails.slice(0, 20).map(function (rule) {
+                        return h('div', { key: rule.id, className: 'nk-kv', style: { alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
+                          ruleEditId === rule.id
+                            ? h('div', { style: { display: 'flex', gap: 6, width: '100%' } },
+                                h('input', { className: 'nk-input', value: ruleEditText, onChange: function (event) { setRuleEditText(event.target.value) } }),
+                                h('button', { type: 'button', className: 'nk-btn primary', onClick: function () { saveRuleTextNow(profile, rule) } }, '保存'),
+                                h('button', { type: 'button', className: 'nk-btn', onClick: function () { setRuleEditId(null) } }, '取消'))
+                            : h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } }, rule.text),
+                          ruleEditId === rule.id ? null : h('span', { className: 'nk-badge' + (rule.status === 'confirmed' ? ' accent' : rule.status === 'rejected' ? ' warn' : '') }, rule.status),
+                          h('span', { className: 'nk-meta' }, '权重 ' + rule.weight),
+                          rule.evidence.length ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { showRuleEvidence(rule) } }, '证据 ' + rule.evidence.length) : null,
+                          rule.counterExamples && rule.counterExamples.length ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { showRuleEvidence(rule) } }, '反例 ' + rule.counterExamples.length) : null,
+                          ruleEditId === rule.id ? null : h('button', { type: 'button', className: 'nk-btn', onClick: function () { setRuleEditId(rule.id); setRuleEditText(rule.text) } }, '改'),
+                          h('button', { type: 'button', className: 'nk-btn', style: { minWidth: 26, padding: '0 5px' }, onClick: function () { updateStyleRuleNow(profile, rule, { weight: Math.max(0, Number(rule.weight) - 1) }) } }, '−'),
+                          h('button', { type: 'button', className: 'nk-btn', style: { minWidth: 26, padding: '0 5px' }, onClick: function () { updateStyleRuleNow(profile, rule, { weight: Math.min(5, Number(rule.weight) + 1) }) } }, '+'),
+                          rule.status !== 'confirmed' ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { updateStyleRuleNow(profile, rule, { status: 'confirmed' }) } }, '确认') : null,
+                          rule.status === 'confirmed' ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { updateStyleRuleNow(profile, rule, { status: 'rejected' }) } }, '拒绝') : null)
                       }))
                     : inlineEmpty('规则还没编译；先确认档案。'),
+                  h('button', { type: 'button', className: 'nk-btn', style: { marginTop: 8 }, onClick: function () { loadStyleHistoryNow(profile) } }, '档案历史'),
+                  styleHistory && styleHistory.profileId === profile.id
+                    ? h('div', { className: 'nk-tiny', style: { marginTop: 8 } },
+                        (styleHistory.history || []).slice(-8).reverse().map(function (item, index) {
+                          return h('div', { key: index }, '· ' + (item.action || 'update') + ' · rev ' + (item.revision ?? '?') + ' · ' + String(item.at || '').slice(0, 16))
+                        }))
+                    : null,
+                  Array.isArray(profile.ratingNotes) && profile.ratingNotes.length
+                    ? h('div', { className: 'nk-tiny', style: { marginTop: 8 } },
+                        profile.ratingNotes.slice(-3).reverse().map(function (item, index) {
+                          return h('div', { key: 'rating-' + index }, '· ' + item.stars + ' 星 · ' + item.by + (item.note ? ' · ' + item.note : ''))
+                        }))
+                    : null,
+                  h('div', { className: 'nk-tiny', style: { marginTop: 10, marginBottom: 4 } }, '读者偏好备注'),
+                  h('textarea', {
+                    className: 'nk-input', rows: 2,
+                    value: readerDraft && readerDraft.profileId === profile.id ? readerDraft.text : (profile.readerPreference?.text || ''),
+                    onChange: function (event) { setReaderDraft({ profileId: profile.id, text: event.target.value }) },
+                    placeholder: '读者喜欢什么/不喜欢什么；只作作者备注，不进规则简报',
+                  }),
+                  h('button', { type: 'button', className: 'nk-btn', style: { marginTop: 4 }, onClick: function () { saveReaderPreferenceNow(profile) } }, '保存读者偏好'),
                   avoid.length
                     ? h('div', { className: 'nk-chipline', style: { marginTop: 8 } },
                         avoid.slice(0, 16).map(function (word) { return h('span', { key: word, className: 'nk-tag' }, word) }))
@@ -1780,18 +2582,105 @@ window.__ModuleLoader__.load({
               profile.status !== 'confirmed'
                 ? h('button', { type: 'button', className: 'nk-btn primary', onClick: function () { confirmStyleNow(profile) } }, '确认这份档案')
                 : null,
-              h('button', { type: 'button', className: 'nk-btn', onClick: function () { loadStyleBrief(profile) } }, '生成写前简报')))
+              h('button', { type: 'button', className: 'nk-btn', onClick: function () { loadStyleBrief(profile) } }, '生成写前简报'),
+              h('div', { className: 'nk-chipline', style: { marginLeft: 'auto' } },
+                [1, 2, 3, 4, 5].map(function (stars) {
+                  return h('button', {
+                    key: 'rate-' + stars, type: 'button', className: 'nk-btn', title: '给这份文风档案打 ' + stars + ' 分',
+                    style: { minWidth: 28, padding: '0 6px' },
+                    onClick: function () { rateStyleNow(profile, stars) },
+                  }, String(stars))
+                }))))
         }
 
         return h('div', { className: 'nk-wb-body' },
           pageHead('风格工作室', '导入一本你喜欢的作品，看它的句长、对话比例、用词与禁忌；确认后才参与写作。'),
+          h('div', { className: 'nk-tabs', style: { marginBottom: 10 } },
+            [['shelf', '书架'], ['style', '档案'], ['learn', '学习']].map(function (item) {
+              return h('button', {
+                key: item[0], type: 'button', className: 'nk-tab' + (voiceTab === item[0] ? ' active' : ''),
+                onClick: function () { setVoiceTab(item[0]) },
+              }, item[1])
+            })),
           importPanel('style'),
-          h('div', { className: 'nk-stats', style: { marginTop: 14 } },
+          styleEvidence
+            ? h('section', { className: 'nk-card', style: { marginTop: 12 } },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '规则证据'),
+                  h('button', { type: 'button', className: 'nk-btn', style: { marginLeft: 'auto' }, onClick: function () { setStyleEvidence(null) } }, '收起')),
+                h('div', { className: 'nk-tiny', style: { marginBottom: 6 } }, styleEvidence.text),
+                styleEvidence.evidence.length
+                  ? styleEvidence.evidence.slice(styleEvidencePage * 5, styleEvidencePage * 5 + 5).map(function (item, index) {
+                      return h('div', { key: index, className: 'nk-quote', style: { margin: '4px 0' } }, (item.chapter ? 'CH.' + item.chapter + ' · ' : '') + (item.quote || item.text || ''))
+                    })
+                  : inlineEmpty('这条规则还没有证据引用。'),
+                styleEvidence.evidence.length > 5
+                  ? h('div', { className: 'nk-option-foot', style: { marginTop: 6 } },
+                      h('button', { type: 'button', className: 'nk-btn', disabled: styleEvidencePage <= 0, onClick: function () { setStyleEvidencePage(Math.max(0, styleEvidencePage - 1)) } }, '上一页'),
+                      h('span', { className: 'nk-meta' }, (styleEvidencePage + 1) + ' / ' + Math.ceil(styleEvidence.evidence.length / 5)),
+                      h('button', { type: 'button', className: 'nk-btn', disabled: (styleEvidencePage + 1) * 5 >= styleEvidence.evidence.length, onClick: function () { setStyleEvidencePage(styleEvidencePage + 1) } }, '下一页'))
+                  : null,
+                styleEvidence.counterExamples && styleEvidence.counterExamples.length
+                  ? h('div', { style: { marginTop: 8 } },
+                      h('div', { className: 'nk-tiny', style: { marginBottom: 4 } }, '反例'),
+                      styleEvidence.counterExamples.slice(0, 10).map(function (item, index) {
+                        return h('div', { key: 'counter-' + index, className: 'nk-quote', style: { margin: '4px 0' } }, typeof item === 'string' ? item : (item.quote || item.text || ''))
+                      }))
+                  : null)
+            : null,
+          voiceTab === 'shelf'
+            ? h('section', { className: 'nk-card', style: { marginTop: 14 } },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '书架'),
+                  h('span', { className: 'nk-meta' }, profiles.length + ' 份档案 · ' + works.length + ' 部旧书库作品')),
+                profiles.length
+                  ? profiles.map(function (profile) {
+                      return h('div', { key: profile.id, className: 'nk-kv', style: { alignItems: 'center', gap: 6 } },
+                        h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } }, profile.name || profile.id),
+                        h('span', { className: 'nk-badge' + (profile.status === 'confirmed' ? ' accent' : ' warn') }, profile.status === 'confirmed' ? '已确认' : '待确认'),
+                        profile.status !== 'confirmed'
+                          ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { confirmStyleNow(profile) } }, '确认')
+                          : null,
+                        boundIds.includes(profile.id)
+                          ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { unbindStyleNow(profile) } }, '解绑')
+                          : null,
+                        h('button', { type: 'button', className: 'nk-btn', onClick: function () { remeasureStyleNow(profile) } }, '重测'),
+                        h('button', { type: 'button', className: 'nk-btn', onClick: function () { removeStyleNow(profile) } }, '移除'))
+                    })
+                  : inlineEmpty('书架还是空的；点上方导入，选一本装着 txt 的目录。'),
+                works.length
+                  ? h('div', { style: { marginTop: 8 } }, works.map(function (work) {
+                      return h('div', { key: work.workId, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, work.title || work.workId),
+                        h('span', { className: 'nk-kv-val' }, work.chapters + ' 章 · ' + work.chars + ' 字'))
+                    }))
+                  : null)
+            : null,
+          voiceTab === 'learn'
+            ? h('section', { className: 'nk-card', style: { marginTop: 14 } },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '学习'),
+                  h('span', { className: 'nk-meta' }, candidates.length + ' 条待确认')),
+                candidates.length
+                  ? candidates.map(function (item, index) {
+                      return h('div', { key: item.rule.id, className: 'nk-kv', style: { alignItems: 'center', gap: 6 } },
+                        h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } }, '[' + (item.profile.name || item.profile.id) + '] ' + item.rule.text),
+                        h('button', { type: 'button', className: 'nk-btn', onClick: function () { updateStyleRuleNow(item.profile, item.rule, { status: 'confirmed' }) } }, '确认'),
+                        h('button', { type: 'button', className: 'nk-btn', onClick: function () { updateStyleRuleNow(item.profile, item.rule, { status: 'rejected' }) } }, '拒绝'))
+                    })
+                  : inlineEmpty('当前没有待学习候选。可以在下面手动加一条，模型提取的候选也会先到这里。'),
+                profiles.length
+                  ? h('div', { className: 'nk-import-row', style: { marginTop: 10 } },
+                      h('input', { className: 'nk-input', value: candidateText, placeholder: '新增候选规则，例如：对话里留停顿', onChange: function (event) { setCandidateText(event.target.value) } }),
+                      h('button', { type: 'button', className: 'nk-btn primary', disabled: !candidateText.trim() || !candidateTarget, onClick: function () { if (candidateTarget) addCandidateNow(candidateTarget) } }, '加入候选' + (candidateTarget ? ' · ' + (candidateTarget.name || candidateTarget.id) : '')))
+                  : null)
+            : null,
+          h('div', { className: 'nk-stats', style: voiceTab === 'learn' ? { display: 'none' } : { marginTop: 14 } },
             pageStat('档案', profiles.length),
             pageStat('已确认', confirmed, confirmed ? '' : 'warn'),
             pageStat('书库作品', works.length),
             pageStat('书库字数', works.reduce(function (sum, item) { return sum + Number(item.chars || 0) }, 0))),
-          h('div', { className: 'nk-wb-grid', style: { marginTop: 14 } },
+          h('div', { className: 'nk-wb-grid', style: voiceTab === 'style' ? { marginTop: 14 } : { display: 'none' } },
             h('div', { className: 'nk-wb-col' },
               profiles.length
                 ? profiles.map(profileCard)
@@ -1804,6 +2693,20 @@ window.__ModuleLoader__.load({
                         return h('span', { key: item, className: 'nk-tag' }, item)
                       })))),
             h('div', { className: 'nk-wb-col nk-wb-aside' },
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '人物卡'),
+                  h('span', { className: 'nk-meta' }, personas.length ? confirmedPersonas + ' / ' + personas.length + ' 已确认' : '未建')),
+                personas.length
+                  ? personas.slice(0, 8).map(function (persona) {
+                      return h('div', { key: persona.id, className: 'nk-kv', style: { alignItems: 'center', gap: 6 } },
+                        h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } }, persona.name || persona.id),
+                        h('span', { className: 'nk-badge' + (persona.status === 'confirmed' ? ' accent' : ' warn') }, persona.status === 'confirmed' ? '已确认' : '待确认'),
+                        persona.status !== 'confirmed'
+                          ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { confirmPersonaNow(persona) } }, '确认')
+                          : null)
+                    })
+                  : inlineEmpty('还没有人物卡；人物卡由模型提案，作者确认后才进入写作简报。')),
               h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' },
                   h('div', { className: 'nk-card-title' }, '本书已绑定档案'),
@@ -1832,9 +2735,230 @@ window.__ModuleLoader__.load({
       // ── 同人页：canon 状态 / 事实与证据 / 人物 / 规则 / 禁忌 / 本章检查 ─────
       function canonPage() {
         const canon = materialData && materialData.canon ? materialData.canon : {}
+        const fanficTabs = [['canon', '原著'], ['comic', '漫画'], ['hongguo', '红果'], ['delta', '本作'], ['plot', '剧情'], ['write', '写作']]
+        const fanficTabBar = h('div', { className: 'nk-tabs', style: { marginBottom: 10 } },
+          fanficTabs.map(function (item) {
+            return h('button', {
+              key: item[0], type: 'button', className: 'nk-tab' + (fanficTab === item[0] ? ' active' : ''),
+              onClick: function () { setFanficTab(item[0]) },
+            }, item[1])
+          }))
+        const evidence = mediaData && Array.isArray(mediaData.evidence) ? mediaData.evidence : []
+        const mediaSources = mediaData && Array.isArray(mediaData.sources) ? mediaData.sources : []
+        if (fanficTab !== 'canon') {
+          const analysis = analysisData || {}
+          const history = data && data.history && Array.isArray(data.history.chapters) ? data.history.chapters : []
+          const mediaList = evidence.filter(function (item) {
+            if (mediaSourceFilter && item.sourceId !== mediaSourceFilter) return false
+            if (fanficTab === 'comic') return String(item.kind || '').includes('page') || String(item.kind || '').includes('panel') || item.page
+            if (fanficTab === 'hongguo') return item.timecode || String(item.kind || '').includes('episode')
+            return true
+          })
+          let body
+          if (fanficTab === 'comic' || fanficTab === 'hongguo') {
+            body = h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-card-head' },
+                h('div', { className: 'nk-card-title' }, fanficTab === 'comic' ? '漫画证据' : '红果/短剧证据'),
+                h('span', { className: 'nk-meta' }, mediaList.length + ' 条')),
+              fanficTab === 'hongguo'
+                ? h('div', { style: { marginBottom: 10 } },
+                    h('div', { className: 'nk-import-row' },
+                      h('input', { className: 'nk-input', value: hongguoQuery, placeholder: '搜红果短剧，例如：剧名', onChange: function (event) { setHongguoQuery(event.target.value) }, onKeyDown: function (event) { if (event.key === 'Enter') searchHongguoNow() } }),
+                      h('button', { type: 'button', className: 'nk-btn primary', disabled: hongguoBusy || !hongguoQuery.trim(), onClick: searchHongguoNow }, hongguoBusy ? '…' : '搜索')),
+                    hongguoResults
+                      ? h('div', { style: { marginTop: 8 } },
+                          hongguoResults.length
+                            ? hongguoResults.slice(0, 12).map(function (item, index) {
+                                const title = item.title || item.name || item.seriesName || item.seriesId || item.id || ('结果 ' + (index + 1))
+                                return h('button', { key: index, type: 'button', className: 'nk-kv nk-rowbtn', onClick: function () { openHongguoSeries(item) } },
+                                  h('span', { className: 'nk-kv-key' }, title),
+                                  h('span', { className: 'nk-kv-val' }, item.desc || item.author || item.seriesId || ''))
+                              })
+                            : inlineEmpty('没有搜到结果；检查剧名或网络。'))
+                      : null,
+                    hongguoSeriesData
+                      ? h('div', { style: { marginTop: 8 } },
+                          h('div', { className: 'nk-tiny' }, '剧集：' + (hongguoSeriesData.series?.title || hongguoSeriesData.series?.name || hongguoSeriesData.id)),
+                          hongguoEpisodesData && hongguoEpisodesData.length
+                            ? hongguoEpisodesData.slice(0, 20).map(function (episode, index) {
+                                const title = episode.title || episode.name || ('第 ' + (index + 1) + ' 集')
+                                return h('button', { key: index, type: 'button', className: 'nk-kv nk-rowbtn', onClick: function () { openHongguoEpisode(episode) } },
+                                  h('span', { className: 'nk-kv-key' }, title),
+                                  h('span', { className: 'nk-kv-val' }, episode.duration ? String(episode.duration) : '看弹幕'))
+                              })
+                            : inlineEmpty('没有读到剧集。'))
+                      : null,
+                    hongguoDanmakuData && hongguoDanmakuData.length
+                      ? h('div', { className: 'nk-quote', style: { marginTop: 8, maxHeight: 180, overflowY: 'auto' } },
+                          hongguoDanmakuData.slice(0, 40).map(function (item, index) {
+                            return h('div', { key: index, className: 'nk-tiny' }, (item.time != null ? item.time + 's · ' : '') + (item.text || item.content || ''))
+                          }))
+                      : null)
+                : null,
+              mediaEvidenceOpen
+                ? h('div', { style: { marginBottom: 8 } },
+                    h('div', { className: 'nk-h3' }, '证据详情'),
+                    h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '状态'), h('span', { className: 'nk-kv-val' }, mediaEvidenceOpen.status || 'unverified')),
+                    h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '类型'), h('span', { className: 'nk-kv-val' }, mediaEvidenceOpen.kind || '证据')),
+                    h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '位置'), h('span', { className: 'nk-kv-val' }, mediaEvidenceOpen.page ? 'p' + mediaEvidenceOpen.page : mediaEvidenceOpen.timecode || '—')),
+                    mediaEvidenceOpen.quote ? h('div', { className: 'nk-quote', style: { marginTop: 6 } }, mediaEvidenceOpen.quote) : null,
+                    h('div', { className: 'nk-option-foot', style: { marginTop: 6 } },
+                      h('button', { type: 'button', className: 'nk-btn primary', onClick: function () { reviewMediaNow(mediaEvidenceOpen, 'confirmed') } }, '确认'),
+                      h('button', { type: 'button', className: 'nk-btn', onClick: function () { reviewMediaNow(mediaEvidenceOpen, 'rejected') } }, '拒绝'),
+                      h('button', { type: 'button', className: 'nk-btn', onClick: function () { setMediaEvidenceOpen(null) } }, '收起')))
+                : null,
+              comicReader
+                ? h('div', { style: { marginBottom: 10 } },
+                    h('div', { className: 'nk-card-head' },
+                      h('div', { className: 'nk-card-title' }, '漫画阅读 · ' + comicReader.title),
+                      h('button', { type: 'button', className: 'nk-btn', style: { marginLeft: 'auto' }, onClick: function () { setComicReader(null) } }, '收起')),
+                    h('div', { className: 'nk-import-row' },
+                      h('select', {
+                        className: 'nk-input', style: { maxWidth: 160 }, value: String(comicReader.index),
+                        onChange: function (event) { loadComicPage(Number(event.target.value)) },
+                      }, comicReader.pages.map(function (page) { return h('option', { key: page.index, value: String(page.index) }, '第 ' + (page.index + 1) + ' 页') })),
+                      h('button', { type: 'button', className: 'nk-btn', disabled: comicReader.busy, onClick: function () { ocrComicPageNow() } }, comicReader.busy ? 'OCR…' : 'OCR 本页')),
+                    comicReader.image && comicReader.image.base64
+                      ? h('img', { alt: '漫画页', src: 'data:' + comicReader.image.mime + ';base64,' + comicReader.image.base64, style: { maxWidth: '100%', maxHeight: 360, objectFit: 'contain', marginTop: 8, borderRadius: 8 } })
+                      : null,
+                    comicReader.text
+                      ? h('div', { className: 'nk-quote', style: { marginTop: 8, whiteSpace: 'pre-wrap', maxHeight: 220, overflowY: 'auto' } }, comicReader.text)
+                      : null)
+                : null,
+              mediaSources.length
+                ? h('div', { style: { marginBottom: 8 } }, mediaSources.slice(0, 10).map(function (source) {
+                    return h('div', { key: source.id, className: 'nk-kv' },
+                      h('button', {
+                        type: 'button', className: 'nk-btn' + (mediaSourceFilter === source.id ? ' primary' : ''),
+                        onClick: function () { setMediaSourceFilter(mediaSourceFilter === source.id ? null : source.id) },
+                      }, (source.type || '来源') + ' · ' + (source.title || source.id)),
+                      h('span', { className: 'nk-kv-val' }, (source.claimType || 'unknown') + ' · ' + (source.visibility || 'unknown')),
+                      source.file ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { openComicSource(source) } }, '阅读') : null)
+                  }).concat(mediaSourceFilter ? [h('button', { key: 'clear-source', type: 'button', className: 'nk-btn', style: { marginTop: 4 }, onClick: function () { setMediaSourceFilter(null) } }, '显示全部来源')] : []))
+                : null,
+              mediaList.length
+                ? mediaList.map(function (item) {
+                    return h('div', { key: item.id, className: 'nk-kv', style: { alignItems: 'center', gap: 6 } },
+                      h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } }, (item.kind || '证据') + (item.page ? ' · p' + item.page : '') + (item.timecode ? ' · ' + item.timecode : '') + (item.quote ? ' · ' + String(item.quote).slice(0, 16) : '')),
+                      h('span', { className: 'nk-badge' + (item.status === 'confirmed' ? ' accent' : item.status === 'rejected' ? ' warn' : '') }, item.status || 'unverified'),
+                      h('button', { type: 'button', className: 'nk-btn', onClick: function () { setMediaEvidenceOpen(item) } }, '详情'),
+                      item.status !== 'confirmed' ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { reviewMediaNow(item, 'confirmed') } }, '确认') : null,
+                      item.status !== 'rejected' ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { reviewMediaNow(item, 'rejected') } }, '拒绝') : null)
+                  })
+                : inlineEmpty(fanficTab === 'comic' ? '还没有漫画证据；导入漫画源后在这里审阅页面/分格。' : '还没有红果/短剧证据；导入来源后在这里审阅集数/时间码。'))
+          } else if (fanficTab === 'delta') {
+            const pendingChanges = canonQueue && Array.isArray(canonQueue.pending) ? canonQueue.pending : []
+            const acceptedChanges = canonQueue && Array.isArray(canonQueue.accepted) ? canonQueue.accepted : []
+            const appliedChanges = canonQueue && Array.isArray(canonQueue.applied) ? canonQueue.applied : []
+            const reviewFields = reviewChange && reviewChange.after && typeof reviewChange.after === 'object'
+              ? Object.keys(reviewChange.after).slice(0, 12).map(function (key) {
+                  const before = reviewChange.before && typeof reviewChange.before === 'object' ? reviewChange.before[key] : undefined
+                  const after = reviewChange.after[key]
+                  return { key, before, after, changed: JSON.stringify(before) !== JSON.stringify(after) }
+                }).filter(function (item) { return item.changed })
+              : []
+            body = h('div', { className: 'nk-wb-col', style: { gap: 12 } },
+              reviewChange
+                ? h('section', { className: 'nk-card' },
+                    h('div', { className: 'nk-card-head' },
+                      h('div', { className: 'nk-card-title' }, '审阅详情'),
+                      h('button', { type: 'button', className: 'nk-btn', style: { marginLeft: 'auto' }, onClick: function () { setReviewChange(null) } }, '收起')),
+                    h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '类型'), h('span', { className: 'nk-kv-val' }, reviewChange.kind || '变更')),
+                    h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '摘要'), h('span', { className: 'nk-kv-val' }, reviewChange.summary || reviewChange.title || reviewChange.changeId)),
+                    h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, 'changeId'), h('span', { className: 'nk-kv-val' }, String(reviewChange.changeId || '').slice(0, 20))),
+                    reviewFields.length
+                      ? h('div', { style: { marginTop: 6 } }, reviewFields.map(function (field) {
+                          return h('div', { key: field.key, className: 'nk-tiny' },
+                            field.key + '：' + String(JSON.stringify(field.before) ?? '').slice(0, 40) + ' → ' + String(JSON.stringify(field.after) ?? '').slice(0, 40))
+                        }))
+                      : null,
+                    reviewChange.after || reviewChange.before || reviewChange.payload
+                      ? h('pre', { className: 'nk-quote', style: { maxHeight: 220, overflow: 'auto', fontSize: 11 } }, JSON.stringify(reviewChange.after || reviewChange.before || reviewChange.payload, null, 2))
+                      : null,
+                    h('div', { className: 'nk-option-foot', style: { marginTop: 8 } },
+                      h('button', { type: 'button', className: 'nk-btn primary', disabled: canonQueueBusy, onClick: function () { reviewCanonChangeNow(reviewChange.changeId, 'accepted', reviewChange.changeHash); setReviewChange(null) } }, '接受'),
+                      h('button', { type: 'button', className: 'nk-btn', disabled: canonQueueBusy, onClick: function () { reviewCanonChangeNow(reviewChange.changeId, 'rejected', reviewChange.changeHash); setReviewChange(null) } }, '拒绝')))
+                : null,
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '审阅队列'),
+                  h('span', { className: 'nk-meta' }, canonQueue && canonQueue.available ? '待审 ' + pendingChanges.length + ' · 待应用 ' + acceptedChanges.length : '未就绪')),
+                !canonQueue || !canonQueue.available
+                  ? inlineEmpty((canonQueue && canonQueue.message) || '读不到审阅队列。')
+                  : h('div', null,
+                      pendingChanges.length
+                        ? pendingChanges.slice(0, 20).map(function (item) {
+                            return h('div', { key: item.changeId, className: 'nk-kv', style: { alignItems: 'center', gap: 6 } },
+                              h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } }, (item.kind || '变更') + ' · ' + (item.summary || item.title || item.changeId)),
+                              h('button', { type: 'button', className: 'nk-btn', onClick: function () { setReviewChange(item) } }, '详情'),
+                              h('button', { type: 'button', className: 'nk-btn', disabled: canonQueueBusy, onClick: function () { reviewCanonChangeNow(item.changeId, 'accepted', item.changeHash) } }, '接受'),
+                              h('button', { type: 'button', className: 'nk-btn', disabled: canonQueueBusy, onClick: function () { reviewCanonChangeNow(item.changeId, 'rejected', item.changeHash) } }, '拒绝'))
+                          })
+                        : inlineEmpty('没有待审变更。'),
+                      acceptedChanges.length
+                        ? h('button', { type: 'button', className: 'nk-btn primary', style: { marginTop: 8 }, disabled: canonQueueBusy, onClick: function () { applyCanonChangesNow() } }, '应用已接受的 ' + acceptedChanges.length + ' 条')
+                        : null)),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '已应用变更'),
+                  h('span', { className: 'nk-meta' }, appliedChanges.length + ' 条')),
+                appliedChanges.length
+                  ? appliedChanges.slice(0, 20).map(function (item) {
+                      return h('div', { key: item.changeId, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, item.collection || '变更'),
+                        h('span', { className: 'nk-kv-val' }, 'rev ' + (item.appliedRevision ?? '?')))
+                    })
+                  : inlineEmpty('还没有已应用变更。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '冲突审阅'), h('span', { className: 'nk-meta' }, (data && data.conflicts && data.conflicts.items ? data.conflicts.items.length : 0) + ' 条')),
+                data && data.conflicts && Array.isArray(data.conflicts.items) && data.conflicts.items.length
+                  ? data.conflicts.items.slice(0, 12).map(function (item, index) {
+                      return h('div', { key: index, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, item.kind || '冲突'),
+                        h('span', { className: 'nk-kv-val' }, item.message || item.text || ''))
+                    })
+                  : inlineEmpty('当前没有冲突。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '媒体待确认'), h('span', { className: 'nk-meta' }, evidence.filter(function (item) { return item.status !== 'confirmed' && item.status !== 'rejected' }).length + ' 条')),
+                evidence.filter(function (item) { return item.status !== 'confirmed' && item.status !== 'rejected' }).length
+                  ? evidence.filter(function (item) { return item.status !== 'confirmed' && item.status !== 'rejected' }).slice(0, 12).map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv' },
+                        h('span', { className: 'nk-kv-key' }, (item.quote || item.kind || item.id)),
+                        h('button', { type: 'button', className: 'nk-btn', onClick: function () { reviewMediaNow(item, 'confirmed') } }, '确认'),
+                        h('button', { type: 'button', className: 'nk-btn', onClick: function () { reviewMediaNow(item, 'rejected') } }, '拒绝'))
+                    })
+                  : inlineEmpty('媒体证据都已审。')),
+              h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '本作 delta'), h('span', { className: 'nk-meta' }, 'kit 原生')),
+                h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '决策'), h('span', { className: 'nk-kv-val' }, (analysis.decisions ? analysis.decisions.total : 0) + ' 条')),
+                h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '记忆卡'), h('span', { className: 'nk-kv-val' }, (analysis.memory ? analysis.memory.cards : 0) + ' 张')),
+                h('div', { className: 'nk-kv' }, h('span', { className: 'nk-kv-key' }, '媒体证据'), h('span', { className: 'nk-kv-val' }, (analysis.media ? analysis.media.evidence : 0) + ' 条')),
+                h('div', { className: 'nk-tiny', style: { marginTop: 8 } }, '本作审阅以 canon 队列为准；应用后才会进写作依据。')))
+          } else if (fanficTab === 'plot') {
+            body = h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '剧情'), h('span', { className: 'nk-meta' }, history.length + ' 章')),
+              history.length
+                ? history.slice(0, 30).map(function (item) {
+                    return h('div', { key: item.chapter, className: 'nk-kv' },
+                      h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter).padStart(2, '0')),
+                      h('span', { className: 'nk-kv-val' }, (item.state || '') + ' · ' + (item.chars || 0) + ' 字'))
+                  })
+                : inlineEmpty('还没有章节；开章收尾后会出现在这里。'))
+          } else {
+            body = h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '写作')),
+              h('div', { className: 'nk-note' }, session ? '当前会话：第 ' + session.chapter + ' 章 · ' + session.state : '还没有进行中的章节会话。'),
+              h('button', { type: 'button', className: 'nk-btn primary', style: { marginTop: 10 }, onClick: function () { setSection('chapter') } }, '去正文页开写'))
+          }
+          return h('div', { className: 'nk-wb-body' },
+            pageHead('同人', '原著、媒体、本作与剧情分开看；写作入口回到正文页。'),
+            fanficTabBar,
+            body)
+        }
         if (!canon.available) {
           return h('div', { className: 'nk-wb-body' },
             pageHead('同人', '导入原著，抽成事实、人物、规则与称呼；每条都要有原文证据。'),
+            fanficTabBar,
             importPanel('canon'),
             h('section', { className: 'nk-card', style: { marginTop: 14 } },
               h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '建 canon 的四步')),
@@ -1870,6 +2994,7 @@ window.__ModuleLoader__.load({
           return (change.collection || '?') + ' · ' + (before === null ? '新增' : before) + ' → ' + (after === null ? '删除' : after)
         }
         const secrets = Array.isArray(canon.secrets) ? canon.secrets : []
+        const mediaEvidence = mediaData && Array.isArray(mediaData.evidence) ? mediaData.evidence : []
         const addresses = Array.isArray(canon.addresses) ? canon.addresses : []
         const addressTerm = addressFilter.trim().toLowerCase()
         const shownAddresses = addressTerm
@@ -1878,17 +3003,157 @@ window.__ModuleLoader__.load({
             })
           : addresses
 
+        const canonChips = [['characters', '人物'], ['factions', '势力'], ['relations', '关系'], ['world', '世界'], ['conflicts', '冲突'], ['source', '原文']]
+        const canonChipBar = h('div', { className: 'nk-chipline', style: { margin: '0 0 10px' } },
+          canonChips.map(function (item) {
+            return h('button', {
+              key: item[0], type: 'button', className: 'nk-btn' + (canonChip === item[0] ? ' primary' : ''),
+              onClick: function () { setCanonChip(item[0]) },
+            }, item[1])
+          }))
+        const row = function (key, value) {
+          return h('div', { key: key + ':' + String(value).slice(0, 20), className: 'nk-kv' },
+            h('span', { className: 'nk-kv-key' }, key),
+            h('span', { className: 'nk-kv-val' }, value))
+        }
+        const factionMap = new Map()
+        for (const person of characters) {
+          const key = person.faction || person.affiliation || person.role || '未分组'
+          if (!factionMap.has(key)) factionMap.set(key, [])
+          factionMap.get(key).push(person.name || '?')
+        }
+        const conflictRows = (data && data.conflicts && Array.isArray(data.conflicts.items)) ? data.conflicts.items : []
+        const sourceRows = (data && data.history && Array.isArray(data.history.chapters)) ? data.history.chapters : []
+        let chipBody
+        if (canonChip === 'factions') {
+          chipBody = factionMap.size
+            ? Array.from(factionMap.entries()).map(function (entry) { return row(entry[0], entry[1].join(' / ')) })
+            : [inlineEmpty('canon 没有势力字段；人物卡按身份/阵营分组后会显示在这里。')]
+        } else if (canonChip === 'relations') {
+          const relationships = Array.isArray(canon.relationships) ? canon.relationships : []
+          chipBody = relationships.length
+            ? relationships.slice(0, 30).map(function (item, index) { return row((item.from || item.a || '?') + ' → ' + (item.to || item.b || '?'), item.kind || item.text || '') })
+            : [inlineEmpty('还没有关系边。')]
+        } else if (canonChip === 'world') {
+          chipBody = worldRules.length || forbidden.length
+            ? worldRules.slice(0, 20).map(function (rule) { return row('规则', rule) }).concat(forbidden.slice(0, 10).map(function (word) { return row('禁忌', word) }))
+            : [inlineEmpty('还没有世界规则/禁忌。')]
+        } else if (canonChip === 'conflicts') {
+          chipBody = conflictRows.length
+            ? conflictRows.slice(0, 20).map(function (item) {
+                return h('button', {
+                  key: item.id || item.kind,
+                  type: 'button', className: 'nk-kv nk-rowbtn',
+                  onClick: function () { setConflictOpen(item) },
+                },
+                h('span', { className: 'nk-kv-key' }, item.kind || '冲突'),
+                h('span', { className: 'nk-kv-val' }, item.message || item.text || ''))
+              })
+            : [inlineEmpty('当前没有检测到冲突。')]
+          if (conflictOpen) {
+            chipBody = chipBody.concat([h('div', { key: 'conflict-detail', className: 'nk-quote', style: { marginTop: 8, whiteSpace: 'pre-wrap' } },
+              '冲突详情\n' + JSON.stringify(conflictOpen, null, 2))])
+          }
+        } else if (canonChip === 'source') {
+          chipBody = sourceRows.length
+            ? sourceRows.slice(0, 20).map(function (item) {
+                return h('div', { key: item.chapter, className: 'nk-kv' },
+                  h('span', { className: 'nk-kv-key' }, 'CH.' + String(item.chapter).padStart(2, '0')),
+                  h('span', { className: 'nk-kv-val' }, (item.state || '') + ' · ' + (item.chars || 0) + ' 字'),
+                  h('button', { type: 'button', className: 'nk-btn', onClick: function () { loadExcerpt(item.chapter) } }, '看原文'))
+              })
+            : [inlineEmpty('还没有章节记录；导入原著后才有原文可回查。')]
+        } else {
+          const chosen = characters.filter(function (person) { return person.name === selectedCanonCharacter })[0] || null
+          const characterRows = characters.slice(0, 20).map(function (person) {
+            return h('button', {
+              key: person.name, type: 'button', className: 'nk-kv nk-rowbtn' + (selectedCanonCharacter === person.name ? ' active' : ''),
+              onClick: function () { setSelectedCanonCharacter(selectedCanonCharacter === person.name ? null : person.name) },
+            },
+            h('span', { className: 'nk-kv-key' }, person.name || '?'),
+            h('span', { className: 'nk-kv-val' }, (person.aliases || []).join(' / ') || person.role || ''))
+          })
+          const related = chosen
+            ? (Array.isArray(canon.relationships) ? canon.relationships : []).filter(function (rel) { return rel.from === chosen.name || rel.to === chosen.name })
+            : []
+          const relatedSecrets = chosen
+            ? secrets.filter(function (secret) {
+                const who = [].concat(secret?.characters || [], secret?.knows || [], secret?.who || [], secret?.knownBy || []).map(String)
+                return who.includes(chosen.name) || who.includes(chosen.name + '')
+              })
+            : []
+          const relatedAddresses = chosen
+            ? addresses.filter(function (address) { return address.from === chosen.name || address.to === chosen.name })
+            : []
+          const allCharacterNames = characters.map(function (person) { return String(person.name || '') }).filter(Boolean)
+          const currentChapter = session && Number.isFinite(Number(session.chapter)) ? Number(session.chapter) : null
+          const knowledgeMatrix = secrets.length
+            ? h('div', { className: 'nk-card', style: { marginTop: 8, background: 'transparent', boxShadow: 'none', padding: 0 } },
+                h('div', { className: 'nk-h3' }, '知情矩阵'),
+                secrets.slice(0, 10).map(function (secret, index) {
+                  const knownBy = (Array.isArray(secret.knownBy) ? secret.knownBy : []).map(String)
+                  const publicAt = Number(secret.publicAtChapter)
+                  const isPublic = Number.isFinite(publicAt) && publicAt > 0 && currentChapter !== null && currentChapter >= publicAt
+                  const knownThis = isPublic ? allCharacterNames : knownBy
+                  const unknownThis = allCharacterNames.filter(function (name) { return !knownThis.includes(name) })
+                  return h('div', { key: 'matrix-' + index, className: 'nk-tiny', style: { lineHeight: 1.8 } },
+                    '· ' + (secret.what || '') + (isPublic ? '（第 ' + publicAt + ' 章起公开）' : publicAt ? '（第 ' + publicAt + ' 章前未公开）' : '') + '：知 ' + (knownThis.join(' / ') || '无') + '；不知 ' + (unknownThis.slice(0, 8).join(' / ') || '无'))
+                }))
+            : null
+          const characterDetail = chosen
+            ? h('div', { className: 'nk-card', style: { marginTop: 8, background: 'transparent', boxShadow: 'none', padding: 0 } },                h('div', { className: 'nk-h3' }, chosen.name + (chosen.role ? ' · ' + chosen.role : '')),
+                h('div', { className: 'nk-tiny' }, '别名：' + ((chosen.aliases || []).join(' / ') || '无')),
+                related.length
+                  ? h('div', { style: { marginTop: 6 } }, related.slice(0, 8).map(function (rel, index) {
+                      return h('div', { key: index, className: 'nk-tiny' }, '关系：' + (rel.from || '?') + ' → ' + (rel.to || '?') + (rel.kind ? ' · ' + rel.kind : ''))
+                    }))
+                  : null,
+                relatedSecrets.length
+                  ? h('div', { style: { marginTop: 6 } }, relatedSecrets.slice(0, 8).map(function (secret, index) {
+                      return h('div', { key: 'secret-' + index, className: 'nk-tiny' }, '秘密：' + (secret.what || secret.text || '') + (Array.isArray(secret.knownBy) && secret.knownBy.length ? ' · 知：' + secret.knownBy.slice(0, 8).join(' / ') : ''))
+                    }))
+                  : null,
+                relatedAddresses.length
+                  ? h('div', { style: { marginTop: 6 } }, relatedAddresses.slice(0, 8).map(function (address, index) {
+                      return h('div', { key: 'address-' + index, className: 'nk-tiny' }, '称呼：' + (address.from || '?') + ' → ' + (address.to || '?') + ' · ' + (address.publicForm || address.form || ''))
+                    }))
+                  : null,
+                Array.isArray(chosen.evidence) && chosen.evidence.length
+                  ? h('div', { style: { marginTop: 6 } }, chosen.evidence.slice(0, 8).map(function (ev, index) {
+                      return h('div', { key: index, className: 'nk-quote' }, (ev.chapter ? 'CH.' + ev.chapter + ' · ' : '') + (ev.quote || ev.text || ''))
+                    }))
+                  : inlineEmpty('这个人物没有带证据。'))
+            : null
+          chipBody = characterRows
+            .concat(facts.slice(0, 10).map(function (fact) { return row(fact.entity || fact.subject || '事实', fact.key ? fact.key + '：' + fact.value : fact.value || '') }))
+            .concat(addresses.slice(0, 10).map(function (address) { return row((address.from || '?') + ' → ' + (address.to || '?'), address.publicForm || address.form || '') }))
+            .concat(secrets.slice(0, 8).map(function (secret) {
+              const knownBy = Array.isArray(secret?.knownBy) ? secret.knownBy : []
+              return row('秘密', (secret.what || '') + (knownBy.length ? ' · 知：' + knownBy.slice(0, 6).join(' / ') : ' · 知情未记录'))
+            }))
+            .concat(characterDetail ? [characterDetail] : [])
+            .concat(knowledgeMatrix ? [knowledgeMatrix] : [])
+          if (!characters.length && !facts.length && !secrets.length && !addresses.length) chipBody = [inlineEmpty('还没有人物与事实。')]
+        }
+
         return h('div', { className: 'nk-wb-body' },
           pageHead('同人', '原著事实与禁忌决定这一本能不能写；先逐条审阅候选，应用后才会进写作依据。',
             h('span', { className: 'nk-meta' }, canon.canonReady ? '生效 canon 已确认' : '生效 canon 未确认')),
           importPanel('canon'),
+          fanficTabBar,
           h('div', { className: 'nk-stats', style: { marginTop: 14 } },
             pageStat('事实', facts.length),
             pageStat('人物', characters.length),
             pageStat('世界规则', worldRules.length),
             pageStat('canon 状态', canon.canonReady ? '已确认' : (canon.contractStatus || '待抽取'), canon.canonReady ? '' : 'warn')),
           canonMessage ? h('div', { className: 'nk-tiny', style: { margin: '10px 0' } }, canonMessage) : null,
-          h('div', { className: 'nk-wb-grid' },
+          canonChipBar,
+          h('section', { className: 'nk-card', style: { marginBottom: 10 } },
+            h('div', { className: 'nk-card-head' },
+              h('div', { className: 'nk-card-title' }, canonChips.filter(function (item) { return item[0] === canonChip })[0][1]),
+              h('span', { className: 'nk-meta' }, '原著 · ' + (canon.canonReady ? '已确认' : '待确认'))),
+            chipBody),
+          h('div', { className: 'nk-wb-grid', style: { display: 'none' } },
             h('div', { className: 'nk-wb-col' },
               h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' },
@@ -2002,6 +3267,24 @@ window.__ModuleLoader__.load({
                     })
                   : inlineEmpty('还没有秘密条目。')),
               h('section', { className: 'nk-card' },
+                h('div', { className: 'nk-card-head' },
+                  h('div', { className: 'nk-card-title' }, '媒体证据'),
+                  h('span', { className: 'nk-meta' }, mediaEvidence.length ? mediaEvidence.length + ' 条' : '无')),
+                mediaEvidence.length
+                  ? mediaEvidence.slice(0, 8).map(function (item) {
+                      return h('div', { key: item.id, className: 'nk-kv', style: { alignItems: 'center', gap: 6 } },
+                        h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } },
+                          (item.kind || '证据') + (item.claimType ? ' · ' + item.claimType : '') + (item.page ? ' · p' + item.page : '') + (item.quote ? ' · ' + String(item.quote).slice(0, 16) : '')),
+                        h('span', { className: 'nk-badge' + (item.status === 'confirmed' ? ' accent' : item.status === 'rejected' ? ' warn' : '') }, item.status || 'unverified'),
+                        item.status !== 'confirmed'
+                          ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { reviewMediaNow(item, 'confirmed') } }, '确认')
+                          : null,
+                        item.status !== 'rejected'
+                          ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { reviewMediaNow(item, 'rejected') } }, '拒绝')
+                          : null)
+                    })
+                  : inlineEmpty('没有媒体证据；旧同人项目的 media.json 会在继承导入时进入这里。')),
+              h('section', { className: 'nk-card' },
                 h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '本章检查')),
                 findings.length
                   ? findings.slice(0, 8).map(function (item, index) {
@@ -2113,15 +3396,43 @@ window.__ModuleLoader__.load({
               return kv((issue.component || '?') + ' · ' + (issue.code || 'issue'), issue.message || '', c.warning)
             })
           : [inlineEmpty('账本读得完，没有诊断问题。')]
+        const analysis = analysisData || {}
+        const analysisRows = analysis.ok === false
+          ? [inlineEmpty(analysis.message || '全书分析不可用。')]
+          : [
+              kv('决策', (analysis.decisions ? analysis.decisions.total : 0) + ' 条 · gate ' + (analysis.decisions && analysis.decisions.gateOk ? '正常' : '有缺口'), analysis.decisions && analysis.decisions.gateOk ? undefined : c.warning),
+              kv('记忆', (analysis.memory ? analysis.memory.cards : 0) + ' 卡 · ' + (analysis.memory ? analysis.memory.archived : 0) + ' 归档'),
+              kv('媒体证据', (analysis.media ? analysis.media.evidence : 0) + ' 条 · ' + (analysis.media && analysis.media.byStatus ? (analysis.media.byStatus.confirmed || 0) + ' 已确认' : '0 已确认')),
+              kv('人物卡', (analysis.personas ? (analysis.personas.confirmed || 0) + ' / ' + analysis.personas.total : '0 / 0') + ' 已确认'),
+              kv('runbook', (analysis.runs ? (analysis.runs.running || 0) + ' 进行 / ' + analysis.runs.total : '0 / 0')),
+            ]
 
+        const runs = runsData && Array.isArray(runsData.runs) ? runsData.runs : []
+        const runRows = [
+          h('div', { className: 'nk-option-foot', style: { marginBottom: 8 } },
+            h('button', { type: 'button', className: 'nk-btn', onClick: function () { createRunNow() } }, '新建 run')),
+          ...(runs.length
+            ? runs.slice(0, 6).map(function (run) {
+                return h('div', { key: run.runId, className: 'nk-kv', style: { alignItems: 'center', gap: 6 } },
+                  h('span', { className: 'nk-kv-key', style: { flex: 1, minWidth: 0 } }, (run.title || run.runId) + ' · ' + run.steps.length + ' 步'),
+                  h('span', { className: 'nk-badge' }, run.status),
+                  run.status !== 'completed' && run.status !== 'aborted'
+                    ? h('button', { type: 'button', className: 'nk-btn', onClick: function () { updateRunNow(run, 'completed') } }, '完成')
+                    : null)
+              })
+            : [inlineEmpty('还没有 run；新建一个四步 run 记录本章推进。')]),
+        ]
         const left = [
           workSettingsCard(),
+          h(LegacyImportCard, { remote: remote, sessionId: sessionId, book: book, onDone: function () { load(book) } }),
+          block('故事总控 runbook', runs.length ? runs.length + ' 个' : '无', runRows),
           block('来源库', sources.length + ' 份', sourceRows),
           block('本章依据', previewData && previewData.available ? fmtNum(previewData.chars || 0) + ' 字 · ' + previewData.mode : '已装配快照', contextRows),
           block('依据版本对照', '开章时 vs 现在', versionBlock),
           block('操作记录', operations.length + ' 条', operationRows),
         ]
         const right = [
+          block('全书分析', analysis.ok === false ? '不可用' : '只读汇总', analysisRows),
           block('文风档案', profiles.length + ' 份', profileRows),
           block('同人 canon', canon.available ? (canon.canonReady ? '已确认' : (canon.contractStatus || '待抽取')) : '未绑定', canonRows),
           block('诊断', issues.length ? issues.length + ' 个问题' : '正常', issueRows),
@@ -2151,6 +3462,57 @@ window.__ModuleLoader__.load({
         ['fanfic', '同人', '同'],
         ['data', '资料', '籍'],
       ]
+
+      const sectionCopy = {
+        chapter: ['正文', '还没有作品；先建书，正文页才有章节归属。'],
+        beat: ['决策', '还没有作品；先建书，决策账本才有归属。'],
+        fade: ['记忆', '还没有作品；先建书，记忆卡才有归属。'],
+        voice: ['风格', '还没有作品；先建书，风格页才会出现导入文风入口。'],
+        fanfic: ['同人', '还没有作品；先建书，同人页才会出现导入原著入口。'],
+        data: ['资料', '还没有作品；先建书后，继承导入/runbook/备份才有目标。'],
+      }
+      const noBookCopy = sectionCopy[section] || ['小说工作台', '还没有作品；先建一本。']
+      const noBookPage = h('div', { className: 'nk-wb-body' },
+        pageHead(noBookCopy[0], noBookCopy[1]),
+        h('div', { className: 'nk-wb-grid' },
+          h('div', { className: 'nk-wb-col' },
+            h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '新建作品'), h('span', { className: 'nk-meta' }, 'kit 原生')),
+              h('div', { className: 'nk-import-row' },
+                h('input', {
+                  className: 'nk-input', value: newBookName, placeholder: '作品名，例如：长夜行',
+                  onChange: function (event) { setNewBookName(event.target.value) },
+                  onKeyDown: function (event) { if (event.key === 'Enter') createBookNow() },
+                }),
+                h('button', { type: 'button', className: 'nk-btn primary', disabled: workBusy || !newBookName.trim(), onClick: createBookNow }, '新建作品')),
+              h('div', { className: 'nk-tiny', style: { marginTop: 8 } }, '建书后本页内容才会出现；五件旧数据可在书桌「继承导入」。'),
+              workMessage ? h('div', { className: 'nk-tiny', style: { marginTop: 6, color: c.sub } }, workMessage) : null),
+            h('div', { className: 'nk-option-foot', style: { marginTop: 10 } },
+              h('button', { type: 'button', className: 'nk-btn', onClick: function () { setSection('desk') } }, '去书桌建书'),
+              h('button', { type: 'button', className: 'nk-btn', onClick: function () { setSection('data') } }, '去资料页')),
+            section === 'voice'
+              ? h('section', { className: 'nk-card', style: { marginTop: 12 } },
+                  h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '导入作品 · 学文笔'), h('span', { className: 'nk-meta' }, '需先建书')),
+                  h('div', { className: 'nk-import-row' },
+                    h('input', { className: 'nk-input', disabled: true, placeholder: '先建作品，才能把文风绑定到本书' }),
+                    h('button', { type: 'button', className: 'nk-btn', disabled: true }, '浏览')),
+                  h('div', { className: 'nk-tiny', style: { marginTop: 8 } }, '建书后这里会变成真正的目录选择：导入 → 统计档案 → 确认 → 生成本书简报。'))
+              : null,
+            section === 'fanfic'
+              ? h('section', { className: 'nk-card', style: { marginTop: 12 } },
+                  h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '导入原著 · 建 canon'), h('span', { className: 'nk-meta' }, '需先建书')),
+                  h('div', { className: 'nk-import-row' },
+                    h('input', { className: 'nk-input', disabled: true, placeholder: '先建作品，才能绑定原著 canon' }),
+                    h('button', { type: 'button', className: 'nk-btn', disabled: true }, '浏览')),
+                  h('div', { className: 'nk-tiny', style: { marginTop: 8 } }, '建书后这里会变成真正的目录选择：导入 → 抽候选 → 逐条审阅 → 生效。'))
+              : null),
+          h('div', { className: 'nk-wb-col nk-wb-aside' },
+            h('section', { className: 'nk-card' },
+              h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '为什么是空的')),
+              h('div', { className: 'nk-tiny', style: { lineHeight: 1.9 } },
+                '当前工作区还没有 kit 原生作品。' + '\n' +
+                '点击左侧分页不会自动建书，也不会借用旧五件账本。' + '\n' +
+                '建书或继承导入后，本页才会显示对应功能。')))))
 
       const pageView = section === 'chapter' ? h('div', { style: { display: 'flex', gap: 0, flex: 1, minHeight: 0 } },
           h('div', { style: { width: 200, flexShrink: 0, borderRight: '1px solid ' + c.border, padding: '14px 10px', overflowY: 'auto' } },
@@ -2294,7 +3656,7 @@ window.__ModuleLoader__.load({
         : dataView()
 
       // 唯一入口：左竖栏切页，主区只放当前页。没有页签条，也没有第二个面板。
-      return h('div', { className: 'nk-wb' },
+      return h('div', { className: 'nk-wb nk-tone-' + skinTone },
         h('nav', { className: 'nk-rail' },
           h('div', { className: 'nk-rail-brand' },
             h('div', { className: 'nk-rail-seal' }, '说'),
@@ -2321,6 +3683,16 @@ window.__ModuleLoader__.load({
                   ? h('span', { className: 'nk-wb-status' }, h('b', null, '第 ' + data.session.chapter + ' 章'), h('span', null, '·'), h('span', null, stateLabel(data.session.state)))
                   : h('span', { className: 'nk-wb-status' }, '无活动会话'))),
             h('div', { className: 'nk-wb-head-actions' },
+              h('div', { className: 'nk-chipline', title: '底色', style: { flexShrink: 0 } },
+                h('span', { className: 'nk-meta', style: { alignSelf: 'center' } }, '底色'),
+                [['paper', '纸白'], ['sepia', '米黄'], ['dark', '深色']].map(function (item) {
+                  return h('button', {
+                    key: item[0], type: 'button', className: 'nk-btn' + (skinTone === item[0] ? ' primary' : ''),
+                    title: '底色 · ' + item[1],
+                    style: { minWidth: 34, padding: '0 6px' },
+                    onClick: function () { setSkinTone(item[0]) },
+                  }, item[1])
+                })),
               books.length
                 ? h('select', {
                     className: 'nk-select',
@@ -2350,17 +3722,44 @@ window.__ModuleLoader__.load({
                   h('div', { className: 'nk-skeleton', style: { height: 84 } }),
                   h('div', { className: 'nk-skeleton', style: { height: 120 } }),
                   h('div', { className: 'nk-skeleton', style: { height: 200 } })))
-            : !(data && (data.book || books.length))
+            : !(data && (data.book || books.length)) && section === 'desk'
               ? h('div', { className: 'nk-wb-body' },
-                  h('div', { className: 'nk-empty-state', style: { paddingTop: 64 } },
-                    h('div', { className: 'nk-glyph' }, '说'),
-                    h('div', { className: 'nk-h2', style: { marginTop: 8 } }, '还没有作品'),
-                    h('div', { className: 'nk-tiny' }, '先建一本自己的作品，或者导入一本你喜欢的书学文笔。'),
-                    h('button', {
-                      type: 'button', className: 'nk-btn primary', style: { marginTop: 12, height: 32, padding: '0 14px' },
-                      onClick: function () { setSection('data') },
-                    }, '去新建作品')))
-              : pageView))
+                  pageHead('开始一本作品', '先建一本自己的书，或把五件旧数据继承进来；建书后风格/同人页才会出现对应导入入口。'),
+                  h('div', { className: 'nk-wb-grid' },
+                    h('div', { className: 'nk-wb-col' },
+                      h('section', { className: 'nk-card' },
+                        h('div', { className: 'nk-card-head' },
+                          h('div', { className: 'nk-card-title' }, '新建作品'),
+                          h('span', { className: 'nk-meta' }, 'kit 原生')),
+                        h('div', { className: 'nk-import-row' },
+                          h('input', {
+                            className: 'nk-input', value: newBookName, placeholder: '作品名，例如：长夜行',
+                            onChange: function (event) { setNewBookName(event.target.value) },
+                            onKeyDown: function (event) { if (event.key === 'Enter') createBookNow() },
+                          }),
+                          h('button', { type: 'button', className: 'nk-btn primary', disabled: workBusy || !newBookName.trim(), onClick: createBookNow }, '新建作品')),
+                        h('div', { className: 'nk-tiny', style: { marginTop: 8 } },
+                          '建书只创建 kit 自己的账本与正文目录，不依赖 beat/fade/voice/fanfic/conductor。'),
+                        workMessage ? h('div', { className: 'nk-tiny', style: { marginTop: 6, color: c.sub } }, workMessage) : null),
+                      h(LegacyImportCard, { remote: remote, sessionId: sessionId, book: book, onDone: function () { load(book) } }),
+                      h('section', { className: 'nk-card' },
+                        h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '建书之后')),
+                        h('div', { className: 'nk-tiny', style: { lineHeight: 1.8, whiteSpace: 'pre-line' } },
+                          '· 书桌：开章、写正文、收尾。' + '\n' +
+                          '· 风格页：导入一本作品学文风，确认档案后可生成写前简报。' + '\n' +
+                          '· 同人页：导入原著、抽取 canon，逐条确认后才会进写作依据。' + '\n' +
+                          '· 资料页：继承导入、runbook、备份与全书分析。'))),
+                    h('div', { className: 'nk-wb-col nk-wb-aside' },
+                      h('section', { className: 'nk-card' },
+                        h('div', { className: 'nk-card-head' }, h('div', { className: 'nk-card-title' }, '从这里开始')),
+                        h('div', { className: 'nk-tiny', style: { lineHeight: 1.9, whiteSpace: 'pre-line' } },
+                          '1. 在上方输入作品名，点「新建作品」。' + '\n' +
+                          '2. 书桌点「开第 1 章」，在正文页写稿。' + '\n' +
+                          '3. 写完后收尾，kit 会沉淀决策、记忆与收据。' + '\n' +
+                          '4. 想学文风/写同人，再分别去风格页/同人页导入。')))))
+              : !(data && (data.book || books.length))
+                ? noBookPage
+                : pageView))
     }
 
     return {

@@ -1,6 +1,6 @@
 {
   "name": "dsh-novel-kit",
-  "version": "0.5.2",
+  "version": "0.7.0",
   "description": "面向长篇连载与同人作者的写作工作台：整理章节计划、作者决策、章节记忆、文风档案与原著依据；开章前装配可用资料，写后检查禁忌、称呼和已登记引文，再以可恢复事务提交正文与账本变更。",
   "type": "module",
   "main": "index.js",
@@ -25,16 +25,19 @@
     "docs/*.md",
     "docs/mockups/live/wb-desk-dark.png",
     "docs/mockups/live/wb-chapter-light.png",
-    "docs/mockups/live/wb-canon-demo-light.png"
+    "docs/mockups/live/wb-canon-demo-light.png",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "scripts": {
-    "test": "node --test",
-    "acceptance": "node scripts/acceptance.mjs",
-    "acceptance:real": "node scripts/acceptance-real.mjs",
-    "check": "node scripts/build-client.mjs --check && node --check index.js && node --check lib/workspace.js && node --check lib/repositories/ledger.js && node --check lib/codecs/beat.js && node --check lib/codecs/fade.js && node --check lib/codecs/voice.js && node --check lib/codecs/fanfic.js && node --check lib/storage/atomic-json.js && node --check lib/storage/transaction.js && node --check lib/engine/state-machine.js && node --check lib/engine/session-store.js && node --check lib/engine/context.js && node --check lib/engine/binding.js && node --check lib/engine/chapter.js && node --check lib/engine/checks.js && node --check lib/engine/metrics.js && node --check lib/host/tools.js && node --check lib/host/gate.js && node --check lib/host/commands.js && node --check lib/host/snapshot.js && node --check lib/host/diagnostics.js && node --check lib/host/takeover.js && node --check lib/host/views.js && node --check lib/engine/memory.js && node --check lib/engine/import.js && node --check lib/engine/memory3d.js && node --check lib/engine/conflicts.js && node --check lib/host/decisions.js && node --check lib/host/remote-contract.js && node --check lib/host/remote.js && node --check lib/engine/settings.js && node --check lib/engine/source-text.js && node --check lib/engine/sources.js && node --check lib/engine/profiles.js && node --check lib/engine/canon.js && node --check lib/engine/book.js && node --check lib/engine/operations.js && node --check lib/engine/author.js && node --check client.js",
+    "test": "node --require ./test/legacy-env.cjs --test",
+    "acceptance": "node scripts/acceptance-native.mjs",
+    "acceptance:native": "node scripts/acceptance-native.mjs",
+    "bench:native": "node scripts/bench-native.mjs",
+    "acceptance:real": "node --require ./test/legacy-env.cjs scripts/acceptance-real.mjs",
+    "check": "node scripts/build-client.mjs --check && node --check index.js && node --check lib/workspace.js && node --check lib/native/schema.js && node --check lib/native/store.js && node --check lib/native/decisions.js && node --check lib/native/memory.js && node --check lib/native/import/legacy.js && node --check lib/native/import/kit-legacy.js && node --check lib/native/legacy-policy.js && node --check lib/native/runs.js && node --check lib/native/consolidation.js && node --check lib/native/personas.js && node --check lib/native/media.js && node --check lib/native/analysis.js && node --check lib/native/backup.js && node --check lib/native/bible.js && node --check lib/native/comic/index.js && node --check lib/native/comic/comic.mjs && node --check lib/native/comic/windows-ocr.mjs && node --check lib/native/comic/image-gray.mjs && node --check lib/native/comic/image-crop.mjs && node --check lib/native/comic/panel-detect.mjs && node --check lib/native/hongguo/index.js && node --check lib/storage/locks.js && node --check scripts/kit-v2-import.mjs && node --check scripts/acceptance-native.mjs && node --check scripts/bench-native.mjs && node --check lib/repositories/ledger.js && node --check lib/codecs/beat.js && node --check lib/codecs/fade.js && node --check lib/codecs/voice.js && node --check lib/codecs/fanfic.js && node --check lib/storage/atomic-json.js && node --check lib/storage/transaction.js && node --check lib/engine/state-machine.js && node --check lib/engine/session-store.js && node --check lib/engine/context.js && node --check lib/engine/binding.js && node --check lib/engine/chapter.js && node --check lib/engine/checks.js && node --check lib/engine/metrics.js && node --check lib/host/tools.js && node --check lib/host/gate.js && node --check lib/host/commands.js && node --check lib/host/snapshot.js && node --check lib/host/diagnostics.js && node --check lib/host/views.js && node --check lib/engine/memory.js && node --check lib/engine/source-files.js && node --check lib/engine/memory3d.js && node --check lib/engine/conflicts.js && node --check lib/host/decisions.js && node --check lib/host/remote-contract.js && node --check lib/host/remote.js && node --check lib/engine/settings.js && node --check lib/engine/source-text.js && node --check lib/engine/sources.js && node --check lib/engine/profiles.js && node --check lib/engine/canon.js && node --check lib/engine/book.js && node --check lib/engine/operations.js && node --check lib/engine/author.js && node --check client.js",
     "release": "node scripts/publish.mjs",
     "build:client": "node scripts/build-client.mjs",
-    "ui:snapshot": "node scripts/ui-snapshot.mjs",
+    "ui:snapshot": "node --require ./test/legacy-env.cjs scripts/ui-snapshot.mjs",
     "acceptance:load": "node scripts/acceptance-load.mjs"
   },
   "dsh": {
