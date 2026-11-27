@@ -12,6 +12,7 @@ import { readMemory } from '../lib/native/memory.js'
 import { readMedia } from '../lib/native/media.js'
 import { readProjectSettings } from '../lib/engine/settings.js'
 import { startChapter } from '../lib/engine/chapter.js'
+import { readSourceMeta, readSourceChapter } from '../lib/engine/sources.js'
 
 function writeJson(file, value) {
   mkdirSync(path.dirname(file), { recursive: true })
@@ -116,6 +117,26 @@ test('importLegacyBook：原文不变但 fanfic canon 变化时拒绝复用旧�
     () => importLegacyBook({ root, book: '斗罗', mode: 'fanfic', replace: true, sources: { fanfic: 'douluo' } }),
     /投影已变化/,
   )
+})
+
+test('importLegacyBook：复用 fanfic 的章节 index，不依赖 kit 通用分章', async () => {
+  const root = legacyWorkspace()
+  const src = path.join(root, '.dsh-novel-fanfic', 'douluo', 'source', 'src1')
+  writeJson(path.join(src, 'index.json'), {
+    sourceId: 'src1', chapterCount: 2,
+    chapters: [
+      { id: 'ch001', ordinal: 1, title: '第一节', chars: 4, start: 0, end: 4 },
+      { id: 'ch002', ordinal: 2, title: '第二节', chars: 4, start: 4, end: 8 },
+    ],
+  })
+  mkdirSync(path.join(src, 'chapters'), { recursive: true })
+  writeFileSync(path.join(src, 'chapters', 'ch001.txt'), '第一章。', 'utf8')
+  writeFileSync(path.join(src, 'chapters', 'ch002.txt'), '第二章。', 'utf8')
+  const result = await importLegacyBook({ root, book: '斗罗', mode: 'fanfic', sources: { fanfic: 'douluo' } })
+  assert.equal(result.canon?.chapters, 2)
+  const meta = await readSourceMeta(root, result.canon.sourceId)
+  assert.equal(meta.chapterCount, 2)
+  assert.equal(await readSourceChapter(root, result.canon.sourceId, 'ch002'), '第二章。')
 })
 
 test('importLegacyBook：复制到原生、写 manifest、源文件字节不变、正文按 bookId 隔离', async () => {
