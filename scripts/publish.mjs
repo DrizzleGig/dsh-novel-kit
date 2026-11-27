@@ -41,12 +41,12 @@ function node(args, { allowFail = false, quiet = false } = {}) {
       const tail = out.trim().split('\n').slice(-3).join('\n')
       if (tail) console.log(tail)
     }
-    return { ok: true, out }
+    return { ok: true, out, code: 0 }
   } catch (error) {
     const combined = `${error.stdout ?? ''}${error.stderr ?? ''}`.trim()
     console.error(combined.split('\n').slice(-6).join('\n'))
     if (!allowFail) process.exitCode = 1
-    return { ok: false, out: combined }
+    return { ok: false, out: combined, code: Number.isInteger(error.status) ? error.status : 1 }
   }
 }
 
@@ -116,7 +116,7 @@ else fail('加载链验收失败（「重启后整包消失」这类事故由它
 section('真实验收（复制账本，不动原书）')
 const real = node([path.join('scripts', 'acceptance-real.mjs')], { allowFail: true, quiet: true })
 if (real.ok) ok('acceptance:real 通过')
-else if (/没有可用账本|账本不存在|环境不满足|ENOENT|skipped|skip/iu.test(String(real.out ?? ''))) {
+else if (real.code === 2 && /^SKIP/mu.test(String(real.out ?? ''))) {
   console.log('  ⚠ 跳过真实验收（没有可用账本或环境不满足）；不阻塞发布，但发布说明里要写清楚')
 } else {
   fail('真实验收失败（不是环境缺失，不能降格为跳过）')

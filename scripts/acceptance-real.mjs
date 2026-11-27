@@ -13,7 +13,7 @@ const source = process.argv[2] ?? 'D:\\斗罗大陆'
 const book = process.argv[3] ?? '斗罗：开局炸毁冰火两仪眼'
 if (!existsSync(source) || !existsSync(path.join(source, '.dsh-novel-beat', book, 'book.json'))) {
   console.log('SKIP 真实验收：没有可用的真实书副本（' + source + '）')
-  process.exit(0)
+  process.exit(2)
 }
 const results = []
 const check = (name, ok, detail = '') => {
