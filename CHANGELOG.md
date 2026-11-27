@@ -15,8 +15,8 @@
 
 ### 测试
 
-- `npm test` 265 项，262 过 / 3 跳过 / 0 失败；`npm run check` 通过。3 项跳过是真实书夹具显式 opt-out。
-- 新增 `test/native-import.test.mjs` 用例：fanfic + mode=fanfic 建原生 canon 并原生开章。
+- `npm test` 266 项，263 过 / 3 跳过 / 0 失败；`npm run check` 通过。3 项跳过是真实书夹具显式 opt-out。
+- 新增 `test/native-import.test.mjs` 用例：fanfic + mode=fanfic 建原生 canon 并原生开章；多来源无法按 sourceId 匹配时拒绝导入。
 
 ## 0.7.0 — kit v2 独立工作台（2026-11-27）
 

@@ -89,6 +89,20 @@ test('importLegacyBook：fanfic + mode=fanfic 建立原生 canon 绑定并可原
   assert.equal(started.context.segments.find((segment) => segment.component === 'fanfic')?.available, true)
 })
 
+test('importLegacyBook：多来源无法按 sourceId 匹配时拒绝，不写半成品', async () => {
+  const root = legacyWorkspace()
+  mkdirSync(path.join(root, '.dsh-novel-fanfic', 'douluo', 'source', 'src2'), { recursive: true })
+  writeFileSync(path.join(root, '.dsh-novel-fanfic', 'douluo', 'source', 'src2', 'raw.txt'), '第二章 另一个来源', 'utf8')
+  writeJson(path.join(root, '.dsh-novel-fanfic', 'douluo', 'project.json'), {
+    schemaVersion: 2, id: 'douluo', title: '斗罗同人', revision: 3, sourceId: 'src-not-there',
+  })
+  await assert.rejects(
+    () => importLegacyBook({ root, book: '斗罗', mode: 'fanfic', sources: { fanfic: 'douluo' } }),
+    /无法按 sourceId 唯一确定/,
+  )
+  assert.equal(existsSync(path.join(root, '.dsh-novel-kit', 'books.json')), false)
+})
+
 test('importLegacyBook：复制到原生、写 manifest、源文件字节不变、正文按 bookId 隔离', async () => {
   const root = legacyWorkspace()
   const beatFile = path.join(root, '.dsh-novel-beat', '斗罗', 'book.json')
