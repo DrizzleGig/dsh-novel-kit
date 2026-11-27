@@ -2,7 +2,7 @@
   "meta": {
     "title": "小说工作台",
     "detail": "docs/DETAIL.md",
-    "description": "小说工作台 keeps writing, sources and review in one flow: chapter plans and author decisions, draft saving, chapter checks and recoverable commits; an imported sample becomes a style statistics profile, and canon candidates reach the manuscript only after the author reviews and applies them."
+    "description": "小说工作台把写作、资料和审阅放进同一流程。支持章节计划与作者拍板、草稿保存、章节检查和可恢复落账；导入样本可生成文风统计档案，同人候选经作者审阅并应用后才进入写作依据。"
   },
   "name": "小说工作台",
   "description": "A writing workbench for long-form and fan fiction: chapter plans, author decisions, chapter memory, a style profile and canon sources. Sources are assembled before a chapter, drafts are checked for forbidden phrases, address misuse and registered quotations after writing, and both manuscript and ledger changes commit in a recoverable transaction."

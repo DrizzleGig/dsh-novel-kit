@@ -97,10 +97,18 @@ dsh-novel-kit 是一款独立小说工作台。它把剧情决策、长篇记忆
 需要 DeepSeek Harness。工作台可独立安装，其他小说插件均为可选。
 
 ```bash
-dsh plugin --profile web add dsh-novel-kit@0.7.0
+dsh plugin --profile web add dsh-novel-kit@0.7.1
 ```
 
 web 是示例 profile；桌面端按实际 profile 替换。安装后重启 Harness，打开「小说工作台」。
+
+## 共同作者
+
+**v0.5.2 共同作者：[MiyueWinter](https://github.com/MiyueWinter)** —— 文案、测试、设计与开发。
+
+## 喜欢它？
+
+如果「小说工作台」帮你把写作、资料和审阅放进同一张工作台，欢迎在 [GitHub](https://github.com/DrizzleGig/dsh-novel-kit) 点亮 ⭐，也欢迎 [Issue](https://github.com/DrizzleGig/dsh-novel-kit/issues) 或 [PR](https://github.com/DrizzleGig/dsh-novel-kit/pulls)。
 
 ## 许可证
 
