@@ -225,7 +225,7 @@ E9 指设计门槛，不是已执行报告；实施时补命令、样例、测�
 | KIT-IMPORT-STALE | 导入/kit | `world.json` 记录 `fanficCanonHash`；原文不变但 fanfic confirmed canon 变化时拒绝复用旧投影 | kit 0.7.1 | 新增 stale projection 测试 |
 | KIT-IMPORT-AMBIGUOUS | 导入/kit | 多来源 fanfic 无法按 `project.sourceId` 唯一匹配时，在写数据前拒绝导入 | kit 0.7.1 | 新增多来源拒绝测试 |
 | KIT-SOURCE-CHAPTERS | 导入/kit | 复用 fanfic 的 `index.json`/`chapters/`，kit 原生 source 保留 7 章；不再只切出 ch001 | kit 0.7.1 | 新增章节 index 测试；模拟 ch006 643 字可读 |
-| FANFIC-MISSION-REPARSE | 安全/fanfic | 任务卡读/写/删对 `.dsh-novel-fanfic` 及父链做 lstat/realpath，拒绝 junction/symlink 越界 | fanfic 0.4.4 | `assertMissionPath`；普通穿越测试保留 |
+| FANFIC-MISSION-REPARSE | 安全/fanfic | `projectDirSafe` 对 `.dsh-novel-fanfic` 及项目目录做 lstat/realpath 检查；任务卡、canon-store、media、avatars 共用 | fanfic 0.4.4 | junction 负例测试；普通穿越测试保留 |
 | CONDUCTOR-DRIVE-HOOK | 共存/conductor | 宿主 `write/edit` 的路径检查与锁只在 `isDriving` 时启用；cue off 不干扰 kit 的宿主写工具 | conductor 0.2.1 | `npm test`；模拟共存检查 |
 | BEAT-PERSONA-READ | 拍板/beat | 纳入未发版 voice 人物画像只读建议 `personaText` | beat 0.12.2 | `voice-guidance` 测试；426/426 |
 
