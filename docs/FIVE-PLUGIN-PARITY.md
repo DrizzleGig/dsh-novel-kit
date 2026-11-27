@@ -221,6 +221,11 @@ E9 指设计门槛，不是已执行报告；实施时补命令、样例、测�
 | VOICE-PROJECT-BINDING | 风格/voice | 多项目无显式 project 时返回歧义，不取第一个 | voice 0.4.1 | 多项目测试 |
 | VOICE-POLISH-PATH | 安全/voice | `write:true` 只允许工作区内普通文件；`dir` 必须与宿主 cwd 一致；拒绝越界/符号链接 | voice 0.4.1 | 越界 dir/文件测试 |
 | KIT-PUBLISH-SKIP | 发布/kit | `acceptance-real` SKIP 用 exit 2；publish 只对 `code=2 && SKIP` 跳过，其余失败 | kit 0.7.1 | 本机自检实际输出 SKIP 而不再 pass |
+| KIT-CANON-PAGE | 模型输入/kit | `novel_canon(read)` 增加 `offset/limit/nextOffset`，默认 3000 字；不再只有 4k 渲染窗口 | kit 0.7.1 | 模拟 `chars=4023 next=100` |
+| KIT-IMPORT-STALE | 导入/kit | `world.json` 记录 `fanficCanonHash`；原文不变但 fanfic confirmed canon 变化时拒绝复用旧投影 | kit 0.7.1 | 新增 stale projection 测试 |
+| KIT-IMPORT-AMBIGUOUS | 导入/kit | 多来源 fanfic 无法按 `project.sourceId` 唯一匹配时，在写数据前拒绝导入 | kit 0.7.1 | 新增多来源拒绝测试 |
+| FANFIC-MISSION-REPARSE | 安全/fanfic | 任务卡读/写/删对 `.dsh-novel-fanfic` 及父链做 lstat/realpath，拒绝 junction/symlink 越界 | fanfic 0.4.4 | `assertMissionPath`；普通穿越测试保留 |
+| CONDUCTOR-DRIVE-HOOK | 共存/conductor | 宿主 `write/edit` 的路径检查与锁只在 `isDriving` 时启用；cue off 不干扰 kit 的宿主写工具 | conductor 0.2.1 | `npm test`；模拟共存检查 |
 | BEAT-PERSONA-READ | 拍板/beat | 纳入未发版 voice 人物画像只读建议 `personaText` | beat 0.12.2 | `voice-guidance` 测试；426/426 |
 
 下一批仍是：真实 GUI 七页冒烟、all-six 模型路由矩阵、fade/voice 与 beat/fanfic 同 run 四域链路、计数口径统一、冻结 tarball 后重跑。
