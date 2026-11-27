@@ -1,5 +1,9 @@
 # dsh-novel-kit
 
+[![npm version](https://img.shields.io/npm/v/dsh-novel-kit)](https://www.npmjs.com/package/dsh-novel-kit)
+[![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/DrizzleGig/dsh-novel-kit/blob/main/LICENSE)
+[![stars](https://img.shields.io/github/stars/DrizzleGig/dsh-novel-kit)](https://github.com/DrizzleGig/dsh-novel-kit/stargazers)
+
 把写小说需要的东西，放进一张自己的工作台。
 
 dsh-novel-kit 是一款独立小说工作台。它把剧情决策、长篇记忆、创作风格、同人设定、资料管理和创作手册放在一起，让作者不用在多个工具之间来回切换，也能从构思、写作到回顾，始终掌握自己的作品。
