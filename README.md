@@ -12,9 +12,9 @@ dsh-novel-kit 是一款独立小说工作台。它把剧情决策、长篇记忆
 
 ## 版本口径
 
-当前版本：`0.7.2`
+当前版本：`0.7.3`
 
-0.7 是独立小说工作台的第一个正式版本。dsh-novel-kit 以独立工作台的形式原生实现各项创作能力，不依赖其他小说插件。0.7.1 修复 fanfic 继承导入的原生 canon 绑定、headless 工作区、conductor 共存边界与任务卡/工具输出问题，并补上章节映射、导入回滚与 operationId 幂等；0.7.2 只修正发布后的 README 版本口径。
+0.7 是独立小说工作台的第一个正式版本。dsh-novel-kit 以独立工作台的形式原生实现各项创作能力，不依赖其他小说插件。0.7.1 修复 fanfic 继承导入的原生 canon 绑定、headless 工作区、conductor 共存边界与任务卡/工具输出问题，并补上章节映射、导入回滚与 operationId 幂等；0.7.2 修正 README 版本口径；0.7.3 补 README 徽章。
 
 旧版写作资料可以通过一次性只读继承导入。导入仅用于接收已有资料，不会建立持续联系，也不会反向修改原资料。
 
@@ -99,7 +99,7 @@ dsh-novel-kit 是一款独立小说工作台。它把剧情决策、长篇记忆
 需要 DeepSeek Harness。工作台可独立安装，其他小说插件均为可选。
 
 ```bash
-dsh plugin --profile web add dsh-novel-kit@0.7.2
+dsh plugin --profile web add dsh-novel-kit@0.7.3
 ```
 
 web 是示例 profile；桌面端按实际 profile 替换。安装后重启 Harness，打开「小说工作台」。
