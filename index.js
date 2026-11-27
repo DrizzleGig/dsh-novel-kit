@@ -1,4 +1,4 @@
-// dsh-novel-kit 0.2.0-dev
+// dsh-novel-kit 0.7.1
 //
 // 独立包：一个包内实现 beat/fade/voice/fanfic/conductor 的能力。
 // 本章引擎 + /novel 开关；总开关（master）与项目模式（原创/同人）从 0.2.0 起显式存在。

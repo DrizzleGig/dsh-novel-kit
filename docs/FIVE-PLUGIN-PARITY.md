@@ -203,4 +203,25 @@ E9 指设计门槛，不是已执行报告；实施时补命令、样例、测�
 
 **登记规则**：源包先发布 → kit 原生模块设计 → 移植/重写 → 同夹具验收；`CHANGELOG` 写“移植自 x@版本（原生实现，不共享账本）”；只借思路的项目不入 vendor。任何行都不得标“已验收”，直到 DSH 有命令/夹具/证据。
 
+## 11. 2026-11-27 六包同步补丁（本地，未发布）
+
+> 依据 [方案-六包同步补丁与双栈实测-2026-11-27.md](../../docs/方案-六包同步补丁与双栈实测-2026-11-27.md)。状态统一为“已实现·本地 check/test 通过·未发布·未真实 GUI 验收”；不得标“已验收”或“已发布”。
+
+| ID | 领域/归属 | 本轮改动 | 目标版本 | 证据 |
+|---|---|---|---|---|
+| KIT-NATIVE-CANON-IMPORT | 同人/kit | fanfic 继承导入把已确认 canon 投影成 kit `world.json` 并绑定 `mode=fanfic`/`activeCanonSourceId`；原文进 kit `sources/` | kit 0.7.1 | `test/native-import.test.mjs`；QA 导入 `canonReady=true`，源 hash diff=0 |
+| KIT-HEADLESS-CWD | 运行/kit | 无 `exec.cwd`/`workingDirectory` 时回落到进程工作目录；工具输出 lossless JSON | kit 0.7.1 | headless `novel_query/start/write/finish` 跑通 |
+| KIT-QUERY-TRUNCATION | 模型输入/kit | 非 session 结果从 400 字放宽到 4000 字并标截断 | kit 0.7.1 | `view=canon` 返回完整条目 |
+| KIT-STYLE-LOCK | 并发/kit | 先持有跨进程锁再启动 confirm/rate task | kit 0.7.1 | `npm test`；锁顺序代码复核 |
+| CONDUCTOR-KIT-ISOLATION | 共存/conductor | `MANAGED_PREFIXES` 去掉 `novel_`/`kit_`；总控开关/scope 不再拦 kit | conductor 0.2.1 | gateway 边界测试；all-six `novel_query` 返回 ok |
+| CONDUCTOR-FANFIC-PROJECT | 共存/conductor | `cue_run` schema 增加 `fanfic_project`；run 未声明项目时允许显式 project | conductor 0.2.1 | five-stack `cue_run` blocked=false，fanfic ready |
+| CONDUCTOR-RUNBOOK-TOOLS | 路由/conductor | `fic_canon→fic_contract`；plan `novel_plan→beat_plan`；verify 不再硬绑 beat.verify | conductor 0.2.1 | run.json runbook 与 `npm test` |
+| FADE-BEAT-SCHEMA3 | 记忆/fade | 只读 beat schema 3 的 canon/obligations/decisions | fade 0.8.3 | schema 3 适配测试 |
+| FANFIC-MISSION-PATH | 安全/fanfic | 任务卡 project/chapter 路径校验，拒绝穿越/保留名 | fanfic 0.4.4 | 路径负例测试 |
+| VOICE-PROJECT-BINDING | 风格/voice | 多项目无显式 project 时返回歧义，不取第一个 | voice 0.4.1 | 多项目测试 |
+| VOICE-POLISH-PATH | 安全/voice | `write:true` 只允许工作区内普通文件，拒绝越界/符号链接 | voice 0.4.1 | 越界写测试 |
+| BEAT-PERSONA-READ | 拍板/beat | 纳入未发版 voice 人物画像只读建议 `personaText` | beat 0.12.2 | `voice-guidance` 测试；426/426 |
+
+下一批仍是：真实 GUI 七页冒烟、all-six 模型路由矩阵、fade/voice 与 beat/fanfic 同 run 四域链路、计数口径统一、冻结 tarball 后重跑。
+
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.1 — 2026-11-27 · 独立基座修复（本地版，未发布）
+
+### 修复
+
+- **继承导入 fanfic 建立原生 canon**：原文复制进 kit `sources/`，把 fanfic 已确认的 facts/characters/addresses/secrets/worldRules/forbidden 投影成 kit `world.json` 并绑定 `settings.mode=fanfic` + `activeCanonSourceId`；不再出现“导入成功但静默落回原创模式”或开章 `canon-required`。源文件仍只读，不修改。
+- **headless/CLI 工作区兜底**：没有 `exec.cwd` 且没有 agent 级 `workingDirectory` 时使用进程工作目录；8 个 `novel_*` 工具不再报“拿不到工作区”。
+- **原生 canon 空绑定**：`novel_query(view="canon")` 对原生书不再解引用 null `binding`；无 canon 时返回空 canon。
+- **文风档案锁顺序**：`confirmStyleProfile`/评分等改为先拿跨进程锁再启动 task，避免另一进程持锁时已经改了内存/文件。
+- **模型可见描述**：`novel_chapter_start/finish` 去掉“读/写 beat/fade 账本”的旧口径；`required_capabilities` 明确只是 kit 原生能力标签，不依赖五件。
+- **工具输出 lossless**：工具返回值统一做 JSON 归一，修掉 `novel_query(view="ledgers")` 的 `value is not lossless JSON`。
+- **查询截断**：非 session 工具结果从 400 字放宽到 4000 字并明确标“已截断”，避免 canon/memory 数组被切在半条记录上。
+- **发布自检**：真实验收失败不再一律降格为“环境跳过”；只有明确的账本缺失/ENOENT 才跳过，其余算失败。
+
+### 测试
+
+- `npm test` 265 项，262 过 / 3 跳过 / 0 失败；`npm run check` 通过。3 项跳过是真实书夹具显式 opt-out。
+- 新增 `test/native-import.test.mjs` 用例：fanfic + mode=fanfic 建原生 canon 并原生开章。
+
 ## 0.7.0 — kit v2 独立工作台（2026-11-27）
 
 - 新增 `lib/native/`：`schema.js`（`kit.books`/`kit.book`/`kit.decisions`/`kit.memory`）、`store.js`（books.json + bookId + `正文/<bookId>/`）、`decisions.js`、`memory.js`、`import/legacy.js`（五件只读导入）。

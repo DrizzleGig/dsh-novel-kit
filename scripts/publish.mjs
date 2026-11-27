@@ -116,7 +116,11 @@ else fail('加载链验收失败（「重启后整包消失」这类事故由它
 section('真实验收（复制账本，不动原书）')
 const real = node([path.join('scripts', 'acceptance-real.mjs')], { allowFail: true, quiet: true })
 if (real.ok) ok('acceptance:real 通过')
-else console.log('  ⚠ 跳过真实验收（没有可用账本或环境不满足）；不阻塞发布，但发布说明里要写清楚')
+else if (/没有可用账本|账本不存在|环境不满足|ENOENT|skipped|skip/iu.test(String(real.out ?? ''))) {
+  console.log('  ⚠ 跳过真实验收（没有可用账本或环境不满足）；不阻塞发布，但发布说明里要写清楚')
+} else {
+  fail('真实验收失败（不是环境缺失，不能降格为跳过）')
+}
 
 // ── 5. 工作区干净 ─────────────────────────────────────────────────────────────
 section('工作区状态')

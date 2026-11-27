@@ -10,6 +10,8 @@ import { resolveBook, bodyDir, importsDir } from '../lib/native/store.js'
 import { readDecisions } from '../lib/native/decisions.js'
 import { readMemory } from '../lib/native/memory.js'
 import { readMedia } from '../lib/native/media.js'
+import { readProjectSettings } from '../lib/engine/settings.js'
+import { startChapter } from '../lib/engine/chapter.js'
 
 function writeJson(file, value) {
   mkdirSync(path.dirname(file), { recursive: true })
@@ -65,6 +67,26 @@ test('previewLegacy：只读列出 beat/fade/fanfic/正文，不创建 kit 原�
   assert.ok(fanfic)
   assert.equal(fanfic.hasFanfic, true)
   assert.equal(existsSync(path.join(root, '.dsh-novel-kit')), false)
+})
+
+test('importLegacyBook：fanfic + mode=fanfic 建立原生 canon 绑定并可原生开章', async () => {
+  const root = legacyWorkspace()
+  writeJson(path.join(root, '.dsh-novel-fanfic', 'douluo', 'canon', 'characters.json'), [{ id: 'c1', name: '唐三', aliases: ['小三'], status: 'confirmed' }])
+  writeJson(path.join(root, '.dsh-novel-fanfic', 'douluo', 'canon', 'addresses.json'), [{ id: 'a1', from: '小舞', to: '唐三', form: '三哥', status: 'confirmed' }])
+  const result = await importLegacyBook({ root, book: '斗罗', mode: 'fanfic', sources: { fanfic: 'douluo' } })
+  assert.equal(result.ok, true)
+  assert.equal(result.canon?.bound, true)
+  assert.equal(result.canon?.ready, true)
+  assert.ok(result.canon.sourceId)
+
+  const settings = await readProjectSettings(root, '斗罗')
+  assert.equal(settings.mode, 'fanfic')
+  assert.equal(settings.activeCanonSourceId, result.canon.sourceId)
+
+  const started = await startChapter({ root, book: '斗罗', chapter: 2, requiredCapabilities: ['fanfic'], strict: true })
+  assert.equal(started.ok, true)
+  assert.equal(started.session.mode, 'fanfic')
+  assert.equal(started.context.segments.find((segment) => segment.component === 'fanfic')?.available, true)
 })
 
 test('importLegacyBook：复制到原生、写 manifest、源文件字节不变、正文按 bookId 隔离', async () => {
