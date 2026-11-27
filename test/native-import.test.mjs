@@ -171,6 +171,8 @@ test('importLegacyBook：复制到原生、写 manifest、源文件字节不变�
 
   assert.equal(readFileSync(path.join(bodyDir(root, result.bookId), '第1章_开端.md'), 'utf8'), '唐三走进学院。')
   assert.ok(existsSync(path.join(importsDir(root), result.batchId, 'manifest.json')))
+  const journal = JSON.parse(readFileSync(path.join(importsDir(root), result.batchId, 'journal.json'), 'utf8'))
+  assert.equal(journal.status, 'completed')
   assert.ok(existsSync(path.join(importsDir(root), result.batchId, 'fanfic', 'canon', 'facts.json')))
   assert.ok(existsSync(path.join(importsDir(root), result.batchId, 'voice', 'profiles', 'p1.json')))
   assert.equal(existsSync(path.join(root, '.dsh-novel-kit', '.dsh-novel-beat')), false)

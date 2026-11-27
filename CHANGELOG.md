@@ -11,6 +11,8 @@
 - **模型可见描述**：`novel_chapter_start/finish` 去掉“读/写 beat/fade 账本”的旧口径；`required_capabilities` 明确只是 kit 原生能力标签，不依赖五件。
 - **工具输出 lossless**：工具返回值统一做 JSON 归一，修掉 `novel_query(view="ledgers")` 的 `value is not lossless JSON`。
 - **查询截断**：非 session 工具结果从 400 字放宽到 4000 字并明确标“已截断”，避免 canon/memory 数组被切在半条记录上。
+- **导入 journal 标记**：批次先写 `journal.json status=importing`，成功写 `completed`；失败至少留下可识别现场。自动恢复/回滚仍列已知问题。
+- **fanfic 章节映射**：导入时复用 fanfic 的 `index.json`/`chapters/`，kit 原生 source 保留 7 章，`novel_canon read ch006` 可读。
 - **发布自检**：真实验收失败不再一律降格为“环境跳过”；只有明确的账本缺失/ENOENT 才跳过，其余算失败。
 
 ### 测试
