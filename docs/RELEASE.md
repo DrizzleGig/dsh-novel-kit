@@ -1,6 +1,6 @@
 # dsh-novel-kit 发布清单
 
-> 2026-11-27：0.7.1/0.7.2 已发布；0.7.2 只修正 README 版本口径。四页 tab 冒烟与缺口见 `D:\Novel-gate\docs\kit-0.7.0-发布准备.md`。本清单的 0.5 版本号/验收项仅作流程示例。
+> 2026-11-27：0.7.1/0.7.2/0.7.3 已发布；0.7.2 修 README 版本口径，0.7.3 补 README 徽章。四页 tab 冒烟与缺口见 `D:\Novel-gate\docs\kit-0.7.0-发布准备.md`。本清单的 0.5 版本号/验收项仅作流程示例。
 
 > 发布 = **自检** → **真实 DSH 冒烟** → 登录 → `npm publish` → 校 registry → GitHub Release。
 > 本机默认源是 npmmirror，**所有版本查询都要显式加 `--registry=https://registry.npmjs.org`**，否则会读到滞后的镜像。
