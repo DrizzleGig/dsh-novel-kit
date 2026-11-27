@@ -11,14 +11,16 @@
 - **模型可见描述**：`novel_chapter_start/finish` 去掉“读/写 beat/fade 账本”的旧口径；`required_capabilities` 明确只是 kit 原生能力标签，不依赖五件。
 - **工具输出 lossless**：工具返回值统一做 JSON 归一，修掉 `novel_query(view="ledgers")` 的 `value is not lossless JSON`。
 - **查询截断**：非 session 工具结果从 400 字放宽到 4000 字并明确标“已截断”，避免 canon/memory 数组被切在半条记录上。
-- **导入 journal 标记**：批次先写 `journal.json status=importing`，成功写 `completed`；失败至少留下可识别现场。自动恢复/回滚仍列已知问题。
+- **导入 operationId 幂等**：同一 `operationId` 的重复导入返回同一批次与结果，不再新建批次或递增 settings revision；同 id 另一本书会被拒绝。
+- **导入回滚/自动重试**：`rollbackImport` 对新书失败批次删除 bookId/正文/settings/books.json 记录并条件删除本次新建的 source/contract；同 `operationId` 的失败新书批次会先自动回滚再重试。已有书拒绝自动删除，交给作者备份恢复。
+- **导入 journal 标记**：批次先写 `journal.json status=importing`，成功写 `completed`，回滚写 `rolledBack`；失败至少留下可识别现场。
 - **fanfic 章节映射**：导入时复用 fanfic 的 `index.json`/`chapters/`，kit 原生 source 保留 7 章，`novel_canon read ch006` 可读。
 - **发布自检**：真实验收失败不再一律降格为“环境跳过”；只有明确的账本缺失/ENOENT 才跳过，其余算失败。
 
 ### 测试
 
-- `npm test` 268 项，265 过 / 3 跳过 / 0 失败；`npm run check` 通过。3 项跳过是真实书夹具显式 opt-out。
-- 新增 `test/native-import.test.mjs` 用例：fanfic + mode=fanfic 建原生 canon 并原生开章；多来源无法按 sourceId 匹配时拒绝导入；canon 投影变化时拒绝复用旧契约；复用 fanfic 章节 index。
+- `npm test` 271 项，268 过 / 3 跳过 / 0 失败；`npm run check` 通过。3 项跳过是真实书夹具显式 opt-out。
+- 新增 `test/native-import.test.mjs` 用例：fanfic + mode=fanfic 建原生 canon 并原生开章；多来源无法按 sourceId 匹配时拒绝导入；canon 投影变化时拒绝复用旧契约；复用 fanfic 章节 index；operationId 幂等；新书失败批次回滚与自动重试。
 
 ## 0.7.0 — kit v2 独立工作台（2026-11-27）
 

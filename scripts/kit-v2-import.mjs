@@ -6,7 +6,7 @@
 //
 // 只写 .dsh-novel-kit/ 与 正文/<bookId>/；五件源目录只读。
 import path from 'node:path'
-import { previewLegacy, importLegacyBook } from '../lib/native/import/legacy.js'
+import { previewLegacy, importLegacyBook, rollbackImport } from '../lib/native/import/legacy.js'
 import { migrateKitBook } from '../lib/native/import/kit-legacy.js'
 import { exportBook } from '../lib/native/backup.js'
 import { resolveBook } from '../lib/native/store.js'
@@ -55,11 +55,18 @@ async function main() {
       book: args.book,
       mode: args.mode === 'fanfic' ? 'fanfic' : 'original',
       replace: args.replace === true,
+      operationId: args['operation-id'] ?? null,
       sources: {
         voice: args.voice ?? null,
         fanfic: args.fanfic ?? null,
       },
     })
+    console.log(JSON.stringify(result, null, 2))
+    return
+  }
+  if (args.action === 'rollback') {
+    if (!args.batch) throw new Error('rollback 必须给 --batch <导入批次 id>')
+    const result = await rollbackImport({ root, batchId: args.batch, reason: 'cli' })
     console.log(JSON.stringify(result, null, 2))
     return
   }

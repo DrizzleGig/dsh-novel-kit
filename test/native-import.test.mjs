@@ -1,12 +1,12 @@
 // 五件单向导入：只读源、复制到 kit 原生、生成 manifest；不改源文件。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { sha256 } from '../lib/storage/atomic-json.js'
-import { previewLegacy, importLegacyBook } from '../lib/native/import/legacy.js'
-import { resolveBook, bodyDir, importsDir } from '../lib/native/store.js'
+import { previewLegacy, importLegacyBook, rollbackImport } from '../lib/native/import/legacy.js'
+import { resolveBook, bodyDir, importsDir, ensureBook, readBooks } from '../lib/native/store.js'
 import { readDecisions } from '../lib/native/decisions.js'
 import { readMemory } from '../lib/native/memory.js'
 import { readMedia } from '../lib/native/media.js'
@@ -137,6 +137,50 @@ test('importLegacyBook：复用 fanfic 的章节 index，不依赖 kit 通用分
   const meta = await readSourceMeta(root, result.canon.sourceId)
   assert.equal(meta.chapterCount, 2)
   assert.equal(await readSourceChapter(root, result.canon.sourceId, 'ch002'), '第二章。')
+})
+
+test('importLegacyBook：同一 operationId 重复调用返回同一批次，不新建', async () => {
+  const root = legacyWorkspace()
+  const first = await importLegacyBook({ root, book: '斗罗', mode: 'fanfic', operationId: 'op-test-1', sources: { fanfic: 'douluo' } })
+  const second = await importLegacyBook({ root, book: '斗罗', mode: 'fanfic', operationId: 'op-test-1', sources: { fanfic: 'douluo' } })
+  assert.equal(second.ok, true)
+  assert.equal(second.reused, true)
+  assert.equal(second.batchId, first.batchId)
+  const dirs = readdirSync(path.join(root, '.dsh-novel-kit', 'imports'), { withFileTypes: true }).filter((entry) => entry.isDirectory())
+  assert.equal(dirs.length, 1)
+})
+
+test('rollbackImport：新书失败批次可清理 bookId/正文/settings/books.json', async () => {
+  const root = legacyWorkspace()
+  const book = await ensureBook({ root, book: '回滚书' })
+  const batchId = 'imp-rollback-test'
+  const batchDir = path.join(importsDir(root), batchId)
+  mkdirSync(batchDir, { recursive: true })
+  writeJson(path.join(batchDir, 'journal.json'), {
+    schemaVersion: 1, batchId, book: '回滚书', mode: 'original', bookId: book.bookId,
+    newBook: true, operationId: 'op-rollback', status: 'importing',
+  })
+  const result = await rollbackImport({ root, batchId, reason: 'test' })
+  assert.equal(result.ok, true)
+  assert.equal(existsSync(path.join(root, '.dsh-novel-kit', 'books', book.bookId)), false)
+  assert.equal(existsSync(bodyDir(root, book.bookId)), false)
+  assert.equal((await readBooks(root)).books.some((item) => item.bookId === book.bookId), false)
+})
+
+test('importLegacyBook：同 operationId 的失败新书批次会先自动回滚再重试', async () => {
+  const root = legacyWorkspace()
+  const book = await ensureBook({ root, book: '斗罗' })
+  const batchId = 'imp-auto-retry'
+  const batchDir = path.join(importsDir(root), batchId)
+  mkdirSync(batchDir, { recursive: true })
+  writeJson(path.join(batchDir, 'journal.json'), {
+    schemaVersion: 1, batchId, book: '斗罗', mode: 'fanfic', bookId: book.bookId,
+    newBook: true, operationId: 'op-auto-retry', status: 'importing',
+  })
+  const result = await importLegacyBook({ root, book: '斗罗', mode: 'fanfic', operationId: 'op-auto-retry', sources: { fanfic: 'douluo' } })
+  assert.equal(result.ok, true)
+  const journal = JSON.parse(readFileSync(path.join(batchDir, 'journal.json'), 'utf8'))
+  assert.equal(journal.status, 'rolledBack')
 })
 
 test('importLegacyBook：复制到原生、写 manifest、源文件字节不变、正文按 bookId 隔离', async () => {
