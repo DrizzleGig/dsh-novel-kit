@@ -103,6 +103,21 @@ test('importLegacyBook：多来源无法按 sourceId 匹配时拒绝，不写半
   assert.equal(existsSync(path.join(root, '.dsh-novel-kit', 'books.json')), false)
 })
 
+test('importLegacyBook：原文不变但 fanfic canon 变化时拒绝复用旧投影', async () => {
+  const root = legacyWorkspace()
+  writeJson(path.join(root, '.dsh-novel-fanfic', 'douluo', 'canon', 'facts.json'), [
+    { id: 'f1', subject: '唐三', predicate: '身份', value: '学员', status: 'confirmed' },
+  ])
+  await importLegacyBook({ root, book: '斗罗', mode: 'fanfic', sources: { fanfic: 'douluo' } })
+  writeJson(path.join(root, '.dsh-novel-fanfic', 'douluo', 'canon', 'facts.json'), [
+    { id: 'f1', subject: '唐三', predicate: '身份', value: '史莱克学员', status: 'confirmed' },
+  ])
+  await assert.rejects(
+    () => importLegacyBook({ root, book: '斗罗', mode: 'fanfic', replace: true, sources: { fanfic: 'douluo' } }),
+    /投影已变化/,
+  )
+})
+
 test('importLegacyBook：复制到原生、写 manifest、源文件字节不变、正文按 bookId 隔离', async () => {
   const root = legacyWorkspace()
   const beatFile = path.join(root, '.dsh-novel-beat', '斗罗', 'book.json')
